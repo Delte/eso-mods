@@ -6,4 +6,4 @@
 ## SavedVariables: GamePadHelperSavedVars
 
 GamePadHelper.lua
-
+bindings.xml
