@@ -270,10 +270,12 @@ local function GetProvisioningMaterialCost(recipeListIndex, recipeIndex)
   return totalTtcCost, totalGameCost, materialLinks
 end
 
--- enchantingInstance is ENCHANTING (keyboard) or self (gamepad ZO_GamepadEnchanting)
+-- enchantingInstance is ENCHANTING (keyboard) or GAMEPAD_ENCHANTING (gamepad)
 -- GetAllCraftingBagAndSlots() returns potencyBag, potencySlot, essenceBag, essenceSlot, aspectBag, aspectSlot
 local function GetEnchantingMaterialCost(enchantingInstance)
-  if not enchantingInstance then return 0, 0, {} end
+  if not enchantingInstance or type(enchantingInstance.GetAllCraftingBagAndSlots) ~= "function" then
+    return 0, 0, {}
+  end
   local totalTtcCost = 0
   local totalGameCost = 0
   local materialLinks = {}
@@ -299,40 +301,40 @@ local function GetEnchantingMaterialCost(enchantingInstance)
   return totalTtcCost, totalGameCost, materialLinks
 end
 
-local function GetAlchemyMaterialCost()
+local function GetAlchemyMaterialCostFromInstance(instance)
   local totalTtcCost = 0
   local totalGameCost = 0
   local materialLinks = {}
 
-  -- Get solvent
-  local solventLink = ALCHEMY:GetSlotItemLink(1)
-  if solventLink then
-    local priceInfo = SafeGetPriceInfo(solventLink)
-    if priceInfo then
-      local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
-      local gamePrice = GetItemLinkValue(solventLink, false)
-      totalTtcCost = totalTtcCost + ttcPrice
-      totalGameCost = totalGameCost + gamePrice
-      table.insert(materialLinks, {link = solventLink, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
-    end
+  if not instance or type(instance.GetAllCraftingBagAndSlots) ~= "function" then
+    return totalTtcCost, totalGameCost, materialLinks
   end
 
-  -- Get reagents (slots 2-5)
-  for slot = 2, 5 do
-    local reagentLink = ALCHEMY:GetSlotItemLink(slot)
-    if reagentLink then
-      local priceInfo = SafeGetPriceInfo(reagentLink)
-      if priceInfo then
-        local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
-        local gamePrice = GetItemLinkValue(reagentLink, false)
-        totalTtcCost = totalTtcCost + ttcPrice
-        totalGameCost = totalGameCost + gamePrice
-        table.insert(materialLinks, {link = reagentLink, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
+  -- Returns: solventBag, solventSlot, bag1, slot1, bag2, slot2, bag3, slot3
+  local sb, ss, b1, s1, b2, s2, b3, s3 = instance:GetAllCraftingBagAndSlots()
+  local pairs = {{sb, ss}, {b1, s1}, {b2, s2}, {b3, s3}}
+  for _, pair in ipairs(pairs) do
+    local bag, slot = pair[1], pair[2]
+    if bag and slot then
+      local link = GetItemLink(bag, slot)
+      if link and link ~= "" then
+        local priceInfo = SafeGetPriceInfo(link)
+        if priceInfo then
+          local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
+          local gamePrice = GetItemLinkValue(link, false)
+          totalTtcCost = totalTtcCost + ttcPrice
+          totalGameCost = totalGameCost + gamePrice
+          table.insert(materialLinks, {link = link, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
+        end
       end
     end
   end
 
   return totalTtcCost, totalGameCost, materialLinks
+end
+
+local function GetAlchemyMaterialCost()
+  return GetAlchemyMaterialCostFromInstance(ALCHEMY)
 end
 
 -- toolTipControl can be a control directly, or a function(self) that returns one
@@ -543,7 +545,7 @@ local function InitializeCraftingHooks()
         function(self) return self and self.resultTooltip and self.resultTooltip.tip end,
         "UpdateTooltip",
         function(self) return self:GetResultItemLink() end,
-        function(self) return GetEnchantingMaterialCost(self) end
+        function(self) return GetEnchantingMaterialCost(GAMEPAD_ENCHANTING or self) end
       )
     end
 
@@ -554,26 +556,12 @@ local function InitializeCraftingHooks()
         ZO_GamepadAlchemy,
         function(self) return self and self.tooltip and self.tooltip.tip end,
         "UpdateTooltip",
-        function(self) return self:GetResultItemLink() end,
         function(self)
-          local totalTtcCost = 0
-          local totalGameCost = 0
-          local materialLinks = {}
-          for slot = 1, 5 do
-            local reagentLink = self:GetSlotItemLink(slot)
-            if reagentLink then
-              local priceInfo = SafeGetPriceInfo(reagentLink)
-              if priceInfo then
-                local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
-                local gamePrice = GetItemLinkValue(reagentLink, false)
-                totalTtcCost = totalTtcCost + ttcPrice
-                totalGameCost = totalGameCost + gamePrice
-                table.insert(materialLinks, {link = reagentLink, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
-              end
-            end
-          end
-          return totalTtcCost, totalGameCost, materialLinks
-        end
+          local instance = GAMEPAD_ALCHEMY or self
+          if type(instance.GetResultItemLink) ~= "function" then return nil end
+          return instance:GetResultItemLink()
+        end,
+        function(self) return GetAlchemyMaterialCostFromInstance(GAMEPAD_ALCHEMY or self) end
       )
     end
   end
