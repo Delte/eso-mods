@@ -1,9 +1,9 @@
-local ADDON_NAME = "GamePadHelper_TooltipPrice"
-local ADDON_VERSION = 1.01
+﻿local ADDON_NAME = "GamePadHelper_TooltipPrice"
+local ADDON_VERSION = 1.03
 
 -- Ensure ESO API compatibility
-if GetAPIVersion() < 101047 then
-    d("[" .. ADDON_NAME .. "] ESO API version too old. Requires API 101047 or higher.")
+if GetAPIVersion() < 101049 then
+    d("[" .. ADDON_NAME .. "] ESO API version too old. Requires API 101049 or higher.")
     return
 end
 
@@ -49,8 +49,8 @@ local function getPriceSummary(gameValue, gameMaxValue, ttcValue, suffix)
      and SafeFormatNumber(gameValue or 0, 0)
      or zo_strformat(SI_ITEM_FORMAT_STR_EFFECTIVE_VALUE_OF_MAX, gameValue, gameMaxValue)
 
-   -- Check if TTC is available
-   local isTtcAvailable = TamrielTradeCentre and TamrielTradeCentrePrice and ttcValue and ttcValue > 0
+   local isTtcLoaded = TamrielTradeCentre and TamrielTradeCentrePrice
+   local isTtcAvailable = isTtcLoaded and ttcValue and ttcValue > 0
 
    if isTtcAvailable then
      local ttcValueText = SafeFormatNumber(ttcValue, 0)
@@ -61,8 +61,15 @@ local function getPriceSummary(gameValue, gameMaxValue, ttcValue, suffix)
        COLOR_TTC:Colorize(ttcValueText),
        suffix or ""
      ))
+   elseif isTtcLoaded then
+     return COLOR_TITLE:Colorize(string.format(
+       "%s %s %s %s",
+       PRICE_ICON,
+       COLOR_GAME:Colorize(gameValueText),
+       COLOR_DETAILS:Colorize("(no TTC price)"),
+       suffix or ""
+     ))
    else
-     -- Only show in-game price when TTC is not available
      return COLOR_TITLE:Colorize(string.format(
        "%s %s %s",
        PRICE_ICON,
@@ -127,16 +134,15 @@ local function Tooltip_AddItemTitle_After(self, itemLink, name)
   local section = self:AcquireSection({
     paddingTop = 3,
     paddingBottom = 3,
-    customSpacing = 5, 
-    childSpacing = 5, 
-    widthPercent = 100, 
-    width = 650 - 2 * 40,
-    fontSize = 30, 
-    fontFace = "$(GAMEPAD_LIGHT_FONT)", 
-    fontColorType = INTERFACE_COLOR_TYPE_TEXT_COLORS, 
-    fontColorField = INTERFACE_TEXT_COLOR_NORMAL, 
+    customSpacing = 5,
+    childSpacing = 5,
+    widthPercent = 100,
+    fontSize = 30,
+    fontFace = "$(GAMEPAD_LIGHT_FONT)",
+    fontColorType = INTERFACE_COLOR_TYPE_TEXT_COLORS,
+    fontColorField = INTERFACE_TEXT_COLOR_NORMAL,
     fontStyle = "soft-shadow-thick",
-    uppercase = false, 
+    uppercase = false,
   })
 
   -- Check if TTC is available
@@ -184,4 +190,426 @@ for index, tooltip in ipairs(tooltips) do
   ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "LayoutBagItem", Tooltip_LayoutBagItem_Before)
   ZO_PostHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddItemTitle", Tooltip_AddItemTitle_After)
   ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddItemValue", Tooltip_AddItemValue_Before)
+end
+
+-- TTC Price Support for Crafting Panels (Gamepad UI)
+-- Adapted from TamrielTradeCentre's keyboard implementation
+
+local MATERIAL_ICON = zo_iconFormatInheritColor("EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds", 24, 24)
+
+local function GetMaterialCostTotal(craftType, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+  local totalTtcCost = 0
+  local totalGameCost = 0
+  local materialLinks = {}
+
+  -- Get material item link based on crafting type
+  local materialLink = GetSmithingPatternMaterialItemLink(patternIndex, materialIndex)
+  if materialLink then
+    local matPriceInfo = SafeGetPriceInfo(materialLink)
+    if matPriceInfo then
+      local matTtcPrice = (matPriceInfo.SuggestedPrice or 0) > 0 and matPriceInfo.SuggestedPrice or (matPriceInfo.Avg or 0)
+      local matGamePrice = GetItemLinkValue(materialLink, false)
+      totalTtcCost = totalTtcCost + (matTtcPrice * materialQuantity)
+      totalGameCost = totalGameCost + (matGamePrice * materialQuantity)
+      table.insert(materialLinks, {link = materialLink, qty = materialQuantity, ttcPrice = matTtcPrice, gamePrice = matGamePrice})
+    end
+  end
+
+  -- Get style material
+  local styleLink = GetItemStyleMaterialLink(styleIndex)
+  if styleLink then
+    local stylePriceInfo = SafeGetPriceInfo(styleLink)
+    if stylePriceInfo then
+      local styleTtcPrice = (stylePriceInfo.SuggestedPrice or 0) > 0 and stylePriceInfo.SuggestedPrice or (stylePriceInfo.Avg or 0)
+      local styleGamePrice = GetItemLinkValue(styleLink, false)
+      totalTtcCost = totalTtcCost + styleTtcPrice
+      totalGameCost = totalGameCost + styleGamePrice
+      table.insert(materialLinks, {link = styleLink, qty = 1, ttcPrice = styleTtcPrice, gamePrice = styleGamePrice})
+    end
+  end
+
+  -- Get trait material (if applicable)
+  if traitIndex and traitIndex > 0 then
+    local traitLink = GetSmithingTraitItemLink(traitIndex)
+    if traitLink then
+      local traitPriceInfo = SafeGetPriceInfo(traitLink)
+      if traitPriceInfo then
+        local traitTtcPrice = (traitPriceInfo.SuggestedPrice or 0) > 0 and traitPriceInfo.SuggestedPrice or (traitPriceInfo.Avg or 0)
+        local traitGamePrice = GetItemLinkValue(traitLink, false)
+        totalTtcCost = totalTtcCost + traitTtcPrice
+        totalGameCost = totalGameCost + traitGamePrice
+        table.insert(materialLinks, {link = traitLink, qty = 1, ttcPrice = traitTtcPrice, gamePrice = traitGamePrice})
+      end
+    end
+  end
+
+  return totalTtcCost, totalGameCost, materialLinks
+end
+
+local function GetProvisioningMaterialCost(recipeListIndex, recipeIndex)
+  local totalTtcCost = 0
+  local totalGameCost = 0
+  local materialLinks = {}
+
+  local numIngredients = select(3, GetRecipeInfo(recipeListIndex, recipeIndex))
+  for i = 1, numIngredients do
+    local itemLink = GetRecipeIngredientItemLink(recipeListIndex, recipeIndex, i)
+    if itemLink then
+      local reqQty = GetRecipeIngredientRequiredQuantity(recipeListIndex, recipeIndex, i)
+      local priceInfo = SafeGetPriceInfo(itemLink)
+      if priceInfo then
+        local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
+        local gamePrice = GetItemLinkValue(itemLink, false)
+        totalTtcCost = totalTtcCost + (ttcPrice * reqQty)
+        totalGameCost = totalGameCost + (gamePrice * reqQty)
+        table.insert(materialLinks, {link = itemLink, qty = reqQty, ttcPrice = ttcPrice, gamePrice = gamePrice})
+      end
+    end
+  end
+
+  return totalTtcCost, totalGameCost, materialLinks
+end
+
+-- enchantingInstance is ENCHANTING (keyboard) or self (gamepad ZO_GamepadEnchanting)
+-- GetAllCraftingBagAndSlots() returns potencyBag, potencySlot, essenceBag, essenceSlot, aspectBag, aspectSlot
+local function GetEnchantingMaterialCost(enchantingInstance)
+  if not enchantingInstance then return 0, 0, {} end
+  local totalTtcCost = 0
+  local totalGameCost = 0
+  local materialLinks = {}
+
+  local b1, s1, b2, s2, b3, s3 = enchantingInstance:GetAllCraftingBagAndSlots()
+  for _, pair in ipairs({{b1, s1}, {b2, s2}, {b3, s3}}) do
+    local bag, slot = pair[1], pair[2]
+    if bag and slot then
+      local link = GetItemLink(bag, slot)
+      if link and link ~= "" then
+        local priceInfo = SafeGetPriceInfo(link)
+        if priceInfo then
+          local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
+          local gamePrice = GetItemLinkValue(link, false)
+          totalTtcCost = totalTtcCost + ttcPrice
+          totalGameCost = totalGameCost + gamePrice
+          table.insert(materialLinks, {link = link, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
+        end
+      end
+    end
+  end
+
+  return totalTtcCost, totalGameCost, materialLinks
+end
+
+local function GetAlchemyMaterialCost()
+  local totalTtcCost = 0
+  local totalGameCost = 0
+  local materialLinks = {}
+
+  -- Get solvent
+  local solventLink = ALCHEMY:GetSlotItemLink(1)
+  if solventLink then
+    local priceInfo = SafeGetPriceInfo(solventLink)
+    if priceInfo then
+      local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
+      local gamePrice = GetItemLinkValue(solventLink, false)
+      totalTtcCost = totalTtcCost + ttcPrice
+      totalGameCost = totalGameCost + gamePrice
+      table.insert(materialLinks, {link = solventLink, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
+    end
+  end
+
+  -- Get reagents (slots 2-5)
+  for slot = 2, 5 do
+    local reagentLink = ALCHEMY:GetSlotItemLink(slot)
+    if reagentLink then
+      local priceInfo = SafeGetPriceInfo(reagentLink)
+      if priceInfo then
+        local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
+        local gamePrice = GetItemLinkValue(reagentLink, false)
+        totalTtcCost = totalTtcCost + ttcPrice
+        totalGameCost = totalGameCost + gamePrice
+        table.insert(materialLinks, {link = reagentLink, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
+      end
+    end
+  end
+
+  return totalTtcCost, totalGameCost, materialLinks
+end
+
+-- toolTipControl can be a control directly, or a function(self) that returns one
+-- (needed for gamepad panels where the tooltip is self.resultTooltip.tip)
+local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName, getItemLinkFunction, getMaterialCostFunction)
+  SecurePostHook(hookObject, functionName, function(...)
+    local actualTooltipControl = toolTipControl
+    if type(toolTipControl) == "function" then
+      actualTooltipControl = toolTipControl(select(1, ...))
+    end
+    if not actualTooltipControl then return end
+
+    local itemLink = getItemLinkFunction(...)
+    if itemLink == nil then
+      return
+    end
+
+    local ttcPriceInfo = SafeGetPriceInfo(itemLink)
+    local ttcPrice = 0
+    if ttcPriceInfo then
+      ttcPrice = (ttcPriceInfo.SuggestedPrice or 0) > 0
+        and ttcPriceInfo.SuggestedPrice
+        or (ttcPriceInfo.Avg or 0)
+    end
+
+    local gamePrice = GetItemLinkValue(itemLink, false)
+    local hasValue = gamePrice > 0 or ttcPrice > 0
+
+    local hasMaterialCost = false
+    local totalMaterialTtcCost = 0
+    local totalMaterialGameCost = 0
+
+    -- Get material costs if function provided
+    if getMaterialCostFunction then
+      local matTtcCost, matGameCost, _ = getMaterialCostFunction(...)
+      if matTtcCost and matTtcCost > 0 then
+        totalMaterialTtcCost = matTtcCost
+        totalMaterialGameCost = matGameCost
+        hasMaterialCost = true
+      end
+    end
+
+    if hasValue or hasMaterialCost then
+      local section = actualTooltipControl:AcquireSection({
+        paddingTop = 3,
+        paddingBottom = 3,
+        customSpacing = 5,
+        childSpacing = 5,
+        widthPercent = 100,
+        horizontalAlignment = TEXT_ALIGN_LEFT,
+        fontSize = 30,
+        fontFace = "$(GAMEPAD_LIGHT_FONT)",
+        fontColorType = INTERFACE_COLOR_TYPE_TEXT_COLORS,
+        fontColorField = INTERFACE_TEXT_COLOR_NORMAL,
+        fontStyle = "soft-shadow-thick",
+        uppercase = false,
+      })
+
+      -- Show material costs
+      if hasMaterialCost then
+        local matCostText = SafeFormatNumber(totalMaterialTtcCost, 0)
+        local matGameText = SafeFormatNumber(totalMaterialGameCost, 0)
+        section:AddLine(COLOR_TITLE:Colorize(string.format(
+          "%s %s %s %s",
+          PRICE_ICON,
+          COLOR_GAME:Colorize(matGameText),
+          COLOR_TTC:Colorize(matCostText),
+          " (materials)"
+        )))
+      end
+
+      -- Show result item price
+      section:AddLine(getPriceSummary(gamePrice, gamePrice, ttcPrice))
+
+      if ttcPriceInfo.AmountCount and ttcPriceInfo.AmountCount > 0 then
+        section:AddLine(getPriceBreakdown(ttcPriceInfo))
+      end
+
+      actualTooltipControl:AddSection(section)
+    end
+  end)
+end
+
+local craftingHooksDone = {}
+
+-- Initialize crafting panel hooks
+local function InitializeCraftingHooks()
+  -- Hook into Smithing Improvement Panel
+  if ZO_SmithingTopLevelImprovementPanelResultTooltip then
+    AddCraftingPriceTooltip(ZO_SmithingImprovement, ZO_SmithingTopLevelImprovementPanelResultTooltip, "SetupResultTooltip", function(_, itemToImproveBagId, itemToImproveSlotIndex)
+      if itemToImproveBagId == nil or itemToImproveSlotIndex == nil then
+        return nil
+      end
+      local itemLink = GetItemLink(itemToImproveBagId, itemToImproveSlotIndex)
+      if itemLink == nil then
+        return nil
+      end
+      -- Get the improved version (next quality level)
+      local qualities = {[0] = 357, [1] = 366, [2] = 367, [3] = 368, [4] = 369, [5] = 370}
+      local currentQuality = GetItemLinkFunctionalQuality(itemLink)
+      local newQuality = currentQuality
+      if currentQuality < 5 then
+        newQuality = qualities[currentQuality + 1]
+      end
+      -- Create improved item link
+      local pattern = "(|H%d:item:%d+):(%d+)(:.*)"
+      local improvedLink = itemLink:gsub(pattern, "%1:" .. newQuality .. "%3")
+      return improvedLink
+    end, nil)
+  end
+
+  -- Hook into Smithing Creation/Crafting Panel
+  if ZO_SmithingTopLevelCreationPanelResultTooltip then
+    AddCraftingPriceTooltip(ZO_SmithingCreation, ZO_SmithingTopLevelCreationPanelResultTooltip, "SetupResultTooltip", function(_, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+      return GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+    end, function(_, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+      if patternIndex == nil or materialIndex == nil then
+        return 0, 0
+      end
+      return GetMaterialCostTotal(nil, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+    end)
+  end
+
+  -- Hook into Provisioning (Cooking) Panel
+  if ZO_ProvisionerTopLevelTooltip then
+    AddCraftingPriceTooltip(ZO_Provisioner, ZO_ProvisionerTopLevelTooltip, "RefreshRecipeDetails", function(control)
+      local recipeData = control:GetRecipeData()
+      if recipeData == nil then
+        return nil
+      end
+      return GetRecipeResultItemLink(control:GetSelectedRecipeListIndex(), control:GetSelectedRecipeIndex())
+    end, function(control)
+      local recipeListIndex = control:GetSelectedRecipeListIndex()
+      local recipeIndex = control:GetSelectedRecipeIndex()
+      if recipeListIndex == nil or recipeIndex == nil then
+        return 0, 0
+      end
+      return GetProvisioningMaterialCost(recipeListIndex, recipeIndex)
+    end)
+  end
+
+  -- Hook into Enchanting Panel
+  if ZO_EnchantingTopLevelTooltip then
+    AddCraftingPriceTooltip(ZO_Enchanting, ZO_EnchantingTopLevelTooltip, "UpdateTooltip", function()
+      return ENCHANTING:GetResultItemLink()
+    end, function()
+      return GetEnchantingMaterialCost(ENCHANTING)
+    end)
+  end
+
+  -- Hook into Alchemy Panel
+  if ZO_AlchemyTopLevelTooltip then
+    AddCraftingPriceTooltip(ZO_Alchemy, ZO_AlchemyTopLevelTooltip, "UpdateTooltip", function()
+      return ALCHEMY:GetResultItemLink()
+    end, function()
+      return GetAlchemyMaterialCost()
+    end)
+  end
+
+  -- Gamepad hooks (run once only since class tables are always present)
+  if not craftingHooksDone.gamepad then
+    craftingHooksDone.gamepad = true
+
+    -- Gamepad: Smithing Creation Panel
+    if ZO_GamepadSmithingCreation then
+      AddCraftingPriceTooltip(
+        ZO_GamepadSmithingCreation,
+        function(self) return self and self.resultTooltip and self.resultTooltip.tip end,
+        "SetupResultTooltip",
+        function(_, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+          return GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+        end,
+        function(_, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+          if patternIndex == nil or materialIndex == nil then return 0, 0 end
+          return GetMaterialCostTotal(nil, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex)
+        end
+      )
+    end
+
+    -- Gamepad: Provisioning Panel
+    if ZO_GamepadProvisioner then
+      AddCraftingPriceTooltip(
+        ZO_GamepadProvisioner,
+        function(self) return self and self.resultTooltip and self.resultTooltip.tip end,
+        "RefreshRecipeDetails",
+        function(_, selectedData)
+          if selectedData == nil then return nil end
+          local recipeListIndex = selectedData.recipeListIndex
+          local recipeIndex = selectedData.recipeIndex
+          if recipeListIndex == nil or recipeIndex == nil then return nil end
+          return GetRecipeResultItemLink(recipeListIndex, recipeIndex)
+        end,
+        function(_, selectedData)
+          if selectedData == nil then return 0, 0 end
+          local recipeListIndex = selectedData.recipeListIndex
+          local recipeIndex = selectedData.recipeIndex
+          if recipeListIndex == nil or recipeIndex == nil then return 0, 0 end
+          return GetProvisioningMaterialCost(recipeListIndex, recipeIndex)
+        end
+      )
+    end
+
+    -- Gamepad: Enchanting Panel
+    -- self.resultTooltip.tip is the tooltip; GetResultItemLink is inherited from ZO_SharedEnchanting
+    if ZO_GamepadEnchanting then
+      AddCraftingPriceTooltip(
+        ZO_GamepadEnchanting,
+        function(self) return self and self.resultTooltip and self.resultTooltip.tip end,
+        "UpdateTooltip",
+        function(self) return self:GetResultItemLink() end,
+        function(self) return GetEnchantingMaterialCost(self) end
+      )
+    end
+
+    -- Gamepad: Alchemy Panel
+    -- uses self.tooltip (not self.resultTooltip); GetResultItemLink and GetSlotItemLink inherited from ZO_SharedAlchemy
+    if ZO_GamepadAlchemy then
+      AddCraftingPriceTooltip(
+        ZO_GamepadAlchemy,
+        function(self) return self and self.tooltip and self.tooltip.tip end,
+        "UpdateTooltip",
+        function(self) return self:GetResultItemLink() end,
+        function(self)
+          local totalTtcCost = 0
+          local totalGameCost = 0
+          local materialLinks = {}
+          for slot = 1, 5 do
+            local reagentLink = self:GetSlotItemLink(slot)
+            if reagentLink then
+              local priceInfo = SafeGetPriceInfo(reagentLink)
+              if priceInfo then
+                local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
+                local gamePrice = GetItemLinkValue(reagentLink, false)
+                totalTtcCost = totalTtcCost + ttcPrice
+                totalGameCost = totalGameCost + gamePrice
+                table.insert(materialLinks, {link = reagentLink, qty = 1, ttcPrice = ttcPrice, gamePrice = gamePrice})
+              end
+            end
+          end
+          return totalTtcCost, totalGameCost, materialLinks
+        end
+      )
+    end
+  end
+end
+
+-- Try to initialize immediately, and also register for scene callbacks
+InitializeCraftingHooks()
+
+-- Also try to register callback for when gamepad crafting station is shown
+local function OnCraftingSceneStateChanged(scene, oldState, newState)
+  if newState == SCENE_SHOWING then
+    -- Re-initialize hooks when craft scene shows
+    InitializeCraftingHooks()
+  end
+end
+
+-- Try to register for various crafting scenes
+local craftingScenes = {"smithing", "provisioner", "enchanting", "alchemy"}
+for _, sceneName in ipairs(craftingScenes) do
+  local scene = SCENE_MANAGER:GetScene(sceneName .. "Gamepad")
+  if scene then
+    scene:RegisterCallback("StateChange", OnCraftingSceneStateChanged)
+  end
+  -- Also try keyboard scenes
+  local kbScene = SCENE_MANAGER:GetScene(sceneName)
+  if kbScene then
+    kbScene:RegisterCallback("StateChange", OnCraftingSceneStateChanged)
+  end
+end
+
+-- Try to register for main menu gamepad scene
+local mainMenuScene = SCENE_MANAGER:GetScene("mainMenuGamepad")
+if mainMenuScene then
+  mainMenuScene:RegisterCallback("StateChange", function(scene, oldState, newState)
+    if newState == SCENE_SHOWING then
+      InitializeCraftingHooks()
+    end
+  end)
 end

@@ -1,9 +1,9 @@
--- =============================================================================
+﻿-- =============================================================================
 -- ADDON HEADER
 -- =============================================================================
 
 local ADDON_NAME = "GamePadHelper_Overview"
-local ADDON_VERSION = 1.03
+local ADDON_VERSION = 1.04
 
 -- GamePadHelper_Overview Addon
 -- Enhanced tooltips in the main menu showing crafting research, surveys, antiquities, and treasure maps

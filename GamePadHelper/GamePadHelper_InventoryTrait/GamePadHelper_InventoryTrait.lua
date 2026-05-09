@@ -1,5 +1,5 @@
-local ADDON_NAME = "GamePadHelper_InventoryTrait"
-local ADDON_VERSION = 1.01
+﻿local ADDON_NAME = "GamePadHelper_InventoryTrait"
+local ADDON_VERSION = 1.02
 
 -- TODO: when inventory is updated, rows don't necessarily re-render
 -- so while local state is correct, the rendered state can be stale

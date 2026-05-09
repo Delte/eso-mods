@@ -1,5 +1,5 @@
-local ADDON_NAME = "GamePadHelper_AutoCharge"
-local ADDON_VERSION = 1.00
+﻿local ADDON_NAME = "GamePadHelper_AutoCharge"
+local ADDON_VERSION = 1.01
 
 local function GetSlotName(equipSlot)
     if equipSlot == EQUIP_SLOT_MAIN_HAND then

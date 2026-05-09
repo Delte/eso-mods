@@ -1,5 +1,5 @@
-local ADDON_NAME = "GamePadHelper"
-local ADDON_VERSION = 1.04
+﻿local ADDON_NAME = "GamePadHelper"
+local ADDON_VERSION = 1.05
 
 -- Ensure ESO API compatibility
 if GetAPIVersion() < 101047 then

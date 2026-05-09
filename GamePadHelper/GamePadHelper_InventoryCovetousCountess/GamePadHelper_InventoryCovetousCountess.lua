@@ -1,5 +1,5 @@
-local ADDON_NAME = "GamePadHelper_InventoryCovetousCountess"
-local ADDON_VERSION = 1.01
+﻿local ADDON_NAME = "GamePadHelper_InventoryCovetousCountess"
+local ADDON_VERSION = 1.02
 
 local COLOR_USEFUL_ACTIVE = ZO_ColorDef:New(1, 1, 0)
 local COLOR_USEFUL_INACTIVE = ZO_ColorDef:New(1, 1, 1)

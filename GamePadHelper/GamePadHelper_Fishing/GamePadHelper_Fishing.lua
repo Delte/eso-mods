@@ -1,5 +1,5 @@
-local ADDON_NAME = "GamePadHelper_Fishing"
-local ADDON_VERSION = 1.00
+﻿local ADDON_NAME = "GamePadHelper_Fishing"
+local ADDON_VERSION = 1.01
 
 local cnt0 = 0
 

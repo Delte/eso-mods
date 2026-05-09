@@ -1,5 +1,5 @@
-local ADDON_NAME = "GamePadHelper_AutoRepair"
-local ADDON_VERSION = 1.00
+﻿local ADDON_NAME = "GamePadHelper_AutoRepair"
+local ADDON_VERSION = 1.01
 
 local PRICE_ICON = ZO_Currency_GetGamepadFormattedCurrencyIcon(CURT_MONEY, 20, true)
 

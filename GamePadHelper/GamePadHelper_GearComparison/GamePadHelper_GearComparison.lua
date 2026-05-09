@@ -1,5 +1,5 @@
-local ADDON_NAME = "GamePadHelper_GearComparison"
-local ADDON_VERSION = 1.01
+﻿local ADDON_NAME = "GamePadHelper_GearComparison"
+local ADDON_VERSION = 1.02
 
 local function GamepadInventory_SwitchActiveList_Before(self, listDescriptor)
   if listDescriptor == self.currentListType then return end
