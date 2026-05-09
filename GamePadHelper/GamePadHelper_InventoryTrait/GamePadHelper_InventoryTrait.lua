@@ -1,6 +1,9 @@
 ﻿local ADDON_NAME = "GamePadHelper_InventoryTrait"
 local ADDON_VERSION = 1.02
 
+-- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
+local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
+
 -- TODO: when inventory is updated, rows don't necessarily re-render
 -- so while local state is correct, the rendered state can be stale
 -- selecting / unselecting item refreshes whole list - should mimic
@@ -58,7 +61,7 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
 
   local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
 
-  local researchIcon = GetPlatformTraitInformationIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
+  local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
   local icon = self:GetNamedChild("StatusIndicator")
   if not icon or not icon.HasIcon then return end
   local hasResearchIcon = icon:HasIcon(researchIcon)

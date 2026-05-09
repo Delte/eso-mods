@@ -7,6 +7,9 @@ if GetAPIVersion() < 101047 then
     return
 end
 
+-- CHAT_SYSTEM is a PC-only alias for KEYBOARD_CHAT_SYSTEM; nil on console
+local _ChatSystem = KEYBOARD_CHAT_SYSTEM or CHAT_SYSTEM
+
 local MAP_NAME_TO_ZONE_ID = {}
 
 -- Helper function to get normalized mouse position for map interactions
@@ -70,27 +73,25 @@ local function ExecuteTeleportFromEntry(entry, allowHouses)
     if allowHouses and entry.isOwnHouse then
         local houseName = entry.houseNameFormatted or "Primary Residence"
         local travelOutside = entry.forceOutside or false
-        CHAT_SYSTEM:AddMessage("[Teleport] your house: " .. houseName)
-
+        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] your house: " .. houseName) end
         RequestJumpToHouse(entry.houseId, travelOutside)
         return true
     elseif allowHouses and entry.houseId then
         local owner = entry.displayName or "Friend"
         local houseName = entry.houseNameFormatted or (owner .. "'s house")
-        CHAT_SYSTEM:AddMessage("[Teleport] " .. owner .. "'s house: " .. houseName)
-
+        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] " .. owner .. "'s house: " .. houseName) end
         RequestJumpToHouse(entry.houseId, entry.forceOutside)
         return true
     elseif IsFriend(entry.displayName) then
-        CHAT_SYSTEM:AddMessage("[Teleport] friend " .. entry.displayName)
+        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] friend " .. entry.displayName) end
         JumpToFriend(entry.displayName)
         return true
     elseif entry.category == BMU.ZONE_CATEGORY_GROUP then
-        CHAT_SYSTEM:AddMessage("[Teleport] group member " .. entry.displayName)
+        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] group member " .. entry.displayName) end
         JumpToGroupMember(entry.displayName)
         return true
     else
-        CHAT_SYSTEM:AddMessage("[Teleport] guild member " .. entry.displayName)
+        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] guild member " .. entry.displayName) end
         JumpToGuildMember(entry.displayName)
         return true
     end

@@ -8,7 +8,8 @@ LibTraitResearch = {}
 
 local COLOR_LOCAL = ZO_CURRENCY_HIGHLIGHT_TEXT -- ZO_ColorDef:New("FFD900")
 local COLOR_REMOTE = ZO_ERROR_COLOR -- ZO_ColorDef:New("FF8000")
-local COLOR_UNIQUE = GetItemQualityColor(ITEM_QUALITY_MAGIC)
+-- ITEM_QUALITY_MAGIC is a PC-only alias; ITEM_DISPLAY_QUALITY_MAGIC is the current API name
+local COLOR_UNIQUE = GetItemQualityColor(ITEM_DISPLAY_QUALITY_MAGIC or ITEM_QUALITY_MAGIC)
 local COLOR_LOCKED = LOCKED_COLOR
 
 local BAG_LOCAL = 1 -- inventory / worn

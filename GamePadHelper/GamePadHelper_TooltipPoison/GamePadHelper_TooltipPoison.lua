@@ -1,10 +1,13 @@
 ﻿local ADDON_NAME = "GamePadHelper_TooltipPoison"
 local ADDON_VERSION = 1.02
 
+-- GetItemLinkQuality is a PC-only alias for GetItemLinkFunctionalQuality
+local _GetItemLinkQuality = GetItemLinkFunctionalQuality or GetItemLinkQuality
+
 local function Tooltip_AddPoisonInfo_Before(self, itemLink, equipSlot)
   local hasPoison, poisonCount, poisonHeader, poisonItemLink = GetItemPairedPoisonInfo(equipSlot)
   if hasPoison then
-    local poisonQuality = GetItemLinkQuality(poisonItemLink)
+    local poisonQuality = _GetItemLinkQuality(poisonItemLink)
     local poisonQualityColor = GetItemQualityColor(poisonQuality)
 
     local poisonNameString = poisonQualityColor:Colorize(poisonHeader)

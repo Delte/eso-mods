@@ -11,8 +11,10 @@ local ADDON_VERSION = 1.04
 
 local GamePadHelper_Overview = {}
 
--- Global flag for chat faded state
-local isChatFaded = false
+-- Global flag for chat faded state.
+-- On console GAMEPAD_CHAT_SYSTEM is absent; treat as faded so the full
+-- GAMEPAD_RIGHT_TOOLTIP slot is used for the tasks panel.
+local isChatFaded = (GAMEPAD_CHAT_SYSTEM == nil)
 
 
 -- =============================================================================
@@ -343,9 +345,15 @@ local function ShowTooltips()
             local hasSkill = false
             if craftingType == CRAFTING_TYPE_PROVISIONING or craftingType == CRAFTING_TYPE_ENCHANTING or craftingType == CRAFTING_TYPE_ALCHEMY then
                 -- Check if player has these crafting skills
+                -- GetSkillLineName is a PC-only alias; use GetSkillLineNameById on console
+                local function SafeGetSkillLineName(skillType, skillLineIndex)
+                    if GetSkillLineName then return GetSkillLineName(skillType, skillLineIndex) end
+                    local id = GetSkillLineId and GetSkillLineId(skillType, skillLineIndex)
+                    return id and GetSkillLineNameById and GetSkillLineNameById(id)
+                end
                 for skillCategory = 1, GetNumSkillTypes() do
                     for skillLine = 1, GetNumSkillLines(skillCategory) do
-                        local skillLineName = GetSkillLineName(skillCategory, skillLine)
+                        local skillLineName = SafeGetSkillLineName(skillCategory, skillLine)
                         if skillLineName then
                             if (craftingType == CRAFTING_TYPE_PROVISIONING and skillLineName:lower():find("provisioning")) or
                                 (craftingType == CRAFTING_TYPE_ENCHANTING and skillLineName:lower():find("enchanting")) or
@@ -419,12 +427,9 @@ end
 
 -- Initialize the addon by registering scene callbacks and chat system hooks
 function GamePadHelper_Overview:Initialize()
-    -- Set initial chat faded state
-    if GAMEPAD_CHAT_SYSTEM and GAMEPAD_CHAT_SYSTEM:IsMinimized() then
-        isChatFaded = true
-    else
-        isChatFaded = false
-    end
+    -- On console GAMEPAD_CHAT_SYSTEM is absent; treat as faded so the full
+    -- GAMEPAD_RIGHT_TOOLTIP slot is used. On PC, check the actual minimized state.
+    isChatFaded = not GAMEPAD_CHAT_SYSTEM or GAMEPAD_CHAT_SYSTEM:IsMinimized()
 
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState)
         if scene:GetName() == "mainMenuGamepad" then

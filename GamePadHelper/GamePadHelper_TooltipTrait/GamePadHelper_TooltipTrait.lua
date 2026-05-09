@@ -1,7 +1,10 @@
 ﻿local ADDON_NAME = "GamePadHelper_TooltipTrait"
 local ADDON_VERSION = 1.02
 
-local RESEARCH_ICON = zo_iconFormatInheritColor(GetPlatformTraitInformationIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED), 32, 32)
+-- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
+local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
+local _researchIconPath = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
+local RESEARCH_ICON = _researchIconPath and zo_iconFormatInheritColor(_researchIconPath, 32, 32) or ""
 local BAG_ICON = zo_iconFormatInheritColor("esoui/art/tooltips/icon_bag.dds", 20, 20)
 local BANK_ICON = zo_iconFormatInheritColor("esoui/art/tooltips/icon_bank.dds", 20, 20)
 
@@ -12,7 +15,7 @@ local function Tooltip_AddTrait_Before(self, itemLink, extraData)
     if traitName ~= "" then
       local traitSection = self:AcquireSection(self:GetStyle("bodySection"))
       local traitInformation = GetItemTraitInformationFromItemLink(itemLink)
-      local traitInformationIcon = GetPlatformTraitInformationIcon(traitInformation)
+      local traitInformationIcon = _GetTraitIcon and _GetTraitIcon(traitInformation)
 
       local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
 

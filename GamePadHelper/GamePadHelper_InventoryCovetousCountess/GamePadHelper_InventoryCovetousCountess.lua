@@ -1,6 +1,9 @@
 ﻿local ADDON_NAME = "GamePadHelper_InventoryCovetousCountess"
 local ADDON_VERSION = 1.02
 
+-- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
+local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
+
 local COLOR_USEFUL_ACTIVE = ZO_ColorDef:New(1, 1, 0)
 local COLOR_USEFUL_INACTIVE = ZO_ColorDef:New(1, 1, 1)
 
@@ -28,7 +31,7 @@ local function SharedGamepadEntry_OnSetup_After(control, data, ...)
   local itemType = GetItemLinkItemType(itemLink)
   if itemType ~= ITEMTYPE_TREASURE then return end
 
-  local researchIcon = GetPlatformTraitInformationIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
+  local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
   local isUsefulForActiveQuest, isUsefulForQuest = false, false
   if LibCovetousCountess and LibCovetousCountess.IsItemUseful then
       local success, result1, result2 = pcall(LibCovetousCountess.IsItemUseful, LibCovetousCountess, itemLink)

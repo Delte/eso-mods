@@ -19,6 +19,9 @@ end
 local function OnAddonLoaded(event, addonName)
     if addonName ~= "GamePadHelper" then return end
 
+    -- Keyboard chat offset is a PC-only feature; skip entirely on console.
+    if _G["GamePadHelper_IsConsole"] and _G["GamePadHelper_IsConsole"]() then return end
+
     -- Register for keyboard chat setting changes in gamepad mode
     EVENT_MANAGER:RegisterForEvent("GamePadHelper_LootOffset", EVENT_GAMEPAD_USE_KEYBOARD_CHAT_CHANGED, function()
         UpdateLootHistoryOffset()
