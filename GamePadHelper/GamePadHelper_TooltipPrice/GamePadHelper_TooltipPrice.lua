@@ -337,6 +337,26 @@ local function GetAlchemyMaterialCost()
   return GetAlchemyMaterialCostFromInstance(ALCHEMY)
 end
 
+local function GetImprovementMaterialCost(improvementInstance, craftingType)
+  local boosterIndex = improvementInstance and improvementInstance.boosterSlot and improvementInstance.boosterSlot.index
+  if not boosterIndex then return 0, 0, {} end
+
+  local boosterLink = GetSmithingImprovementItemLink(craftingType, boosterIndex, LINK_STYLE_DEFAULT)
+  if not boosterLink or boosterLink == "" then return 0, 0, {} end
+
+  local qty = 1
+  if type(improvementInstance.GetNumBoostersToApply) == "function" then
+    qty = improvementInstance:GetNumBoostersToApply()
+  end
+
+  local priceInfo = SafeGetPriceInfo(boosterLink)
+  if not priceInfo then return 0, 0, {} end
+
+  local ttcPrice = (priceInfo.SuggestedPrice or 0) > 0 and priceInfo.SuggestedPrice or (priceInfo.Avg or 0)
+  local gamePrice = GetItemLinkValue(boosterLink, false)
+  return ttcPrice * qty, gamePrice * qty, {{link = boosterLink, qty = qty, ttcPrice = ttcPrice * qty, gamePrice = gamePrice * qty}}
+end
+
 -- toolTipControl can be a control directly, or a function(self) that returns one
 -- (needed for gamepad panels where the tooltip is self.resultTooltip.tip)
 local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName, getItemLinkFunction, getMaterialCostFunction)
@@ -424,26 +444,18 @@ local craftingHooksDone = {}
 local function InitializeCraftingHooks()
   -- Hook into Smithing Improvement Panel
   if ZO_SmithingTopLevelImprovementPanelResultTooltip then
-    AddCraftingPriceTooltip(ZO_SmithingImprovement, ZO_SmithingTopLevelImprovementPanelResultTooltip, "SetupResultTooltip", function(_, itemToImproveBagId, itemToImproveSlotIndex)
-      if itemToImproveBagId == nil or itemToImproveSlotIndex == nil then
-        return nil
+    AddCraftingPriceTooltip(
+      ZO_SmithingImprovement,
+      ZO_SmithingTopLevelImprovementPanelResultTooltip,
+      "SetupResultTooltip",
+      function(self, bagId, slotIndex, craftingType)
+        if bagId == nil or slotIndex == nil then return nil end
+        return GetSmithingImprovedItemLink(bagId, slotIndex, craftingType, LINK_STYLE_DEFAULT)
+      end,
+      function(self, bagId, slotIndex, craftingType)
+        return GetImprovementMaterialCost(self, craftingType)
       end
-      local itemLink = GetItemLink(itemToImproveBagId, itemToImproveSlotIndex)
-      if itemLink == nil then
-        return nil
-      end
-      -- Get the improved version (next quality level)
-      local qualities = {[0] = 357, [1] = 366, [2] = 367, [3] = 368, [4] = 369, [5] = 370}
-      local currentQuality = GetItemLinkFunctionalQuality(itemLink)
-      local newQuality = currentQuality
-      if currentQuality < 5 then
-        newQuality = qualities[currentQuality + 1]
-      end
-      -- Create improved item link
-      local pattern = "(|H%d:item:%d+):(%d+)(:.*)"
-      local improvedLink = itemLink:gsub(pattern, "%1:" .. newQuality .. "%3")
-      return improvedLink
-    end, nil)
+    )
   end
 
   -- Hook into Smithing Creation/Crafting Panel
@@ -562,6 +574,22 @@ local function InitializeCraftingHooks()
           return instance:GetResultItemLink()
         end,
         function(self) return GetAlchemyMaterialCostFromInstance(GAMEPAD_ALCHEMY or self) end
+      )
+    end
+
+    -- Gamepad: Smithing Improvement Panel
+    if ZO_GamepadSmithingImprovement then
+      AddCraftingPriceTooltip(
+        ZO_GamepadSmithingImprovement,
+        function(self) return self and self.resultTooltip and self.resultTooltip.tip end,
+        "SetupResultTooltip",
+        function(self, bagId, slotIndex, craftingType)
+          if bagId == nil or slotIndex == nil then return nil end
+          return GetSmithingImprovedItemLink(bagId, slotIndex, craftingType, LINK_STYLE_DEFAULT)
+        end,
+        function(self, bagId, slotIndex, craftingType)
+          return GetImprovementMaterialCost(self, craftingType)
+        end
       )
     end
   end
