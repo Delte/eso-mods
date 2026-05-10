@@ -1,6 +1,6 @@
 # GamePadHelper
 
-**Version:** 1.05 · **Authors:** olegbl, quelron · **API:** 101049
+**Version:** 1.06 · **Authors:** olegbl, quelron · **API:** 101049
 
 A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed for gamepad play but compatible with keyboard & mouse too. Every feature can be toggled individually from the in-game settings panel.
 

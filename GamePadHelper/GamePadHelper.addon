@@ -1,15 +1,14 @@
 ## Title: |c3399FFGamePadHelper|r
 ## APIVersion: 101049
-## Version: 1.05
+## Version: 1.06
 ## Author: olegbl, quelron
 ## Description: |c3399FFGamePadHelper|r is a collection of miscellaneous mods that improve and enhance the UI for gamepads.
 ## SavedVariables: GamePadHelperSavedVars
-## DependsOn: LibAddonMenu-2.0 LibCovetousCountess LibItemLinkDecoder LibTraitResearch LibMultiIcon
-## ConsoleDependsOn:
-## OptionalDependsOn: LibGamepad TamrielTradeCentre BeamMeUp
+## DependsOn: LibCovetousCountess LibItemLinkDecoder LibTraitResearch LibMultiIcon
+## OptionalDependsOn: TamrielTradeCentre BeamMeUp
 
 GamePadHelper.lua
-GamePadHelper_Settings.lua
+Settings.lua
 modules/Provisioning.lua
 modules/TooltipPrice.lua
 modules/TooltipFont.lua

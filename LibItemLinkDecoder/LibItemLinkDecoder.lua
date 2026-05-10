@@ -1,5 +1,5 @@
 local ADDON_NAME = "LibItemLinkDecoder"
-local ADDON_VERSION = 1.00
+local ADDON_VERSION = 1.02
 
 -- Ensure ESO API compatibility
 if GetAPIVersion() < 101047 then return end
