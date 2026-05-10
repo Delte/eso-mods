@@ -4,5 +4,26 @@
 ## Author: olegbl, quelron
 ## Description: |c3399FFGamePadHelper|r is a collection of miscellaneous mods that improve and enhance the UI for gamepads.
 ## SavedVariables: GamePadHelperSavedVars
+## DependsOn: LibAddonMenu-2.0 LibCovetousCountess LibItemLinkDecoder LibTraitResearch LibMultiIcon
+## ConsoleDependsOn:
+## OptionalDependsOn: LibGamepad TamrielTradeCentre BeamMeUp
 
 GamePadHelper.lua
+GamePadHelper_Settings.lua
+modules/Provisioning.lua
+modules/TooltipPrice.lua
+modules/TooltipFont.lua
+modules/Teleporter.lua
+modules/Overview.lua
+modules/InventoryCovetousCountess.lua
+modules/InventoryTrait.lua
+modules/GearComparison.lua
+modules/TooltipEnchantment.lua
+modules/TooltipPoison.lua
+modules/TooltipTrait.lua
+modules/Fishing.lua
+modules/LootOffset.lua
+modules/DungeonFinder.lua
+modules/AutoEye.lua
+modules/AutoCharge.lua
+modules/AutoRepair.lua
