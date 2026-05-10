@@ -226,7 +226,7 @@ local function BuildSettingsData()
         return "Tooltips & UI"
     end))
 
-    add(BuildCheckbox("Tooltip Price", "Show item price information (including TTC data) in item tooltips.", "tooltipPriceEnabled"))
+    add(BuildCheckbox("Tooltip Price", "Show item price information (including market addon data when available) in item tooltips.", "tooltipPriceEnabled"))
     add(BuildCheckbox("Gear Comparison", "Show gear stat comparisons.", "gearComparisonEnabled"))
     add(BuildCheckbox("Inventory Traits", "Show item traits in inventory.", "inventoryTraitEnabled"))
     add(BuildCheckbox("Inventory Covetous Countess", "Highlight Covetous Countess items in inventory.", "inventoryCovetousCountessEnabled"))

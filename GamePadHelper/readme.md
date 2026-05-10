@@ -2,7 +2,9 @@
 
 **Version:** 1.06 · **Authors:** olegbl, quelron · **API:** 101049
 
-A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed for gamepad play but compatible with keyboard & mouse too. Every feature can be toggled individually from the in-game settings panel.
+A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed for gamepad play but compatible with keyboard & mouse too. Every feature can be toggled individually from the in-game settings panel. 
+
+Price data provided by **Tamriel Savings Co** when TSC sources are available.
 
 ---
 
@@ -206,7 +208,9 @@ Reformats **applied poison information** in item tooltips for improved readabili
 
 ![Tooltip Price](screenshots/TooltipPrice.png)
 
-Reformats the **price information** in item tooltips. When **TamrielTradeCentre** is installed, also shows live market pricing data inline.
+Reformats the **price information** in item tooltips. When a supported market addon is installed (for example **TamrielTradeCentre** or console price providers), also shows market pricing data inline.
+
+Price data provided by **Tamriel Savings Co** when TSC sources are available.
 
 ---
 
@@ -226,7 +230,6 @@ These must be installed for GamePadHelper to load. All are available on both PC 
 
 | Library | What it does |
 |---|---|
-| [LibAddonMenu-2.0](https://www.esoui.com/downloads/info7-LibAddonMenu.html) | Provides the settings panel accessible from `ESC → Settings → AddOns` on keyboard/mouse and from the gamepad menu on console. Without it the addon will not load at all. |
 | [LibCovetousCountess](https://www.esoui.com/downloads/info3266-LibCovetousCountess.html) | Supplies quest-step data used by the **Inventory Covetous Countess** feature to identify which treasures are relevant to your active quest step. |
 | [LibItemLinkDecoder](https://www.esoui.com/downloads/info3265-LibItemLinkDecoder.html) | Decodes raw item link data used by **Tooltip Enchantment** to reformat enchantment information in item tooltips. |
 | [LibTraitResearch](https://www.esoui.com/downloads/info3264-LibTraitResearch.html) | Tracks per-character trait research progress, powering both the **Inventory Trait** icons and the **Tooltip Trait** color coding. |
@@ -238,9 +241,11 @@ These are not required to load the addon. Each one unlocks or enhances a specifi
 
 | Library / Addon | What it unlocks |
 |---|---|
-| [LibGamepad](https://www.esoui.com/downloads/info3583-LibGamepad.html) *(PC only)* | Adds GamePadHelper to the gamepad **Extensions** menu (`Menu → Options → Extensions`), so settings are reachable without switching to keyboard/mouse mode. Has no effect on console (where the Extensions menu is already available natively). |
 | [BeamMeUp](https://www.esoui.com/downloads/info2143-BeamMeUp-TeleporterFastTravel.html) | Powers the **Teleporter** feature — the world map zone hotkey and the chat "Jump to Player" options both call BeamMeUp to perform the actual travel. Without it the Teleporter feature does nothing. |
-| [TamrielTradeCentre](https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html) | When installed, **Tooltip Price** also shows live market pricing data inline on item tooltips alongside the standard vendor price. |
+| [TamrielTradeCentre](https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html) | Optional market source for **Tooltip Price**. |
+| TSC Price Data API (`TSCPriceDataAPIXBNA`, `TSCPriceDataAPIPSNA`, `TSCPriceDataAPIXBEU`, `TSCPriceDataAPIPSEU`) | Optional console market data source for **Tooltip Price**. |
+
+Attribution: Price data provided by **Tamriel Savings Co** when available.
 
 ---
 

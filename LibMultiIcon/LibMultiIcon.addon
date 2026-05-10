@@ -1,9 +1,10 @@
 ## Title: LibMultiIcon
-## APIVersion: 101047
+## APIVersion: 101050
 ## Version: 1.02
 ## Author: olegbl
 ## Description: Provides extra functionality for MultiIcons.
 ## IsLibrary: true
-## AddOnVersion: 1
+## AddOnVersion: 102
 
 LibMultiIcon.lua
+

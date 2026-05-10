@@ -7,8 +7,17 @@ local COLOR_DETAILS = ZO_ColorDef:New("B2B2B2")
 
 local PRICE_ICON = ZO_Currency_GetGamepadFormattedCurrencyIcon(CURT_MONEY, 24, true)
 local AMOUNT_ICON = zo_iconFormatInheritColor("/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds", 24, 24)
+local function GetTSCApi()
+  return ({
+    ["NA Megaserver"] = TSCPriceDataAPIXBNA,
+    ["XB1live"] = TSCPriceDataAPIXBNA,
+    ["PS4live"] = TSCPriceDataAPIPSNA,
+    ["XB1live-eu"] = TSCPriceDataAPIXBEU,
+    ["PS4live-eu"] = TSCPriceDataAPIPSEU,
+  })[GetWorldName()] or TSCPriceDataAPI
+end
 
--- Safe wrapper functions for TamrielTradeCentre
+-- Safe wrapper functions for market price providers (TTC, TSC, etc.)
 local function SafeFormatNumber(number, decimal)
     if TamrielTradeCentre and TamrielTradeCentre.FormatNumber then
         local success, result = pcall(TamrielTradeCentre.FormatNumber, TamrielTradeCentre, number or 0, decimal or 0)
@@ -19,14 +28,74 @@ local function SafeFormatNumber(number, decimal)
     return tostring(number or 0)
 end
 
+local function NormalizePriceInfo(result)
+  if type(result) ~= "table" then return {} end
+  return {
+    Avg = result.Avg or result.avg or result.average or result.price or result.Price or result.P,
+    Max = result.Max or result.max or result.high or result.H,
+    Min = result.Min or result.min or result.low or result.L,
+    EntryCount = result.EntryCount or result.entryCount or result.entries or result.EC,
+    AmountCount = result.AmountCount or result.amountCount or result.amount or result.AC,
+    SuggestedPrice = result.SuggestedPrice or result.suggestedPrice or result.suggested or result.S,
+  }
+end
+
+local function ToNumber(value)
+  if type(value) == "number" then
+    return value
+  end
+  return nil
+end
+
 local function SafeGetPriceInfo(itemLink)
     if TamrielTradeCentrePrice and TamrielTradeCentrePrice.GetPriceInfo then
         local success, result = pcall(TamrielTradeCentrePrice.GetPriceInfo, TamrielTradeCentrePrice, itemLink)
         if success then
-            return result or {}
+            return NormalizePriceInfo(result)
         end
     end
+    if LibPriceCache and LibPriceCache.GetPrice then
+      local success, result = pcall(LibPriceCache.GetPrice, itemLink)
+      if success and result and result > 0 then
+        return NormalizePriceInfo({ Avg = result, SuggestedPrice = result })
+      end
+    end
+    local tscApi = GetTSCApi()
+    if tscApi and type(tscApi.GetItemData) == "function" then
+      local success, itemData = pcall(function()
+        return tscApi:GetItemData(itemLink)
+      end)
+      if success and itemData then
+        local avgPrice = nil
+        if type(itemData) == "number" then
+          avgPrice = itemData
+        elseif type(itemData) == "table" then
+          avgPrice = ToNumber(itemData.avgPrice)
+            or ToNumber(itemData.Avg)
+            or ToNumber(itemData.legacyAvg)
+            or ToNumber(itemData.price)
+            or ToNumber(itemData.Price)
+        end
+
+        if avgPrice and avgPrice > 0 then
+          local minPrice = type(itemData) == "table" and (ToNumber(itemData.commonMin) or ToNumber(itemData.Min) or ToNumber(itemData.legacyMin)) or nil
+          local maxPrice = type(itemData) == "table" and (ToNumber(itemData.commonMax) or ToNumber(itemData.Max) or ToNumber(itemData.legacyMax)) or nil
+          return NormalizePriceInfo({
+            Avg = avgPrice,
+            SuggestedPrice = avgPrice,
+            Min = minPrice,
+            Max = maxPrice,
+          })
+        end
+      end
+    end
     return {}
+end
+
+local function HasMarketProvider()
+  return (TamrielTradeCentrePrice and TamrielTradeCentrePrice.GetPriceInfo)
+    or (LibPriceCache and LibPriceCache.GetPrice)
+    or (GetTSCApi() and type(GetTSCApi().GetItemData) == "function")
 end
 
 local function getStackPrice(price, count)
@@ -39,10 +108,10 @@ local function getPriceSummary(gameValue, gameMaxValue, ttcValue, suffix)
      and SafeFormatNumber(gameValue or 0, 0)
      or zo_strformat(SI_ITEM_FORMAT_STR_EFFECTIVE_VALUE_OF_MAX, gameValue, gameMaxValue)
 
-   local isTtcLoaded = TamrielTradeCentre and TamrielTradeCentrePrice
-   local isTtcAvailable = isTtcLoaded and ttcValue and ttcValue > 0
+   local isMarketLoaded = HasMarketProvider()
+   local isMarketAvailable = isMarketLoaded and ttcValue and ttcValue > 0
 
-   if isTtcAvailable then
+   if isMarketAvailable then
      local ttcValueText = SafeFormatNumber(ttcValue, 0)
      return COLOR_TITLE:Colorize(string.format(
        "%s %s %s %s",
@@ -51,12 +120,12 @@ local function getPriceSummary(gameValue, gameMaxValue, ttcValue, suffix)
        COLOR_TTC:Colorize(ttcValueText),
        suffix or ""
      ))
-   elseif isTtcLoaded then
+   elseif isMarketLoaded then
      return COLOR_TITLE:Colorize(string.format(
        "%s %s %s %s",
        PRICE_ICON,
        COLOR_GAME:Colorize(gameValueText),
-       COLOR_DETAILS:Colorize("(no TTC price)"),
+       COLOR_DETAILS:Colorize("(no market price)"),
        suffix or ""
      ))
    else
@@ -72,6 +141,11 @@ end
 local function getPriceBreakdown(priceInfo, suffix)
    local amount = SafeFormatNumber(priceInfo.AmountCount or 0, 0)
    local entries = SafeFormatNumber(priceInfo.EntryCount or 0, 0)
+   local hasCounts = (priceInfo.AmountCount or 0) > 0
+   local countText = hasCounts and amount or "-"
+   local stackText = hasCounts and priceInfo.EntryCount ~= priceInfo.AmountCount
+     and string.format(" (%s stacks)", entries)
+     or ""
    return COLOR_DETAILS:Colorize(string.format(
      "%s %s - %s %s %s %s%s",
      PRICE_ICON,
@@ -79,10 +153,8 @@ local function getPriceBreakdown(priceInfo, suffix)
      SafeFormatNumber(priceInfo.Max or 0, 0),
      suffix or "",
      AMOUNT_ICON,
-     amount,
-     priceInfo.EntryCount ~= priceInfo.AmountCount
-       and string.format(" (%s stacks)", entries)
-       or ""
+     countText,
+     stackText
    ))
 end
 
@@ -99,7 +171,6 @@ local function Tooltip_AddItemTitle_After(self, itemLink, name)
   local sv = _G["GamePadHelper_SavedVars"]
   if not sv or not sv.tooltipPriceEnabled then return end
   local stackSize = itemLink == lastItemLink and lastStackSize or 1
-  local ttcColor = "FFCC00"
 
   local gamePrice = GetItemLinkValue(itemLink, false)
   local gameMaxPrice = GetItemLinkValue(itemLink, true)
@@ -139,13 +210,13 @@ local function Tooltip_AddItemTitle_After(self, itemLink, name)
     uppercase = false,
   })
 
-  -- Check if TTC is available
-  local isTtcAvailable = TamrielTradeCentre and TamrielTradeCentrePrice
+  -- Check if any market provider is available
+  local isTtcAvailable = HasMarketProvider()
 
   local hasValue = gamePrice > 0 or (isTtcAvailable and ttcPrice > 0)
-  local hasAmount = isTtcAvailable and (ttcPriceInfo.AmountCount or 0) > 0
+  local hasAmount = isTtcAvailable and ((ttcPriceInfo.AmountCount or 0) > 0 or ((ttcPriceInfo.Min or 0) > 0 and (ttcPriceInfo.Max or 0) > 0))
   local productHasValue = gameProductPrice > 0 or (isTtcAvailable and ttcProductPrice > 0)
-  local productHasAmount = isTtcAvailable and (ttcProductPriceInfo.AmountCount or 0) > 0
+  local productHasAmount = isTtcAvailable and ((ttcProductPriceInfo.AmountCount or 0) > 0 or ((ttcProductPriceInfo.Min or 0) > 0 and (ttcProductPriceInfo.Max or 0) > 0))
 
   if hasValue then
     section:AddLine(getPriceSummary(gamePrice, gameMaxPrice, ttcPrice))
@@ -169,7 +240,67 @@ end
 local function Tooltip_AddItemValue_Before(self, itemLink)
   local sv = _G["GamePadHelper_SavedVars"]
   if not sv or not sv.tooltipPriceEnabled then return end
-  return true
+  -- Keep ESO's default value line as a fallback when no market data is available.
+  return
+end
+
+local function Tooltip_AddLine_Before(self, lineText)
+  local sv = _G["GamePadHelper_SavedVars"]
+  if not sv or not sv.tooltipPriceEnabled then return end
+  if type(lineText) ~= "string" then return end
+
+  -- Suppress duplicate TSC tooltip lines when GamePadHelper is rendering price info.
+  local lower = string.lower(lineText)
+  local suppressPatterns = {
+    "tsc",
+    "tamriel savings",
+    "price fetcher",
+    "item avg:",
+    "item range:",
+    "common price range",
+    "legacy avg",
+    "average price",
+    "avg price",
+    "price range",
+  }
+  for _, pattern in ipairs(suppressPatterns) do
+    if string.find(lower, pattern, 1, true) then
+      return true
+    end
+  end
+end
+
+local function ShouldSuppressExternalPriceLine(lineText)
+  if type(lineText) ~= "string" then return false end
+  local lower = string.lower(lineText)
+  local suppressPatterns = {
+    "tsc",
+    "tamriel savings",
+    "price fetcher",
+    "item avg:",
+    "item range:",
+    "item avg",
+    "item range",
+    "common price range",
+    "legacy avg",
+    "average price",
+    "avg price",
+    "price range",
+  }
+  for _, pattern in ipairs(suppressPatterns) do
+    if string.find(lower, pattern, 1, true) then
+      return true
+    end
+  end
+  return false
+end
+
+local function TooltipSection_AddLine_Before(self, lineText)
+  local sv = _G["GamePadHelper_SavedVars"]
+  if not sv or not sv.tooltipPriceEnabled then return end
+  if ShouldSuppressExternalPriceLine(lineText) then
+    return true
+  end
 end
 
 local tooltips = {
@@ -182,9 +313,16 @@ local tooltips = {
 }
 
 for index, tooltip in ipairs(tooltips) do
-  ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "LayoutBagItem", Tooltip_LayoutBagItem_Before)
-  ZO_PostHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddItemTitle", Tooltip_AddItemTitle_After)
-  ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddItemValue", Tooltip_AddItemValue_Before)
+  local gamepadTooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltip)
+  ZO_PreHook(gamepadTooltip, "LayoutBagItem", Tooltip_LayoutBagItem_Before)
+  ZO_PostHook(gamepadTooltip, "AddItemTitle", Tooltip_AddItemTitle_After)
+  ZO_PreHook(gamepadTooltip, "AddItemValue", Tooltip_AddItemValue_Before)
+  ZO_PreHook(gamepadTooltip, "AddLine", Tooltip_AddLine_Before)
+end
+
+-- Some addons inject lines at the tooltip section level instead of tooltip:AddLine.
+if ZO_TooltipSection and ZO_TooltipSection.AddLine then
+  ZO_PreHook(ZO_TooltipSection, "AddLine", TooltipSection_AddLine_Before)
 end
 
 -- TTC Price Support for Crafting Panels (Gamepad UI)
@@ -426,7 +564,8 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
       -- Show result item price
       section:AddLine(getPriceSummary(gamePrice, gamePrice, ttcPrice))
 
-      if ttcPriceInfo.AmountCount and ttcPriceInfo.AmountCount > 0 then
+      if (ttcPriceInfo.AmountCount and ttcPriceInfo.AmountCount > 0)
+        or ((ttcPriceInfo.Min or 0) > 0 and (ttcPriceInfo.Max or 0) > 0) then
         section:AddLine(getPriceBreakdown(ttcPriceInfo))
       end
 
