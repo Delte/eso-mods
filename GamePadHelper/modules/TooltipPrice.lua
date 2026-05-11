@@ -240,8 +240,8 @@ end
 local function Tooltip_AddItemValue_Before(self, itemLink)
   local sv = _G["GamePadHelper_SavedVars"]
   if not sv or not sv.tooltipPriceEnabled then return end
-  -- Keep ESO's default value line as a fallback when no market data is available.
-  return
+  -- Suppress ESO's default value line to avoid duplicate price tags.
+  return true
 end
 
 local function Tooltip_AddLine_Before(self, lineText)
@@ -492,7 +492,27 @@ end
 
 -- toolTipControl can be a control directly, or a function(self) that returns one
 -- (needed for gamepad panels where the tooltip is self.resultTooltip.tip)
+local valueSuppressedTooltips = setmetatable({}, { __mode = "k" })
+
+local function EnsureValueSuppressedForTooltip(tooltipControl)
+  if not tooltipControl or valueSuppressedTooltips[tooltipControl] then return end
+  valueSuppressedTooltips[tooltipControl] = true
+  if tooltipControl.AddItemValue then
+    ZO_PreHook(tooltipControl, "AddItemValue", Tooltip_AddItemValue_Before)
+  end
+end
+
 local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName, getItemLinkFunction, getMaterialCostFunction)
+  ZO_PreHook(hookObject, functionName, function(...)
+    local sv = _G["GamePadHelper_SavedVars"]
+    if not sv or not sv.tooltipPriceEnabled then return end
+    local actualTooltipControl = toolTipControl
+    if type(toolTipControl) == "function" then
+      actualTooltipControl = toolTipControl(select(1, ...))
+    end
+    EnsureValueSuppressedForTooltip(actualTooltipControl)
+  end)
+
   SecurePostHook(hookObject, functionName, function(...)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.tooltipPriceEnabled then return end
@@ -501,6 +521,7 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
       actualTooltipControl = toolTipControl(select(1, ...))
     end
     if not actualTooltipControl then return end
+    EnsureValueSuppressedForTooltip(actualTooltipControl)
 
     local itemLink = getItemLinkFunction(...)
     if itemLink == nil then
@@ -525,7 +546,9 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
     -- Get material costs if function provided
     if getMaterialCostFunction then
       local matTtcCost, matGameCost, _ = getMaterialCostFunction(...)
-      if matTtcCost and matTtcCost > 0 then
+      matTtcCost = matTtcCost or 0
+      matGameCost = matGameCost or 0
+      if matTtcCost > 0 or matGameCost > 0 then
         totalMaterialTtcCost = matTtcCost
         totalMaterialGameCost = matGameCost
         hasMaterialCost = true
@@ -539,8 +562,8 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
         customSpacing = 5,
         childSpacing = 5,
         widthPercent = 100,
-        horizontalAlignment = TEXT_ALIGN_LEFT,
-        fontSize = 30,
+        horizontalAlignment = TEXT_ALIGN_CENTER,
+        fontSize = 38,
         fontFace = "$(GAMEPAD_LIGHT_FONT)",
         fontColorType = INTERFACE_COLOR_TYPE_TEXT_COLORS,
         fontColorField = INTERFACE_TEXT_COLOR_NORMAL,
@@ -550,19 +573,30 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
 
       -- Show material costs
       if hasMaterialCost then
-        local matCostText = SafeFormatNumber(totalMaterialTtcCost, 0)
         local matGameText = SafeFormatNumber(totalMaterialGameCost, 0)
-        section:AddLine(COLOR_TITLE:Colorize(string.format(
-          "%s %s %s %s",
-          PRICE_ICON,
-          COLOR_GAME:Colorize(matGameText),
-          COLOR_TTC:Colorize(matCostText),
-          " (materials)"
-        )))
+        if totalMaterialTtcCost > 0 then
+          local matCostText = SafeFormatNumber(totalMaterialTtcCost, 0)
+          section:AddLine(COLOR_TITLE:Colorize(string.format(
+            "%s %s %s %s",
+            PRICE_ICON,
+            COLOR_GAME:Colorize(matGameText),
+            COLOR_TTC:Colorize(matCostText),
+            " (materials)"
+          )))
+        else
+          section:AddLine(COLOR_TITLE:Colorize(string.format(
+            "%s %s %s",
+            PRICE_ICON,
+            COLOR_GAME:Colorize(matGameText),
+            COLOR_DETAILS:Colorize("(game materials)")
+          )))
+        end
       end
 
       -- Show result item price
-      section:AddLine(getPriceSummary(gamePrice, gamePrice, ttcPrice))
+      if hasValue then
+        section:AddLine(getPriceSummary(gamePrice, gamePrice, ttcPrice))
+      end
 
       if (ttcPriceInfo.AmountCount and ttcPriceInfo.AmountCount > 0)
         or ((ttcPriceInfo.Min or 0) > 0 and (ttcPriceInfo.Max or 0) > 0) then
