@@ -5,6 +5,7 @@ local GPH_RELOAD_DIALOG = "GPH_RELOADUI_CONFIRM"
 local gphLootReloadPending = false
 local gphExitHookRegistered = false
 local gphBackOverrideActive = false
+local TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n |cFFFF00Yellow|r Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank"
 
 local function GetSavedVars()
     return _G["GamePadHelper_SavedVars"]
@@ -218,7 +219,7 @@ local function BuildSettingsData()
 
     add(BuildCheckbox("Hide Low Level Recipes", "Hide recipes under CP160 in the provisioning panel.", "showLowLevelRecipes"))
 
-    add(BuildCheckboxCustom("Tooltip Traits", "Show enhanced trait information with research icons in item tooltips.", function()
+    add(BuildCheckboxCustom("Tooltip Traits", "Show enhanced trait information with research icons in item tooltips." .. TRAIT_COLOR_LEGEND, function()
         return GetBoolSetting("tooltipTraitEnabled", false)
     end, function(v)
         SetSetting("tooltipTraitEnabled", v)
@@ -228,7 +229,7 @@ local function BuildSettingsData()
 
     add(BuildCheckbox("Tooltip Price", "Show item price information (including market addon data when available) in item tooltips.", "tooltipPriceEnabled"))
     add(BuildCheckbox("Gear Comparison", "Show gear stat comparisons.", "gearComparisonEnabled"))
-    add(BuildCheckbox("Inventory Traits", "Show item traits in inventory.", "inventoryTraitEnabled"))
+    add(BuildCheckbox("Inventory Traits", "Show item traits in inventory." .. TRAIT_COLOR_LEGEND, "inventoryTraitEnabled"))
     add(BuildCheckbox("Inventory Covetous Countess", "Highlight Covetous Countess items in inventory.", "inventoryCovetousCountessEnabled"))
     add(BuildCheckbox("Overview Panel", "Enable character overview enhancements.", "overviewEnabled"))
     add(BuildCheckbox("Tooltip Poison Info", "Show poison information in tooltips.", "tooltipPoisonEnabled"))

@@ -67,13 +67,17 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
   local researchLabel = self:GetNamedChild("StatusIndicatorLabel")
   if researchLabel == nil then
     researchLabel = CreateControl("$(parent)StatusIndicatorLabel", self, CT_LABEL)
-    researchLabel:SetFont("ZoFontGameSmall")
+    researchLabel:SetFont("ZoFontGamepad18")
+    researchLabel:SetInheritScale(false)
     researchLabel:SetMaxLineCount(1)
+    researchLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
     researchLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-    researchLabel:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
+    researchLabel:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    researchLabel:SetDrawLayer(DL_OVERLAY)
+    researchLabel:SetDrawTier(DT_HIGH)
     researchLabel:ClearAnchors()
-    researchLabel:SetAnchor(BOTTOMLEFT, icon, BOTTOMLEFT, 0, 14)
-    researchLabel:SetAnchor(BOTTOMRIGHT, icon, BOTTOMRIGHT, 0, 14)
+    researchLabel:SetAnchor(TOPLEFT, icon, BOTTOMLEFT, 0, 2)
+    researchLabel:SetAnchor(TOPRIGHT, icon, BOTTOMRIGHT, 0, 2)
   end
 
   -- TODO: sometimes MultiIcon is not initialized property for some reason

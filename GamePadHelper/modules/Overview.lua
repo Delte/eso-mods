@@ -262,7 +262,7 @@ local function ShowTooltips()
         if not value.isComplete then
             taskText = taskText .. "\n• " .. value.name
         else
-            completedTasks = completedTasks .. "\n|c9D9D9D~~" .. value.name .. "~~|r"
+            completedTasks = completedTasks .. "\n|c9D9D9D• " .. value.name .. "|r"
         end
     end
     if taskText ~= "" then
