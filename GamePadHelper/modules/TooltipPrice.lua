@@ -568,6 +568,36 @@ end
 -- (needed for gamepad panels where the tooltip is self.resultTooltip.tip)
 local valueSuppressedTooltips = setmetatable({}, { __mode = "k" })
 
+local function ResolveTooltipControl(control)
+  if not control then return nil end
+  if control.AcquireSection and control.AddSection then
+    return control
+  end
+  local tip = nil
+  if type(control) == "table" then
+    tip = rawget(control, "tip")
+  end
+  if tip == nil then
+    local ok, result = pcall(function() return control.tip end)
+    if ok then tip = result end
+  end
+  if tip and tip.AcquireSection and tip.AddSection then
+    return tip
+  end
+  local tooltip = nil
+  if type(control) == "table" then
+    tooltip = rawget(control, "tooltip")
+  end
+  if tooltip == nil then
+    local ok, result = pcall(function() return control.tooltip end)
+    if ok then tooltip = result end
+  end
+  if tooltip and tooltip.AcquireSection and tooltip.AddSection then
+    return tooltip
+  end
+  return nil
+end
+
 local function EnsureValueSuppressedForTooltip(tooltipControl)
   if not tooltipControl or valueSuppressedTooltips[tooltipControl] then return end
   valueSuppressedTooltips[tooltipControl] = true
@@ -580,31 +610,35 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
   ZO_PreHook(hookObject, functionName, function(...)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.tooltipPriceEnabled then return end
+    if not IsInGamepadPreferredMode() then return end
     local actualTooltipControl = toolTipControl
     if type(toolTipControl) == "function" then
       actualTooltipControl = toolTipControl(select(1, ...))
     end
-    if actualTooltipControl then
-      actualTooltipControl.__gph_boundLineSeen = nil
+    local tooltip = ResolveTooltipControl(actualTooltipControl)
+    if tooltip then
+      tooltip.__gph_boundLineSeen = nil
     end
-    EnsureValueSuppressedForTooltip(actualTooltipControl)
+    EnsureValueSuppressedForTooltip(tooltip)
   end)
 
   SecurePostHook(hookObject, functionName, function(...)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.tooltipPriceEnabled then return end
+    if not IsInGamepadPreferredMode() then return end
     local actualTooltipControl = toolTipControl
     if type(toolTipControl) == "function" then
       actualTooltipControl = toolTipControl(select(1, ...))
     end
-    if not actualTooltipControl then return end
-    EnsureValueSuppressedForTooltip(actualTooltipControl)
+    local tooltip = ResolveTooltipControl(actualTooltipControl)
+    if not tooltip then return end
+    EnsureValueSuppressedForTooltip(tooltip)
 
     local itemLink = getItemLinkFunction(...)
     if itemLink == nil then
       return
     end
-    actualTooltipControl.__gph_boundLineSeen = nil
+    tooltip.__gph_boundLineSeen = nil
     local isBound = IsBoundItemLink(itemLink)
 
     local ttcPriceInfo = SafeGetPriceInfo(itemLink)
@@ -635,7 +669,7 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
     end
 
     if hasValue or hasMaterialCost then
-      local outerSection = actualTooltipControl:AcquireSection({
+      local outerSection = tooltip:AcquireSection({
         paddingTop = 3,
         paddingBottom = 3,
         customSpacing = 5,
@@ -696,7 +730,7 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
       section:AddLine(" ")
 
       outerSection:AddSection(section)
-      actualTooltipControl:AddSection(outerSection)
+      tooltip:AddSection(outerSection)
     end
   end)
 end
