@@ -7,14 +7,46 @@ local COLOR_DETAILS = ZO_ColorDef:New("B2B2B2")
 
 local PRICE_ICON = ZO_Currency_GetGamepadFormattedCurrencyIcon(CURT_MONEY, 24, true)
 local AMOUNT_ICON = zo_iconFormatInheritColor("/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds", 24, 24)
+
+local cachedTscApi = nil
 local function GetTSCApi()
-  return ({
-    ["NA Megaserver"] = TSCPriceDataAPIXBNA,
-    ["XB1live"] = TSCPriceDataAPIXBNA,
-    ["PS4live"] = TSCPriceDataAPIPSNA,
-    ["XB1live-eu"] = TSCPriceDataAPIXBEU,
-    ["PS4live-eu"] = TSCPriceDataAPIPSEU,
-  })[GetWorldName()] or TSCPriceDataAPI
+  if cachedTscApi ~= nil then
+    return cachedTscApi or nil
+  end
+
+  local worldName = GetWorldName and GetWorldName() or nil
+  local apiByWorld = ({
+    ["NA Megaserver"] = _G.TSCPriceDataAPIXBNA or _G.TSCPriceDataAPI,
+    ["EU Megaserver"] = _G.TSCPriceDataAPIXBEU or _G.TSCPriceDataAPI,
+    ["XB1live"] = _G.TSCPriceDataAPIXBNA,
+    ["PS4live"] = _G.TSCPriceDataAPIPSNA,
+    ["XB1live-eu"] = _G.TSCPriceDataAPIXBEU,
+    ["PS4live-eu"] = _G.TSCPriceDataAPIPSEU,
+  })[worldName]
+
+  if type(apiByWorld) == "table" and type(apiByWorld.GetItemData) == "function" then
+    cachedTscApi = apiByWorld
+    return cachedTscApi
+  end
+
+  local direct = _G.TSCPriceDataAPI
+  if type(direct) == "table" and type(direct.GetItemData) == "function" then
+    cachedTscApi = direct
+    return cachedTscApi
+  end
+
+  for name, value in pairs(_G) do
+    if type(name) == "string"
+      and string.sub(name, 1, 13) == "TSCPriceDataAPI"
+      and type(value) == "table"
+      and type(value.GetItemData) == "function" then
+      cachedTscApi = value
+      return cachedTscApi
+    end
+  end
+
+  cachedTscApi = false
+  return nil
 end
 
 -- Safe wrapper functions for market price providers (TTC, TSC, etc.)
@@ -44,6 +76,9 @@ local function ToNumber(value)
   if type(value) == "number" then
     return value
   end
+  if type(value) == "string" then
+    return tonumber(value)
+  end
   return nil
 end
 
@@ -71,15 +106,21 @@ local function SafeGetPriceInfo(itemLink)
           avgPrice = itemData
         elseif type(itemData) == "table" then
           avgPrice = ToNumber(itemData.avgPrice)
+            or ToNumber(itemData.avg)
             or ToNumber(itemData.Avg)
+            or ToNumber(itemData.average)
+            or ToNumber(itemData.averagePrice)
+            or ToNumber(itemData.SuggestedPrice)
+            or ToNumber(itemData.suggestedPrice)
+            or ToNumber(itemData.suggested)
             or ToNumber(itemData.legacyAvg)
             or ToNumber(itemData.price)
             or ToNumber(itemData.Price)
         end
 
         if avgPrice and avgPrice > 0 then
-          local minPrice = type(itemData) == "table" and (ToNumber(itemData.commonMin) or ToNumber(itemData.Min) or ToNumber(itemData.legacyMin)) or nil
-          local maxPrice = type(itemData) == "table" and (ToNumber(itemData.commonMax) or ToNumber(itemData.Max) or ToNumber(itemData.legacyMax)) or nil
+          local minPrice = type(itemData) == "table" and (ToNumber(itemData.commonMin) or ToNumber(itemData.minPrice) or ToNumber(itemData.Min) or ToNumber(itemData.min) or ToNumber(itemData.legacyMin)) or nil
+          local maxPrice = type(itemData) == "table" and (ToNumber(itemData.commonMax) or ToNumber(itemData.maxPrice) or ToNumber(itemData.Max) or ToNumber(itemData.max) or ToNumber(itemData.legacyMax)) or nil
           return NormalizePriceInfo({
             Avg = avgPrice,
             SuggestedPrice = avgPrice,
