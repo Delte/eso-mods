@@ -2,6 +2,7 @@ local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInfo
 local RESEARCH_ICON = _GetTraitIcon and zo_iconFormatInheritColor(_GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED), 32, 32)
 local BAG_ICON = zo_iconFormatInheritColor("esoui/art/tooltips/icon_bag.dds", 20, 20)
 local BANK_ICON = zo_iconFormatInheritColor("esoui/art/tooltips/icon_bank.dds", 20, 20)
+local COLOR_WORN = ZO_ColorDef:New("FFFFFF")
 
 local function OnAddonLoaded(event, name)
     if name ~= "GamePadHelper" then return end
@@ -20,7 +21,11 @@ local function OnAddonLoaded(event, name)
 
                 local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal
                 if LibTraitResearch then
-                    canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
+                    if LibTraitResearch.GetItemLinkTraitResearchStateForSlot and extraData and extraData.bagId ~= nil and extraData.slotIndex ~= nil then
+                        canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchStateForSlot(itemLink, extraData.bagId, extraData.slotIndex)
+                    else
+                        canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
+                    end
                 end
 
                 local additionalTooltipStyle
@@ -49,6 +54,10 @@ local function OnAddonLoaded(event, name)
                     else
                         title = string.format("%s (%s)", title, researchIcon)
                     end
+                end
+                
+                if extraData and extraData.bagId == BAG_WORN then
+                    title = string.format("%s %s", title, COLOR_WORN:Colorize("(Equipped)"))
                 end
 
                 traitSection:AddLine(title, self:GetStyle("bodyHeader"), additionalTooltipStyle)

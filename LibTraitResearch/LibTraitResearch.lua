@@ -51,24 +51,54 @@ end
 
 function LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
   local canBeResearched = CanItemLinkBeTraitResearched(itemLink)
+  return self:GetItemLinkTraitResearchStateForSlot(itemLink, nil, nil, canBeResearched)
+end
+
+function LibTraitResearch:GetItemLinkTraitResearchStateForSlot(itemLink, bagId, slotIndex, canBeResearchedOverride)
+  local canBeResearched = canBeResearchedOverride
+  if canBeResearched == nil then
+    canBeResearched = CanItemLinkBeTraitResearched(itemLink)
+  end
+
   local duplicateRemoteItems = 0
   local duplicateLocalItems = 0
   local isLocked = false
-  if itemLink ~= nil then
-    if canBeResearched then
-      local list = GetItemTraitList(itemLink)
-      for index, item in ipairs(list) do
-        if item.itemLink ~= itemLink and not item.isLocked then
-          if item.bagType == BAG_REMOTE then
-            duplicateRemoteItems = duplicateRemoteItems + 1
-          elseif item.bagType == BAG_LOCAL then
-            duplicateLocalItems = duplicateLocalItems + 1
+  if itemLink ~= nil and canBeResearched then
+    local list = GetItemTraitList(itemLink)
+    if list ~= nil then
+      local localUnlocked = 0
+      local remoteUnlocked = 0
+      local currentBagType = nil
+      local currentIsLocked = nil
+
+      for _, item in ipairs(list) do
+        if item.bagType == BAG_REMOTE then
+          if not item.isLocked then
+            remoteUnlocked = remoteUnlocked + 1
+          end
+        elseif item.bagType == BAG_LOCAL then
+          if not item.isLocked then
+            localUnlocked = localUnlocked + 1
           end
         end
-        if item.itemLink == itemLink and item.isLocked then
-          isLocked = true
+
+        if bagId ~= nil and slotIndex ~= nil and item.bagId == bagId and item.slotIndex == slotIndex then
+          currentBagType = item.bagType
+          currentIsLocked = item.isLocked
+          isLocked = item.isLocked or false
         end
       end
+
+      if currentBagType ~= nil and currentIsLocked == false then
+        if currentBagType == BAG_REMOTE then
+          remoteUnlocked = zo_max(0, remoteUnlocked - 1)
+        elseif currentBagType == BAG_LOCAL then
+          localUnlocked = zo_max(0, localUnlocked - 1)
+        end
+      end
+
+      duplicateLocalItems = localUnlocked
+      duplicateRemoteItems = remoteUnlocked
     end
   end
   local color =
@@ -87,7 +117,7 @@ function LibTraitResearch:Update()
     local bagId = bag.bagId
     local bagType = bag.bagType
     local bagSize = GetBagSize(bagId)
-    for slotIndex = 0, bagSize do
+    for slotIndex = 0, bagSize - 1 do
       local itemLink = GetItemLink(bagId, slotIndex)
       local list = GetItemTraitList(itemLink)
       local isLocked = IsItemPlayerLocked(bagId, slotIndex)
@@ -146,7 +176,7 @@ end
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_CRAFTING_STATION_INTERACT, OnCraftingStationInteract)
 
 local function OnEndCraftingStationInteract(event, craftSkill)
-  EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnCraftingStationInteract)
+  EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySingleSlotUpdate)
 end
 EVENT_MANAGER:RegisterForEvent(ADDON_NAME, EVENT_END_CRAFTING_STATION_INTERACT, OnEndCraftingStationInteract)
 

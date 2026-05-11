@@ -1,4 +1,4 @@
-﻿
+
 
 -- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
 local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
@@ -26,12 +26,19 @@ local function GetItemLinkFromData(data)
   end
 
   local itemLink
-  if data.bagId ~= nil and data.slotIndex ~= nil then
-    itemLink = GetItemLink(data.bagId, data.slotIndex)
+  local bagId = data.bagId
+  local slotIndex = data.slotIndex
+  if (bagId == nil or slotIndex == nil) and type(data.dataSource) == "table" then
+    bagId = data.dataSource.bagId
+    slotIndex = data.dataSource.slotIndex
+  end
+
+  if bagId ~= nil and slotIndex ~= nil then
+    itemLink = GetItemLink(bagId, slotIndex)
   elseif data.lootId ~= nil then
     itemLink = GetLootItemLink(data.lootId)
   end
-  return itemLink
+  return itemLink, bagId, slotIndex
 end
 
 local function ZO_SharedGamepadEntry_OnSetup_Before(self, data, ...)
@@ -53,16 +60,12 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
 
   if type(data) ~= "table" then return end
 
-  local itemLink = GetItemLinkFromData(data)
+  local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
   if not itemLink then return end
-
-  if not LibTraitResearch then return end
-  local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
 
   local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
   local icon = self:GetNamedChild("StatusIndicator")
-  if not icon or not icon.HasIcon then return end
-  local hasResearchIcon = icon:HasIcon(researchIcon)
+  if not icon then return end
 
   local researchLabel = self:GetNamedChild("StatusIndicatorLabel")
   if researchLabel == nil then
@@ -80,12 +83,34 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     researchLabel:SetAnchor(TOPRIGHT, icon, BOTTOMRIGHT, 0, 2)
   end
 
-  -- TODO: sometimes MultiIcon is not initialized property for some reason
-  if not icon.SetIconColor then
+  researchLabel:SetHidden(true)
+
+  if bagId == BAG_WORN then
+    if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
+      ZO_MultiIcon_Initialize(icon)
+    end
+    if researchIcon and icon.HasIcon and icon:HasIcon(researchIcon) and icon.SetIconColor then
+      icon:SetIconColor(researchIcon, 1, 1, 1, 1)
+    end
+    return
+  end
+
+  if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
     ZO_MultiIcon_Initialize(icon)
   end
 
-  if hasResearchIcon and canBeResearched then
+  if not LibTraitResearch then return end
+  local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal
+  if LibTraitResearch.GetItemLinkTraitResearchStateForSlot and bagId ~= nil and slotIndex ~= nil then
+    canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchStateForSlot(itemLink, bagId, slotIndex)
+  else
+    canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
+  end
+
+  if canBeResearched then
+    if researchIcon and not icon:HasIcon(researchIcon) then
+      icon:AddIcon(researchIcon)
+    end
     local duplicateRemoteText = colorRemote:Colorize(duplicateRemoteItems)
     local duplicateLocalText = colorLocal:Colorize(duplicateLocalItems)
 

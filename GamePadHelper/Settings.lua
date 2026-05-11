@@ -5,7 +5,7 @@ local GPH_RELOAD_DIALOG = "GPH_RELOADUI_CONFIRM"
 local gphLootReloadPending = false
 local gphExitHookRegistered = false
 local gphBackOverrideActive = false
-local TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n |cFFFF00Yellow|r Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank"
+local TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n|cFFFF00Yellow|r: Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank\n|cFFFFFFWhite|r: Equipped item uses ESO's default magnifying glass icon; details are shown in the tooltip"
 
 local function GetSavedVars()
     return _G["GamePadHelper_SavedVars"]
