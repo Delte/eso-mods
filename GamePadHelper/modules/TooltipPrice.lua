@@ -1,4 +1,4 @@
-﻿
+
 local COLOR_GAME = ZO_ColorDef:New("FFFFFF")
 local COLOR_TTC = ZO_ColorDef:New("EECA2A")
 
@@ -14,14 +14,18 @@ local function GetTSCApi()
     return cachedTscApi or nil
   end
 
+  local function SafeGetGlobal(name)
+    return rawget(_G, name)
+  end
+
   local worldName = GetWorldName and GetWorldName() or nil
   local apiByWorld = ({
-    ["NA Megaserver"] = _G.TSCPriceDataAPIXBNA or _G.TSCPriceDataAPI,
-    ["EU Megaserver"] = _G.TSCPriceDataAPIXBEU or _G.TSCPriceDataAPI,
-    ["XB1live"] = _G.TSCPriceDataAPIXBNA,
-    ["PS4live"] = _G.TSCPriceDataAPIPSNA,
-    ["XB1live-eu"] = _G.TSCPriceDataAPIXBEU,
-    ["PS4live-eu"] = _G.TSCPriceDataAPIPSEU,
+    ["NA Megaserver"] = SafeGetGlobal("TSCPriceDataAPIXBNA") or SafeGetGlobal("TSCPriceDataAPI"),
+    ["EU Megaserver"] = SafeGetGlobal("TSCPriceDataAPIXBEU") or SafeGetGlobal("TSCPriceDataAPI"),
+    ["XB1live"] = SafeGetGlobal("TSCPriceDataAPIXBNA"),
+    ["PS4live"] = SafeGetGlobal("TSCPriceDataAPIPSNA"),
+    ["XB1live-eu"] = SafeGetGlobal("TSCPriceDataAPIXBEU"),
+    ["PS4live-eu"] = SafeGetGlobal("TSCPriceDataAPIPSEU"),
   })[worldName]
 
   if type(apiByWorld) == "table" and type(apiByWorld.GetItemData) == "function" then
@@ -29,20 +33,10 @@ local function GetTSCApi()
     return cachedTscApi
   end
 
-  local direct = _G.TSCPriceDataAPI
+  local direct = SafeGetGlobal("TSCPriceDataAPI")
   if type(direct) == "table" and type(direct.GetItemData) == "function" then
     cachedTscApi = direct
     return cachedTscApi
-  end
-
-  for name, value in pairs(_G) do
-    if type(name) == "string"
-      and string.sub(name, 1, 13) == "TSCPriceDataAPI"
-      and type(value) == "table"
-      and type(value.GetItemData) == "function" then
-      cachedTscApi = value
-      return cachedTscApi
-    end
   end
 
   cachedTscApi = false
@@ -134,9 +128,10 @@ local function SafeGetPriceInfo(itemLink)
 end
 
 local function HasMarketProvider()
+  local tscApi = GetTSCApi()
   return (TamrielTradeCentrePrice and TamrielTradeCentrePrice.GetPriceInfo)
     or (LibPriceCache and LibPriceCache.GetPrice)
-    or (GetTSCApi() and type(GetTSCApi().GetItemData) == "function")
+    or (tscApi and type(tscApi.GetItemData) == "function")
 end
 
 local function IsBoundItemLink(itemLink)
