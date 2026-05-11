@@ -635,13 +635,24 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
     end
 
     if hasValue or hasMaterialCost then
-      local section = actualTooltipControl:AcquireSection({
+      local outerSection = actualTooltipControl:AcquireSection({
         paddingTop = 3,
         paddingBottom = 3,
         customSpacing = 5,
         childSpacing = 5,
         widthPercent = 100,
-        horizontalAlignment = TEXT_ALIGN_CENTER,
+        layoutPrimaryDirection = "right",
+        layoutSecondaryDirection = "down",
+        layoutPrimaryDirectionCentered = true,
+      })
+
+      local section = outerSection:AcquireSection({
+        paddingTop = 0,
+        paddingBottom = 0,
+        customSpacing = 5,
+        childSpacing = 5,
+        widthPercent = 80,
+        horizontalAlignment = TEXT_ALIGN_LEFT,
         fontSize = 38,
         fontFace = "$(GAMEPAD_LIGHT_FONT)",
         fontColorType = INTERFACE_COLOR_TYPE_TEXT_COLORS,
@@ -649,6 +660,7 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
         fontStyle = "soft-shadow-thick",
         uppercase = false,
       })
+      section:AddLine(" ")
 
       -- Show material costs
       if hasMaterialCost then
@@ -683,7 +695,8 @@ local function AddCraftingPriceTooltip(hookObject, toolTipControl, functionName,
       end
       section:AddLine(" ")
 
-      actualTooltipControl:AddSection(section)
+      outerSection:AddSection(section)
+      actualTooltipControl:AddSection(outerSection)
     end
   end)
 end
