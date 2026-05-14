@@ -27,3 +27,5 @@ modules/DungeonFinder.lua
 modules/AutoEye.lua
 modules/AutoCharge.lua
 modules/AutoRepair.lua
+modules/MapSearch.xml
+modules/MapSearch.lua

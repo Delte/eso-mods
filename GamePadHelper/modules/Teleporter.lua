@@ -238,6 +238,18 @@ local function OnAddonLoaded(event, name)
     GAMEPAD_WORLD_MAP_SCENE:RegisterCallback("StateChange", OnWorldMapSceneStateChange)
     CALLBACK_MANAGER:RegisterCallback("OnWorldMapChanged", OnWorldMapChanged)
 
+    -- Hide Teleport keybind when any info panel tab opens; restore when it closes
+    CALLBACK_MANAGER:RegisterCallback("WorldMapInfo_Gamepad_Showing", function()
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(GAMEPAD_KEYBIND_STRIP_DESCRIPTOR)
+    end)
+    CALLBACK_MANAGER:RegisterCallback("WorldMapInfo_Gamepad_Hidden", function()
+        local sv = _G["GamePadHelper_SavedVars"]
+        if sv and sv.teleporterEnabled and IsInGamepadPreferredMode()
+           and GAMEPAD_WORLD_MAP_SCENE:IsShowing() then
+            KEYBIND_STRIP:AddKeybindButtonGroup(GAMEPAD_KEYBIND_STRIP_DESCRIPTOR)
+        end
+    end)
+
     ZO_PreHook(CHAT_MENU_GAMEPAD, "OnShow", GamepadChatInit)
 
     ZO_PreHook(CHAT_MENU_GAMEPAD, "OnTargetChanged", function(self, list, targetData, oldTargetData, reachedTarget, targetSelectedIndex)
