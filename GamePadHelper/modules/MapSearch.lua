@@ -1,16 +1,17 @@
 -- ============================================================
 -- GPH Map Search
 -- Adds a "GPH Search" tab to the Gamepad World Map info panel.
--- Data: entirely from ESO in-game APIs (no hardcoded tables).
+-- POI data is pre-scanned on player activation and cached in memory.
 -- ============================================================
 
 local TYPE_WAYSHRINE = 1
 local TYPE_ZONE      = 2
 local TYPE_POI       = 3
 
-local ICON_WAYSHRINE = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
-local ICON_ZONE      = "/esoui/art/icons/poi/poi_zonestory_complete.dds"
-local ICON_POI       = "/esoui/art/icons/poi/poi_city_complete.dds"
+local ICON_WAYSHRINE_KNOWN   = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
+local ICON_WAYSHRINE_UNKNOWN = "/esoui/art/icons/poi/poi_wayshrine_incomplete.dds"
+local ICON_ZONE              = "/esoui/art/icons/poi/poi_zonestory_complete.dds"
+local ICON_POI               = "/esoui/art/icons/poi/poi_city_complete.dds"
 
 local TYPE_NAMES = {
     [TYPE_WAYSHRINE] = "Wayshrine",
@@ -22,19 +23,14 @@ local TYPE_NAMES = {
 local GPH_SEARCH_FRAGMENT     = nil
 local GPH_SEARCH_TAB_INSERTED = false
 
-local candidates  = nil
+local candidates  = nil   -- built from SavedVars; nil = needs rebuild
 local results     = {}
 local currentTerm = ""
 
-local listObject       = nil
-local editControl      = nil
-local focusManager     = nil   -- ZO_GamepadFocus: navigates between search bar and list
-local currentFocusIndex = 0   -- 1=search bar, 2=list; tracked here because GetFocus() returns nil inside callbacks
-
-local sideTypeLabel        = nil
-local sideLocationIcon     = nil
-local sideNameLabel        = nil   -- shows candidate.name (large text, mislabelled ZoneName in XML)
-local sideDescriptionLabel = nil
+local listObject        = nil
+local editControl       = nil
+local focusManager      = nil
+local currentFocusIndex = 0   -- 1=search bar, 2=list
 
 local searchBarBG        = nil
 local searchBarHighlight = nil
@@ -43,16 +39,12 @@ local searchBarIcon      = nil
 local keybindDescriptor = nil
 
 -- ── search bar visual state ───────────────────────────────────
--- Called by OnFocusGained / OnFocusLost on the EditBox.
--- Only manages the semi-transparent BG; the white outline highlight
--- is handled by ZO_GamepadFocus via its FocusAlphaFadeAnimation.
 
 function GPH_MapSearch_OnSearchFocused(focused)
     if searchBarBG then searchBarBG:SetHidden(not focused) end
 end
 
 -- ── keybind strip helper ──────────────────────────────────────
--- Call this after any focus change, once focusManager.index is settled.
 
 local function UpdateKeybinds()
     if keybindDescriptor then
@@ -60,66 +52,39 @@ local function UpdateKeybinds()
     end
 end
 
--- ── side panel ────────────────────────────────────────────────
+-- ── wayshrine teleport helper ─────────────────────────────────
 
-local function FindWayshrineInZone(zoneId)
+-- refNx, refNy: optional normalized POI position to find the nearest wayshrine.
+-- GetFastTravelNodeInfo positions 3,4 are normalizedX, normalizedY in the current map space.
+local function FindWayshrineInZone(zoneId, refNx, refNy)
     if not zoneId then return nil end
+    local bestNode, bestDist = nil, math.huge
+    local parentZoneId = GetParentZoneId(zoneId)
     for nodeIndex = 1, GetNumFastTravelNodes() do
-        local known, _, _, _, _, _, typePOI, _, isLocked =
+        local known, _, wsNx, wsNy, _, _, typePOI, _, isLocked =
             GetFastTravelNodeInfo(nodeIndex)
         if known and not isLocked and typePOI == 1 then
-            local zi      = select(1, GetFastTravelNodePOIIndicies(nodeIndex))
-            local nZoneId = GetZoneId(zi)
-            if nZoneId == zoneId or GetParentZoneId(nZoneId) == zoneId then
-                return nodeIndex
-            end
-        end
-    end
-    return nil
-end
-
-local function UpdateSidePanel(candidate)
-    if sideTypeLabel then
-        sideTypeLabel:SetText(candidate and (TYPE_NAMES[candidate.type] or "") or "")
-    end
-
-    if sideLocationIcon then
-        if candidate and candidate.icon then
-            sideLocationIcon:SetTexture(candidate.icon)
-            sideLocationIcon:SetHidden(false)
-        else
-            sideLocationIcon:SetHidden(true)
-        end
-    end
-
-    -- Main name label (XML control is named ZoneName but we use it for the location name)
-    if sideNameLabel then
-        sideNameLabel:SetText(candidate and (candidate.name or "") or "")
-    end
-
-    if sideDescriptionLabel then
-        local parts = {}
-        if candidate then
-            if candidate.type == TYPE_POI
-               and candidate.zoneIndex and candidate.poiIndex then
-                local _, poiDesc = GetPOIInfo(candidate.zoneIndex, candidate.poiIndex)
-                if poiDesc and poiDesc ~= "" then
-                    parts[#parts + 1] = poiDesc
+            local zi       = select(1, GetFastTravelNodePOIIndicies(nodeIndex))
+            local wsZoneId = GetZoneId(zi)
+            local inZone   = wsZoneId == zoneId
+                          or GetParentZoneId(wsZoneId) == zoneId
+                          or (parentZoneId and wsZoneId == parentZoneId)
+            if inZone then
+                local dist
+                if refNx and refNy and refNx > 0 and wsNx and wsNy then
+                    local dx, dy = wsNx - refNx, wsNy - refNy
+                    dist = dx * dx + dy * dy
+                else
+                    dist = 0
+                end
+                if dist < bestDist then
+                    bestDist = dist
+                    bestNode = nodeIndex
                 end
             end
-            if candidate.zoneName and candidate.zoneName ~= "" then
-                parts[#parts + 1] = candidate.zoneName
-            end
-        end
-        local desc = table.concat(parts, "\n")
-        if desc ~= "" then
-            sideDescriptionLabel:SetText(desc)
-            sideDescriptionLabel:SetHidden(false)
-        else
-            sideDescriptionLabel:SetText("")
-            sideDescriptionLabel:SetHidden(true)
         end
     end
+    return bestNode
 end
 
 -- ── bookmarks ────────────────────────────────────────────────
@@ -145,44 +110,74 @@ local function IsBookmarked(c)
     return false
 end
 
--- ── data builder ─────────────────────────────────────────────
+-- ── pre-scan: collect all POI data with correct icons ─────────
+-- Runs on EVENT_PLAYER_ACTIVATED. Stored in memory only — no SavedVars.
+-- GetPOIMapInfo returns the actual map-pin icon (state-aware), which is
+-- what BeamMeUp also uses and the only reliable source for locked wayshrines.
 
-local function BuildCandidates()
-    local list = {}
+local scannedData = nil   -- populated by PreScan; nil = not yet scanned
 
-    -- zoneIndex → lowest mapIndex mapping, used so every candidate knows which
-    -- map to switch to when centering the world map on it.
+-- Set the world map to the zone that owns zoneIndex, using the stable map ID.
+-- Returns true if the map was changed/is now correct.
+local function SetMapToZone(zoneIndex)
+    local zoneId = zoneIndex and GetZoneId(zoneIndex)
+    local mapId  = zoneId and GetMapIdByZoneId(zoneId)
+    if mapId and mapId > 0 then
+        WORLD_MAP_MANAGER:SetMapById(mapId)
+        return true
+    end
+    -- Fallback: iterate map list (rare case where zone has no dedicated map ID)
+    for mi = 1, GetNumMaps() do
+        local _, mapType, _, zi = GetMapInfoByIndex(mi)
+        if zi == zoneIndex and mapType == MAPTYPE_ZONE then
+            WORLD_MAP_MANAGER:SetMapByIndex(mi)
+            return true
+        end
+    end
+    return false
+end
+
+local function PreScan()
     local zoneToMap = {}
     for mi = 1, GetNumMaps() do
-        local _, _, _, zi = GetMapInfoByIndex(mi)
-        if zi and zi > 0 and not zoneToMap[zi] then
-            zoneToMap[zi] = mi
+        local _, mapType, _, zi = GetMapInfoByIndex(mi)
+        if zi and zi > 0 then
+            -- Prefer MAPTYPE_ZONE so POI coordinates from GetPOIMapInfo match.
+            if not zoneToMap[zi] or mapType == MAPTYPE_ZONE then
+                zoneToMap[zi] = mi
+            end
         end
     end
 
+    local data = { wayshrines = {}, zones = {}, pois = {} }
+
+    -- Wayshrines ---------------------------------------------------------
     for nodeIndex = 1, GetNumFastTravelNodes() do
-        local known, name, _, _, icon, _, typePOI, _, isLocked =
+        local known, name, _, _, _, _, typePOI, _, isLocked =
             GetFastTravelNodeInfo(nodeIndex)
         if name ~= "" and typePOI == 1 then
             local zoneIndex, poiIndex = GetFastTravelNodePOIIndicies(nodeIndex)
-            local zoneId    = GetZoneId(zoneIndex)
-            list[#list + 1] = {
-                name       = name,
-                searchName = name:lower(),
-                type       = TYPE_WAYSHRINE,
-                icon       = (icon and icon ~= "") and icon or ICON_WAYSHRINE,
-                nodeIndex  = nodeIndex,
-                zoneId     = zoneId,
-                zoneIndex  = zoneIndex,
-                poiIndex   = poiIndex,
-                mapIndex   = zoneToMap[zoneIndex],
-                zoneName   = GetZoneNameById(zoneId),
-                known      = known,
-                isLocked   = isLocked,
+            local zoneId = GetZoneId(zoneIndex)
+            -- GetPOIMapInfo returns the correct state-aware icon for this specific wayshrine.
+            local _, _, _, poiIcon = GetPOIMapInfo(zoneIndex, poiIndex)
+            local icon = (poiIcon and poiIcon ~= "") and poiIcon
+                      or (known and ICON_WAYSHRINE_KNOWN or ICON_WAYSHRINE_UNKNOWN)
+            data.wayshrines[#data.wayshrines + 1] = {
+                name      = name,
+                icon      = icon,
+                nodeIndex = nodeIndex,
+                zoneIndex = zoneIndex,
+                zoneId    = zoneId,
+                poiIndex  = poiIndex,
+                mapIndex  = zoneToMap[zoneIndex],
+                zoneName  = GetZoneNameById(zoneId),
+                known     = known,
+                isLocked  = isLocked,
             }
         end
     end
 
+    -- Zones --------------------------------------------------------------
     local seenZone = {}
     for mapIndex = 1, GetNumMaps() do
         local mapName, mapType, _, zoneIndex = GetMapInfoByIndex(mapIndex)
@@ -191,21 +186,17 @@ local function BuildCandidates()
             if not seenZone[zoneId]
                and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_WORLD) then
                 seenZone[zoneId] = true
-                list[#list + 1] = {
-                    name       = mapName,
-                    searchName = mapName:lower(),
-                    type       = TYPE_ZONE,
-                    icon       = ICON_ZONE,
-                    zoneId     = zoneId,
-                    zoneIndex  = zoneIndex,
-                    mapIndex   = mapIndex,
-                    zoneName   = mapName,
-                    known      = true,
+                data.zones[#data.zones + 1] = {
+                    name      = mapName,
+                    zoneId    = zoneId,
+                    zoneIndex = zoneIndex,
+                    mapIndex  = mapIndex,
                 }
             end
         end
     end
 
+    -- POIs ---------------------------------------------------------------
     local seenPOI = {}
     for mapIndex = 1, GetNumMaps() do
         local _, _, _, zoneIndex = GetMapInfoByIndex(mapIndex)
@@ -213,30 +204,90 @@ local function BuildCandidates()
             local zoneId   = GetZoneId(zoneIndex)
             local zoneName = GetZoneNameById(zoneId)
             for poiIndex = 1, GetNumPOIs(zoneIndex) do
-                local poiName = GetPOIInfo(zoneIndex, poiIndex)
-                if poiName and poiName ~= "" then
-                    local _, _, _, icon, _, _, isDiscovered =
-                        GetPOIMapInfo(zoneIndex, poiIndex)
-                    local uid = zoneIndex .. ":" .. poiIndex
-                    if isDiscovered and not seenPOI[uid]
-                       and icon and not icon:find("wayshrine") then
-                        seenPOI[uid] = true
-                        list[#list + 1] = {
-                            name       = poiName,
-                            searchName = poiName:lower(),
-                            type       = TYPE_POI,
-                            icon       = (icon ~= "") and icon or ICON_POI,
-                            zoneId     = zoneId,
-                            zoneIndex  = zoneIndex,
-                            mapIndex   = zoneToMap[zoneIndex],
-                            poiIndex   = poiIndex,
-                            zoneName   = zoneName,
-                            known      = true,
-                        }
+                local uid = zoneIndex .. ":" .. poiIndex
+                if not seenPOI[uid] then
+                    seenPOI[uid] = true
+                    local name = GetPOIInfo(zoneIndex, poiIndex)
+                    if name and name ~= "" then
+                        local _, _, _, icon = GetPOIMapInfo(zoneIndex, poiIndex)
+                        -- Skip wayshrine POIs — handled separately via fast travel nodes.
+                        if not icon or not icon:find("wayshrine") then
+                            local poiIcon = (icon and icon ~= "") and icon or nil
+                            if LibPOI and poiIcon then
+                                local cat = LibPOI:GetPOICategory(zoneIndex, poiIndex)
+                                if cat and cat.id == "unknown" then poiIcon = nil end
+                            end
+                            data.pois[#data.pois + 1] = {
+                                name      = name,
+                                icon      = poiIcon or ICON_POI,
+                                zoneIndex = zoneIndex,
+                                zoneId    = zoneId,
+                                poiIndex  = poiIndex,
+                                mapIndex  = zoneToMap[zoneIndex],
+                                zoneName  = zoneName,
+                            }
+                        end
                     end
                 end
             end
         end
+    end
+
+    scannedData = data
+    candidates  = nil   -- force BuildCandidates to rebuild from fresh data
+end
+
+-- ── data builder (reads in-memory scan) ──────────────────────
+
+local function BuildCandidates()
+    if not scannedData then PreScan() end
+
+    local list = {}
+
+    for _, ws in ipairs(scannedData.wayshrines) do
+        list[#list + 1] = {
+            name       = ws.name,
+            searchName = ws.name:lower(),
+            type       = TYPE_WAYSHRINE,
+            icon       = ws.icon,
+            nodeIndex  = ws.nodeIndex,
+            zoneId     = ws.zoneId,
+            zoneIndex  = ws.zoneIndex,
+            poiIndex   = ws.poiIndex,
+            mapIndex   = ws.mapIndex,
+            zoneName   = ws.zoneName,
+            known      = ws.known,
+            isLocked   = ws.isLocked,
+        }
+    end
+
+    for _, z in ipairs(scannedData.zones) do
+        list[#list + 1] = {
+            name       = z.name,
+            searchName = z.name:lower(),
+            type       = TYPE_ZONE,
+            icon       = ICON_ZONE,
+            zoneId     = z.zoneId,
+            zoneIndex  = z.zoneIndex,
+            mapIndex   = z.mapIndex,
+            zoneName   = z.name,
+            known      = true,
+        }
+    end
+
+    for _, poi in ipairs(scannedData.pois) do
+        list[#list + 1] = {
+            name       = poi.name,
+            searchName = poi.name:lower(),
+            type       = TYPE_POI,
+            icon       = poi.icon,
+            zoneId     = poi.zoneId,
+            zoneIndex  = poi.zoneIndex,
+            poiIndex   = poi.poiIndex,
+            mapIndex   = poi.mapIndex,
+            zoneName   = poi.zoneName,
+            known      = true,
+        }
     end
 
     return list
@@ -342,7 +393,6 @@ local function RebuildList()
     local bookmarks = GetBookmarksArray()
 
     if currentTerm == "" then
-        -- No search term: show bookmarks only.
         for i, bm in ipairs(bookmarks) do
             local entryData = ZO_GamepadEntryData:New(bm.name, bm.icon)
             entryData.candidate = bm
@@ -357,7 +407,6 @@ local function RebuildList()
             end
         end
     elseif #results > 0 then
-        -- Search active: show results grouped by type.
         local lastType = nil
         for i = 1, #results do
             local c = results[i]
@@ -381,15 +430,12 @@ local function RebuildList()
 
     listObject:Commit()
 
-    -- Fall back to search bar if the list is now empty.
     local listEmpty = (currentTerm == "" and #bookmarks == 0)
                    or (currentTerm ~= "" and #results == 0)
     if focusManager and focusManager:IsActive() and currentFocusIndex == 2 and listEmpty then
         focusManager:SetFocusByIndex(1)
     end
 
-    -- Always refresh keybinds after list content changes; TargetDataChanged may
-    -- not fire when transitioning from an empty list to a single-entry list.
     UpdateKeybinds()
 end
 
@@ -433,26 +479,40 @@ end
 
 -- ── map centering ────────────────────────────────────────────
 
+local function AddPing(x, y)
+    local pinMgr = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
+    if not pinMgr then return end
+    pinMgr:RemovePins("pings")
+    pinMgr:CreatePin(MAP_PIN_TYPE_AUTO_MAP_NAVIGATION_PING, "pings", x, y)
+end
+
 local function CenterMapOnCandidate(c)
     if not c then return end
 
-    -- Use the official manager so the internal g_playerChoseCurrentMap flag is set
-    -- and OnWorldMapChanged fires properly (same as the native Locations tab does).
-    if c.mapIndex then
-        WORLD_MAP_MANAGER:SetMapByIndex(c.mapIndex)
-    end
+    local zoneId      = c.zoneId
+    local mapId       = zoneId and GetMapIdByZoneId(zoneId)
+    local currentMapId = GetCurrentMapId and GetCurrentMapId()
 
-    -- GetPOIMapInfo returns coordinates relative to the zone map (not the world map),
-    -- which is what ZO_WorldMap_PanToNormalizedPosition expects after a zone switch.
-    -- 100 ms matches BeamMeUp's delay and gives the map time to finish rendering.
-    zo_callLater(function()
+    local function doPan()
         if c.zoneIndex and c.poiIndex then
             local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
-            if nx and ny then
+            if nx and nx > 0 then
                 ZO_WorldMap_PanToNormalizedPosition(nx, ny)
+                AddPing(nx, ny)
+                return
             end
         end
-    end, 100)
+        if c.type == TYPE_WAYSHRINE and c.nodeIndex then
+            ZO_WorldMap_PanToWayshrine(c.nodeIndex)
+        end
+    end
+
+    if mapId and mapId > 0 and mapId ~= currentMapId then
+        WORLD_MAP_MANAGER:SetMapById(mapId)
+        zo_callLater(doPan, 100)
+    else
+        doPan()
+    end
 end
 
 -- ── keybind strip ─────────────────────────────────────────────
@@ -461,7 +521,6 @@ local function BuildKeybindDescriptor()
     keybindDescriptor = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
-            -- A: enter text mode on search bar; show on map and close panel on list entry.
             name = function()
                 if currentFocusIndex == 1 then return "Search" end
                 return "Show on Map"
@@ -484,7 +543,6 @@ local function BuildKeybindDescriptor()
             end,
         },
         {
-            -- SECONDARY (X tap): "Search" from list → search bar; "Clear" from search bar
             name = function()
                 return currentFocusIndex == 1 and "Clear" or "Search"
             end,
@@ -502,7 +560,6 @@ local function BuildKeybindDescriptor()
             end,
         },
         {
-            -- QUATERNARY (Hold X): toggle bookmark on focused list entry
             name = function()
                 local d = listObject and listObject:GetTargetData()
                 if d and d.candidate then
@@ -524,9 +581,7 @@ local function BuildKeybindDescriptor()
             end,
         },
     }
-    -- LT / RT: jump between category headers (Wayshrines / Zones / Locations)
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindDescriptor, listObject)
-    -- Custom back (B button): exit text mode first if edit box is active, otherwise leave the panel.
     keybindDescriptor[#keybindDescriptor + 1] = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         order     = -1500,
@@ -564,12 +619,10 @@ end
 function GPH_MapSearch_ClearSearch()
     results     = {}
     currentTerm = ""
-    UpdateSidePanel(nil)
     if editControl then
-        editControl:SetText("")   -- triggers OnTextChanged → RebuildList (may switch focus)
+        editControl:SetText("")
         editControl:LoseFocus()
     end
-    -- Only switch if not already on search bar (RebuildList may have already done it).
     if focusManager and currentFocusIndex ~= 1 then
         focusManager:SetFocusByIndex(1)
     end
@@ -577,7 +630,6 @@ function GPH_MapSearch_ClearSearch()
     UpdateKeybinds()
 end
 
--- Tab / down-arrow in the edit box: move D-pad focus to the list
 function GPH_MapSearch_FocusList()
     if editControl then editControl:LoseFocus() end
     if focusManager then
@@ -590,11 +642,11 @@ function GPH_MapSearch_SelectCurrent()
     if listObject then
         local d = listObject:GetTargetData()
         if d and d.candidate then
-            TeleportToCandidate(d.candidate)
+            CenterMapOnCandidate(d.candidate)
             return
         end
     end
-    if results[1] then TeleportToCandidate(results[1]) end
+    if results[1] then CenterMapOnCandidate(results[1]) end
 end
 
 -- ── tab insertion ─────────────────────────────────────────────
@@ -614,12 +666,12 @@ local function InitList(control)
         nil, "ZO_GamepadMenuEntryHeaderTemplate")
 
     listObject:SetOnTargetDataChangedCallback(function(_, targetData)
-        local c = targetData and targetData.candidate
-        UpdateSidePanel(c)
         UpdateKeybinds()
+        if targetData and targetData.candidate then
+            CenterMapOnCandidate(targetData.candidate)
+        end
     end)
 
-    -- D-pad UP at the first list item: return focus to the search bar.
     local function ReturnToSearchBar()
         if focusManager then
             focusManager:SetFocusByIndex(1)
@@ -629,10 +681,6 @@ local function InitList(control)
 
     listObject:SetOnHitBeginningOfListCallback(ReturnToSearchBar)
 
-    -- ZO_ParametricScrollList:MovePrevious only fires HitBeginningOfList when
-    -- #dataList > 1.  With a single entry (e.g. one bookmark) the callback is
-    -- never reached, trapping the user in the list.  Patch the instance to cover
-    -- the single-entry case without double-firing for multi-entry lists.
     local origMovePrevious = listObject.MovePrevious
     listObject.MovePrevious = function(self, ...)
         if #self.dataList <= 1 then
@@ -644,14 +692,8 @@ local function InitList(control)
 end
 
 local function InitFocusManager(control)
-    -- ZO_GamepadFocus handles D-pad navigation between the search bar (entry 1)
-    -- and the result list (entry 2). The list is skipped when it is empty.
     focusManager = ZO_GamepadFocus:New(control)
 
-    -- Entry 1: search bar
-    -- NOTE: UpdateKeybinds() is NOT called here because ZO_GamepadFocus sets self.index
-    -- AFTER the activate/deactivate callbacks return, so GetFocus() would return nil.
-    -- Instead, callers call UpdateKeybinds() after SetFocusByIndex/MoveNext returns.
     focusManager:AddEntry({
         highlight = searchBarHighlight,
         activate = function()
@@ -672,7 +714,6 @@ local function InitFocusManager(control)
         end,
     })
 
-    -- Entry 2: result list (skipped when empty and no bookmarks)
     focusManager:AddEntry({
         canFocus = function()
             if currentTerm == "" then return #GetBookmarksArray() > 0 end
@@ -703,29 +744,22 @@ local function InsertMapSearchTab()
 
     InitList(control)
 
-    -- Grab search bar controls for visual state
-    local searchBar  = control:GetNamedChild("Main"):GetNamedChild("SearchBar")
+    local searchBar    = control:GetNamedChild("Main"):GetNamedChild("SearchBar")
     searchBarBG        = searchBar:GetNamedChild("BG")
     searchBarHighlight = searchBar:GetNamedChild("Highlight")
     searchBarIcon      = searchBar:GetNamedChild("Icon")
 
-    -- Grab side panel label references
-    local sideContainer  = control:GetNamedChild("SideContent"):GetNamedChild("Container")
-    sideTypeLabel        = sideContainer:GetNamedChild("TypeLabel")
-    sideLocationIcon     = sideContainer:GetNamedChild("LocationIcon")
-    sideNameLabel        = sideContainer:GetNamedChild("ZoneName")   -- XML name is ZoneName; we use it for candidate.name
-    sideDescriptionLabel = sideContainer:GetNamedChild("DescriptionLabel")
-
     BuildKeybindDescriptor()
     InitFocusManager(control)
 
+    -- false = we do not provide our own right-side content; the native map
+    -- panel uses its own right quadrant (shows pin info as the map pans).
     GPH_SEARCH_FRAGMENT = ZO_SimpleSceneFragment:New(control)
 
     GPH_SEARCH_FRAGMENT:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_SHOWING then
             if focusManager then
                 focusManager:Activate()
-                -- Start on the bookmark list if bookmarks exist, otherwise search bar.
                 if #GetBookmarksArray() > 0 then
                     focusManager:SetFocusByIndex(2)
                 end
@@ -736,19 +770,17 @@ local function InsertMapSearchTab()
             KEYBIND_STRIP:RemoveKeybindButtonGroup(keybindDescriptor)
             if focusManager then focusManager:Deactivate() end
             if editControl  then editControl:LoseFocus() end
-            UpdateSidePanel(nil)
         end
     end)
 
-    -- If BeamMeUp is present and its "show on map open" is enabled it inserts
-    -- its own tab at position 1; sit behind it so we are second.  Otherwise go first.
     local bmuActive = BMU ~= nil
                    and BMU_savedVarsAcc ~= nil
                    and BMU_savedVarsAcc.ShowOnMapOpen == true
     table.insert(mapInfo.tabBarEntries, bmuActive and 2 or 1, {
         text     = "|c3399FFGPH|r Search",
         callback = function()
-            mapInfo:SwitchToFragment(GPH_SEARCH_FRAGMENT, true)
+            -- false = no custom right-side content; native map info panel handles right side
+            mapInfo:SwitchToFragment(GPH_SEARCH_FRAGMENT, false)
         end,
     })
 
@@ -761,14 +793,12 @@ local function OnAddonLoaded(event, name)
     EVENT_MANAGER:UnregisterForEvent("MapSearch", EVENT_ADD_ON_LOADED)
 
     ZO_Dialogs_RegisterCustomDialog("GPH_UNBOOKMARK_CONFIRM", {
-        gamepadInfo = {
-            dialogType = GAMEPAD_DIALOGS.BASIC,
-        },
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
         title = { text = "Remove Bookmark" },
         mainText = {
             text = function(dialog)
-                local name = dialog.data and dialog.data.name or "this location"
-                return "Remove bookmark for " .. name .. "?"
+                local n = dialog.data and dialog.data.name or "this location"
+                return "Remove bookmark for " .. n .. "?"
             end,
         },
         buttons = {
@@ -777,17 +807,14 @@ local function OnAddonLoaded(event, name)
                 text     = SI_YES,
                 callback = function(dialog) RemoveBookmark(dialog.data) end,
             },
-            {
-                keybind = "DIALOG_NEGATIVE",
-                text    = SI_NO,
-            },
+            { keybind = "DIALOG_NEGATIVE", text = SI_NO },
         },
     })
 
+    -- Scan is lazy: built the first time the user runs a search or opens the panel.
+
     GAMEPAD_WORLD_MAP_SCENE:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_SHOWING then
-            -- Defer one frame so addons like BeamMeUp can insert their tabs
-            -- synchronously first; we then insert at position 1 to be first.
             zo_callLater(InsertMapSearchTab, 0)
         end
     end)

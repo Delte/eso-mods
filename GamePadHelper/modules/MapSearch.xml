@@ -88,69 +88,6 @@
                     </Controls>
                 </Control>
 
-                <!-- Right info panel — standard gamepad quadrant 4 -->
-                <Control name="$(parent)SideContent" inherits="ZO_GamepadGrid_NavQuadrant_4_Anchors">
-                    <Controls>
-                        <Control name="$(parent)Container" inherits="ZO_GamepadGrid_NavQuadrant_ContainerAnchors">
-                            <Controls>
-
-                                <Label name="$(parent)TypeLabel"
-                                       font="ZoFontGamepadBold22"
-                                       color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"
-                                       modifyTextType="UPPERCASE"
-                                       wrapMode="ELLIPSIS"
-                                       horizontalAlignment="LEFT">
-                                    <Anchor point="TOPLEFT"  offsetY="ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y"/>
-                                    <Anchor point="TOPRIGHT" offsetY="ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y"/>
-                                </Label>
-
-                                <!-- Location icon: left of the zone name -->
-                                <Texture name="$(parent)LocationIcon"
-                                         hidden="true">
-                                    <Dimensions x="48" y="48"/>
-                                    <Anchor point="TOPLEFT"
-                                            relativeTo="$(parent)TypeLabel"
-                                            relativePoint="BOTTOMLEFT"
-                                            offsetY="6"/>
-                                </Texture>
-
-                                <Label name="$(parent)ZoneName"
-                                       font="ZoFontGamepadCondensed42"
-                                       color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL"
-                                       wrapMode="WRAP"
-                                       horizontalAlignment="LEFT"
-                                       verticalAlignment="TOP">
-                                    <Anchor point="TOPLEFT"
-                                            relativeTo="$(parent)LocationIcon"
-                                            relativePoint="TOPRIGHT"
-                                            offsetX="8"/>
-                                    <Anchor point="TOPRIGHT"
-                                            relativeTo="$(parent)TypeLabel"
-                                            relativePoint="BOTTOMRIGHT"
-                                            offsetY="6"/>
-                                </Label>
-
-                                <!-- Sub-description: vendor type, dungeon info, etc. -->
-                                <Label name="$(parent)DescriptionLabel"
-                                       font="ZoFontGamepadBold22"
-                                       color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED"
-                                       wrapMode="WRAP"
-                                       horizontalAlignment="LEFT"
-                                       hidden="true">
-                                    <Anchor point="TOPLEFT"
-                                            relativeTo="$(parent)ZoneName"
-                                            relativePoint="BOTTOMLEFT"
-                                            offsetY="6"/>
-                                    <Anchor point="TOPRIGHT"
-                                            relativeTo="$(parent)ZoneName"
-                                            relativePoint="BOTTOMRIGHT"/>
-                                </Label>
-
-
-                            </Controls>
-                        </Control>
-                    </Controls>
-                </Control>
 
             </Controls>
         </TopLevelControl>
