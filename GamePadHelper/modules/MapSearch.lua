@@ -178,17 +178,19 @@ local function BuildCandidateNarrationText(c, isBookmark)
         parts[#parts + 1] = c.type == TYPE_HOUSE_UNOWNED and "unowned" or "owned"
         parts[#parts + 1] = "House"
     elseif c.type == TYPE_POI then
-        if not c.known then parts[#parts + 1] = "undiscovered" end
+        if c.isLocked       then parts[#parts + 1] = "locked"
+        elseif not c.known  then parts[#parts + 1] = "undiscovered" end
         parts[#parts + 1] = c.poiTypeLabel or "Point of Interest"
     elseif c.type == TYPE_ZONE then
+        if c.isLocked then parts[#parts + 1] = "locked" end
         parts[#parts + 1] = "Zone"
     elseif c.type == TYPE_LIFT then
         if not c.known    then parts[#parts + 1] = "undiscovered"
         elseif c.isLocked then parts[#parts + 1] = "locked" end
         parts[#parts + 1] = "Lift"
     else -- TYPE_WAYSHRINE
-        if not c.known    then parts[#parts + 1] = "undiscovered"
-        elseif c.isLocked then parts[#parts + 1] = "locked" end
+        if c.isLocked     then parts[#parts + 1] = "locked"
+        elseif not c.known then parts[#parts + 1] = "undiscovered" end
     end
     return table.concat(parts, ", ")
 end
@@ -211,6 +213,16 @@ local function PreScan()
     end
 
     local data = { wayshrines = {}, zones = {}, pois = {}, nameToZoneId = nameToZoneId }
+
+    -- Build a set of locked zoneIndices from fast travel nodes so zones/POIs can inherit it.
+    local lockedZoneIndex = {}
+    for nodeIndex = 1, GetNumFastTravelNodes() do
+        local _, _, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
+        if isLocked and typePOI == 1 then
+            local zi = GetFastTravelNodePOIIndicies(nodeIndex)
+            if zi then lockedZoneIndex[zi] = true end
+        end
+    end
 
     for nodeIndex = 1, GetNumFastTravelNodes() do
         local known, name, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
@@ -253,6 +265,7 @@ local function PreScan()
                     zoneId    = zoneId,
                     zoneIndex = zoneIndex,
                     mapIndex  = mapIndex,
+                    isLocked  = lockedZoneIndex[zoneIndex] or false,
                 }
                 nameToZoneId[mapName] = zoneId
             end
@@ -271,9 +284,10 @@ local function PreScan()
                     seenPOI[uid] = true
                     local name = GetPOIInfo(zoneIndex, poiIndex)
                     if name and name ~= "" then
-                        local _, _, _, icon, _, _, known = GetPOIMapInfo(zoneIndex, poiIndex)
+                        local _, _, _, icon, _, linkedCollectibleIsLocked, known = GetPOIMapInfo(zoneIndex, poiIndex)
                         if not icon or not icon:find("wayshrine") then
                             local poiIcon = (icon and icon ~= "") and icon or nil
+                            local isLocked = linkedCollectibleIsLocked or lockedZoneIndex[zoneIndex] or false
                             data.pois[#data.pois + 1] = {
                                 name      = name,
                                 icon      = poiIcon or ICON_POI_GENERIC,
@@ -284,6 +298,7 @@ local function PreScan()
                                 mapIndex  = zoneToMap[zoneIndex],
                                 zoneName  = zoneName,
                                 known     = known,
+                                isLocked  = isLocked,
                             }
                         end
                     end
@@ -354,6 +369,7 @@ local function BuildCandidates()
             mapIndex   = z.mapIndex,
             zoneName   = z.name,
             known      = true,
+            isLocked   = z.isLocked,
         }
     end
 
@@ -376,6 +392,7 @@ local function BuildCandidates()
                 zoneId       = cityZoneId,
                 zoneIndex    = GetZoneIndex(cityZoneId),
                 mapIndex     = GetMapIndexByZoneId(cityZoneId),
+                isLocked     = poi.isLocked,
             }
         else
             list[#list + 1] = {
@@ -390,6 +407,7 @@ local function BuildCandidates()
                 mapIndex     = poi.mapIndex,
                 zoneName     = poi.zoneName,
                 known        = poi.known,
+                isLocked     = poi.isLocked,
             }
         end
     end
@@ -470,6 +488,7 @@ local function RebuildList()
             entryData.candidate = bm
             entryData.isBookmark = true
             entryData:SetIconTintOnSelection(true)
+            if bm.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
             if i == 1 then
                 entryData:SetHeader("Bookmarks")
                 listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
@@ -486,6 +505,7 @@ local function RebuildList()
             local entryData = ZO_GamepadEntryData:New(displayName, c.icon)
             entryData.candidate = c
             entryData:SetIconTintOnSelection(true)
+            if c.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
             if c.type ~= lastType then
                 lastType = c.type
                 entryData:SetHeader(CAT_NAMES[c.type] or "Other")
@@ -673,7 +693,26 @@ local function BuildKeybindDescriptor()
             end,
         },
         {
-            name     = "Teleport to Nearest Wayshrine",
+            name     = function()
+                local td = listObject and listObject:GetTargetData()
+                if td and td.candidate then
+                    local c = td.candidate
+                    if (c.type == TYPE_WAYSHRINE and c.known and not c.isLocked) or c.type == TYPE_HOUSE_OWNED then
+                        return "Teleport"
+                    end
+                end
+                return "Teleport to Nearest Wayshrine"
+            end,
+            enabled  = function()
+                local td = listObject and listObject:GetTargetData()
+                if td and td.candidate then
+                    local c = td.candidate
+                    if c.type == TYPE_WAYSHRINE and c.isLocked then
+                        return false
+                    end
+                end
+                return true
+            end,
             keybind  = "UI_SHORTCUT_QUINARY",
             visible  = function() return currentFocusIndex == 2 end,
             callback = function()
@@ -731,6 +770,9 @@ local function BuildKeybindDescriptor()
             if isTextMode then
                 if editControl then editControl:LoseFocus() end
                 focusManager:SetFocusByIndex(1)
+                if focusManager:IsActive() and not focusManager.directionalInputEnabled then
+                    focusManager:SetDirectionalInputEnabled(true)
+                end
                 local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
                 pendingNarration = label .. ", text field"
                 SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
@@ -831,10 +873,17 @@ local function InitList(control)
         EntryParametric,
         nil, "ZO_GamepadMenuEntryHeaderTemplate")
 
+    local narrationPending = false
     listObject:SetOnTargetDataChangedCallback(function()
         UpdateKeybinds()
-        if currentFocusIndex == 2 then
-            SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+        if currentFocusIndex == 2 and not narrationPending then
+            narrationPending = true
+            zo_callLater(function()
+                narrationPending = false
+                if currentFocusIndex == 2 then
+                    SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+                end
+            end, 600)
         end
     end)
 
