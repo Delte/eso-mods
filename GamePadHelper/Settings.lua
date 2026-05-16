@@ -59,6 +59,7 @@ local function BuildCheckboxCustom(text, tooltip, getFunc, setFunc, header, disa
         gamepadTextOverride = text,
         header = header,
         disabled = disabledFunc,
+        gamepadIsEnabledCallback = disabledFunc and function() return not disabledFunc() end or nil,
         tooltipText = tooltip,
         gamepadCustomTooltipFunction = function(tooltipControl)
             GAMEPAD_TOOLTIPS:LayoutTextBlockTooltip(tooltipControl, tooltip)
@@ -208,6 +209,36 @@ local function BuildSettingsData()
     add(BuildCheckbox("Auto Weapon Charge", "Automatically recharge weapons.", "autoChargeEnabled"))
     add(BuildCheckbox("Antiquarian's Eye", "Automatically activate the Eye.", "antiquariansEyeEnabled"))
     add(BuildCheckbox("Teleporter", "Enable teleport functionality.", "teleporterEnabled"))
+
+    local function IsNarrationDisabled()
+        return not GetSetting_Bool(SETTING_TYPE_ACCESSIBILITY, ACCESSIBILITY_SETTING_SCREEN_NARRATION)
+    end
+
+    add(BuildCheckboxCustom("Map Search Default Tab", "Open the GPH Search tab by default when opening the world map.", function()
+        return GetBoolSetting("mapSearchDefaultTab", true)
+    end, function(v)
+        SetSetting("mapSearchDefaultTab", v)
+    end, function()
+        return "Map Search"
+    end))
+
+    add(BuildCheckboxCustom("Set Destination on Show Map", "Set a player waypoint destination when showing a location on the map.", function()
+        return GetBoolSetting("mapSearchSetDestination", true)
+    end, function(v)
+        SetSetting("mapSearchSetDestination", v)
+    end))
+
+    add(BuildCheckboxCustom("Narrate Before Teleport", "Read a message when a teleport is initiated, telling you to open the map for the visual pin.\n\n|cFFAA00Requires Screen Narration to be enabled.|r", function()
+        return GetBoolSetting("mapSearchNarratePreTeleport", true)
+    end, function(v)
+        SetSetting("mapSearchNarratePreTeleport", v)
+    end, nil, IsNarrationDisabled))
+
+    add(BuildCheckboxCustom("Narrate After Teleport", "Read a message on arrival confirming the teleport and describing the visual pin on the map.\n\n|cFFAA00Requires Screen Narration to be enabled.|r", function()
+        return GetBoolSetting("mapSearchNarratePostTeleport", true)
+    end, function(v)
+        SetSetting("mapSearchNarratePostTeleport", v)
+    end, nil, IsNarrationDisabled))
 
     add(BuildCheckboxCustom("Dungeon Finder Enhancement", "Show pledge quest names inside the dungeon finder.", function()
         return GetBoolSetting("dungeonFinderEnabled", false)

@@ -19,6 +19,7 @@ Price data provided by **Tamriel Savings Co** when TSC sources are available.
   - [Antiquarian's Eye](#antiquarians-eye)
   - [Teleporter](#teleporter)
   - [Dungeon Finder](#dungeon-finder)
+  - [Map Search](#map-search)
   - [Provisioning](#provisioning)
   - [Gear Comparison](#gear-comparison)
   - [Inventory Covetous Countess](#inventory-covetous-countess)
@@ -106,6 +107,21 @@ Two teleport improvements:
 ![Dungeon Finder](screenshots/DungeonFinder.png)
 
 Replaces dungeon names in the Dungeon Finder list with their corresponding **pledge quest names**, making it much easier to identify which dungeon completes your daily pledge without cross-referencing.
+
+---
+
+### Map Search
+
+Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search across all wayshrines, zones, and points of interest by name and instantly pan the map to the result.
+
+**Features:**
+
+- Fuzzy search with ranked results — exact prefix matches score highest.
+- Results grouped by category: **Wayshrines**, **Zones**, **Owned Houses**, **Unowned Houses**, and named POI types (Delve, Dungeon, World Boss, Crafting Station, Mundus Stone, etc.).
+- **Bookmark** any location (per character) for quick access — bookmarks appear when the search bar is empty.
+- **Show on Map** pans the world map to the selected result and places a ping marker.
+- **Teleport to Nearest Wayshrine** fast-travels to the closest discovered wayshrine in the same zone as the selected result (or directly to the wayshrine/house if it is one).
+- Full **screen narration** support for gamepad accessibility — reads the name, category, ownership (houses), and discovery/lock status of each result.
 
 ---
 
