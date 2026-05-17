@@ -1,7 +1,8 @@
 -- ============================================================
 -- GPH Map Search
--- Adds a "GPH Search" tab to the Gamepad World Map info panel.
--- POI data is pre-scanned on player activation and cached in memory.
+-- Navigation model: list owns d-pad, edit box for text only.
+-- Full feature set: POI/House/Lift types, fuzzy search, teleport,
+-- bookmarks with confirmation, narration, post-teleport restore.
 -- ============================================================
 
 local TYPE_WAYSHRINE     = 1
@@ -12,40 +13,32 @@ local TYPE_HOUSE_UNOWNED = 5
 local TYPE_LIFT          = 6
 
 local FAST_TRAVEL_TYPE_HOUSE = 3
+local FAST_TRAVEL_TYPE_LIFT  = 2
 
 local ICON_WAYSHRINE_KNOWN   = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
 local ICON_WAYSHRINE_UNKNOWN = "/esoui/art/icons/poi/poi_wayshrine_incomplete.dds"
 local ICON_LIFT              = "/esoui/art/icons/poi/poi_transit_complete.dds"
 local ICON_POI_GENERIC       = "/esoui/art/icons/poi/poi_landmark_complete.dds"
 
-local FAST_TRAVEL_TYPE_LIFT  = 2
-
 local GPH_SEARCH_FRAGMENT     = nil
 local GPH_SEARCH_TAB_INSERTED = false
 
-local candidates       = nil
-local results          = {}
-local currentTerm      = ""
-local pendingNarration = nil
-local postTeleportMsg  = nil
+local scannedData = nil
+local candidates  = nil
+local results     = {}
+local currentTerm = ""
 
 local listObject        = nil
 local editControl       = nil
-local focusManager      = nil
-local currentFocusIndex = 0   -- 1=search bar, 2=list
-
-local searchBarBG        = nil
-local searchBarHighlight = nil
-local searchBarIcon      = nil
-local isTextMode         = false
-
+local searchBarBG       = nil
 local keybindDescriptor = nil
 
--- ── helpers ───────────────────────────────────────────────────
+local lastSelectedIndex = 1
+local postTeleportMsg   = nil
+local pendingNarration  = nil
 
-function GPH_MapSearch_OnSearchFocused(focused)
-    isTextMode = focused
-    if searchBarBG then searchBarBG:SetHidden(not focused) end
+local function IsFragmentShowing()
+    return GPH_SEARCH_FRAGMENT ~= nil and GPH_SEARCH_FRAGMENT:IsShowing()
 end
 
 local function UpdateKeybinds()
@@ -53,6 +46,8 @@ local function UpdateKeybinds()
         KEYBIND_STRIP:UpdateKeybindButtonGroup(keybindDescriptor)
     end
 end
+
+-- ── bookmarks ─────────────────────────────────────────────────
 
 local function MakeBookmarkKey(c)
     return c.type .. ":" .. tostring(c.nodeIndex or c.zoneId or "") .. ":" .. c.name
@@ -78,20 +73,50 @@ local function IsBookmarked(c)
     return false
 end
 
--- Maps stripped icon filenames to display names.
--- Mirrors LibPOI's POI_CATEGORIES + ICON_CATEGORY_OVERRIDES without the runtime dependency.
+local function RemoveBookmark(c)
+    local key = MakeBookmarkKey(c)
+    local arr = GetBookmarksArray()
+    for i, bm in ipairs(arr) do
+        if bm.key == key then
+            table.remove(arr, i)
+            return
+        end
+    end
+end
+
+local function AddBookmark(c)
+    local arr = GetBookmarksArray()
+    arr[#arr + 1] = {
+        key        = MakeBookmarkKey(c),
+        name       = c.name,
+        searchName = c.name:lower(),
+        type       = c.type,
+        icon       = c.icon,
+        nodeIndex  = c.nodeIndex,
+        zoneId     = c.zoneId,
+        zoneIndex  = c.zoneIndex,
+        mapIndex   = c.mapIndex,
+        poiIndex   = c.poiIndex,
+        zoneName   = c.zoneName,
+        isLocked   = c.isLocked,
+        known      = c.known,
+    }
+end
+
+-- ── POI type labels ───────────────────────────────────────────
+
 local POI_TYPE_NAMES = {
     areaofinterest  = "Area of Interest",
     adventurezone   = "Adventure Zone",
     ayleidruin      = "Ayleid Ruin",
-    ayliedruin      = "Ayleid Ruin",   -- in-game icon typo
+    ayliedruin      = "Ayleid Ruin",
     battlefield     = "Battlefield",
-    battleground    = "Battlefield",   -- group variant
+    battleground    = "Battlefield",
     boss            = "World Boss",
     camp            = "Camp",
     cave            = "Cave",
     cemetery        = "Cemetery",
-    cemetary        = "Cemetery",      -- in-game icon typo
+    cemetary        = "Cemetery",
     city            = "City",
     crafting        = "Crafting Station",
     crypt           = "Crypt",
@@ -113,11 +138,17 @@ local POI_TYPE_NAMES = {
     groupboss       = "World Boss",
     groupdelve      = "Delve",
     groupinstance   = "Group Dungeon",
+    -- explicit group_ keys so poi_group_house doesn't collapse to "house"
+    group_boss      = "World Boss",
+    group_delve     = "Delve",
+    group_instance  = "Group Dungeon",
+    group_dungeon   = "Group Dungeon",
+    group_house     = "Group Instance",   -- group housing content, not a player home
     keep            = "Keep",
     lighthouse      = "Lighthouse",
     mine            = "Mine",
-    mine_compete    = "Mine",          -- in-game icon typo
-    mine_incompete  = "Mine",          -- in-game icon typo
+    mine_compete    = "Mine",
+    mine_incompete  = "Mine",
     mundus          = "Mundus Stone",
     mushromtower    = "Mushroom Tower",
     portal          = "Dolmen",
@@ -125,8 +156,8 @@ local POI_TYPE_NAMES = {
     ruin            = "Ruin",
     sewer           = "Sewer",
     shrine          = "Shrine",
-    shrine_vampire  = "Shrine",
-    shrine_werewolf = "Shrine",
+    shrine_vampire  = "Vampire Shrine",
+    shrine_werewolf = "Werewolf Shrine",
     solotrial       = "Solo Trial",
     tower           = "Tower",
     town            = "Town",
@@ -134,7 +165,6 @@ local POI_TYPE_NAMES = {
     lift            = "Lift",
     nord_boat       = "Nord Boat",
     dwemergear      = "Lift",
-    -- Imperial City district icons all share one category
     ic_boneshard         = "Imperial City",
     ic_darkether         = "Imperial City",
     ic_tinyclaw          = "Imperial City",
@@ -143,7 +173,6 @@ local POI_TYPE_NAMES = {
     ic_planararmorscraps = "Imperial City",
     ic_daedricshackles   = "Imperial City",
     ic_daedricembers     = "Imperial City",
-    -- Adventure zone naming variants
     adventurezone_entrance             = "Adventure Zone",
     adventurezone_jumppad              = "Adventure Zone",
     adventurezone_faction_ruckus       = "Adventure Zone",
@@ -151,7 +180,6 @@ local POI_TYPE_NAMES = {
     adventurezone_faction_glittering   = "Adventure Zone",
     adventurezone_skirmish             = "Adventure Zone",
     adventurezone_contentgrouptimed    = "Adventure Zone",
-    -- Fast travel / internal sentinels
     wayshrine    = "Wayshrine",
     icon_missing = "Unknown",
     unknown      = "Unknown",
@@ -164,12 +192,17 @@ local function GetPOITypeLabel(icon)
         :gsub("_incomplete$", "")
         :gsub("_owned$",      "")
         :gsub("_unowned$",    "")
-        :gsub("^poi_group_",  "")
-        :gsub("^poi_",        "")
         :gsub("^u%d+_poi_",   "")
         :gsub("^u%d+_",       "")
-    return POI_TYPE_NAMES[name]
+    -- Try with full poi_group_ prefix first so group_house/group_dungeon
+    -- don't collapse to "house"/"dungeon" via the generic poi_ strip.
+    local grouped = name:gsub("^poi_group_", "group_")
+    if POI_TYPE_NAMES[grouped] then return POI_TYPE_NAMES[grouped] end
+    local plain = name:gsub("^poi_", "")
+    return POI_TYPE_NAMES[plain]
 end
+
+-- ── narration ─────────────────────────────────────────────────
 
 local function BuildCandidateNarrationText(c, isBookmark)
     local parts = { c.name }
@@ -178,26 +211,24 @@ local function BuildCandidateNarrationText(c, isBookmark)
         parts[#parts + 1] = c.type == TYPE_HOUSE_UNOWNED and "unowned" or "owned"
         parts[#parts + 1] = "House"
     elseif c.type == TYPE_POI then
-        if c.isLocked       then parts[#parts + 1] = "locked"
-        elseif not c.known  then parts[#parts + 1] = "undiscovered" end
+        if c.isLocked      then parts[#parts + 1] = "locked"
+        elseif not c.known then parts[#parts + 1] = "undiscovered" end
         parts[#parts + 1] = c.poiTypeLabel or "Point of Interest"
     elseif c.type == TYPE_ZONE then
         if c.isLocked then parts[#parts + 1] = "locked" end
         parts[#parts + 1] = "Zone"
     elseif c.type == TYPE_LIFT then
-        if not c.known    then parts[#parts + 1] = "undiscovered"
-        elseif c.isLocked then parts[#parts + 1] = "locked" end
+        if not c.known     then parts[#parts + 1] = "undiscovered"
+        elseif c.isLocked  then parts[#parts + 1] = "locked" end
         parts[#parts + 1] = "Lift"
-    else -- TYPE_WAYSHRINE
-        if c.isLocked     then parts[#parts + 1] = "locked"
+    else
+        if c.isLocked      then parts[#parts + 1] = "locked"
         elseif not c.known then parts[#parts + 1] = "undiscovered" end
     end
     return table.concat(parts, ", ")
 end
 
 -- ── pre-scan ──────────────────────────────────────────────────
-
-local scannedData = nil
 
 local function PreScan()
     local zoneToMap    = {}
@@ -214,7 +245,6 @@ local function PreScan()
 
     local data = { wayshrines = {}, zones = {}, pois = {}, nameToZoneId = nameToZoneId }
 
-    -- Build a set of locked zoneIndices from fast travel nodes so zones/POIs can inherit it.
     local lockedZoneIndex = {}
     for nodeIndex = 1, GetNumFastTravelNodes() do
         local _, _, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
@@ -286,7 +316,7 @@ local function PreScan()
                     if name and name ~= "" then
                         local _, _, _, icon, _, linkedCollectibleIsLocked, known = GetPOIMapInfo(zoneIndex, poiIndex)
                         if not icon or not icon:find("wayshrine") then
-                            local poiIcon = (icon and icon ~= "") and icon or nil
+                            local poiIcon  = (icon and icon ~= "") and icon or nil
                             local isLocked = linkedCollectibleIsLocked or lockedZoneIndex[zoneIndex] or false
                             data.pois[#data.pois + 1] = {
                                 name      = name,
@@ -311,7 +341,7 @@ local function PreScan()
     candidates  = nil
 end
 
--- ── candidate building ────────────────────────────────────────
+-- ── candidates ────────────────────────────────────────────────
 
 local function FindNearestWayshrineToPos(px, py, minDist, filterZoneIndex)
     if not px or not py or px == 0 then return nil end
@@ -344,7 +374,7 @@ local function BuildCandidates()
             name       = ws.name,
             searchName = ws.name:lower(),
             type       = ws.isHouse and (ws.isLocked and TYPE_HOUSE_UNOWNED or TYPE_HOUSE_OWNED)
-                      or ws.isLift and TYPE_LIFT
+                      or ws.isLift  and TYPE_LIFT
                       or TYPE_WAYSHRINE,
             icon       = ws.icon,
             nodeIndex  = ws.nodeIndex,
@@ -380,7 +410,6 @@ local function BuildCandidates()
             and (poi.isUnowned and TYPE_HOUSE_UNOWNED or TYPE_HOUSE_OWNED)
             or TYPE_POI
 
-        -- Cities that are also zones: link to the zone map rather than the POI pin
         local cityZoneId = (poi.icon:find("poi_city") and nameToZoneId[poi.name]) or nil
         if cityZoneId then
             list[#list + 1] = {
@@ -454,7 +483,7 @@ local function RunSearch(term)
     end
 
     table.sort(scored, function(a, b)
-        if a.score ~= b.score  then return a.score > b.score end
+        if a.score ~= b.score   then return a.score > b.score end
         if a.c.type ~= b.c.type then return a.c.type < b.c.type end
         return a.c.searchName < b.c.searchName
     end)
@@ -485,8 +514,9 @@ local function RebuildList()
     if currentTerm == "" then
         for i, bm in ipairs(bookmarks) do
             local entryData = ZO_GamepadEntryData:New(bm.name, bm.icon)
-            entryData.candidate = bm
-            entryData.isBookmark = true
+            entryData.candidate    = bm
+            entryData.isBookmark   = true
+            entryData.narrationText = BuildCandidateNarrationText(bm, true)
             entryData:SetIconTintOnSelection(true)
             if bm.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
             if i == 1 then
@@ -503,7 +533,8 @@ local function RebuildList()
                 and zo_iconTextFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 24, 24, c.name)
                 or c.name
             local entryData = ZO_GamepadEntryData:New(displayName, c.icon)
-            entryData.candidate = c
+            entryData.candidate     = c
+            entryData.narrationText = BuildCandidateNarrationText(c, IsBookmarked(c))
             entryData:SetIconTintOnSelection(true)
             if c.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
             if c.type ~= lastType then
@@ -518,51 +549,13 @@ local function RebuildList()
 
     listObject:Commit()
 
-    local listEmpty = (currentTerm == "" and #bookmarks == 0)
-                   or (currentTerm ~= "" and #results == 0)
-    if focusManager and focusManager:IsActive() and currentFocusIndex == 2 and listEmpty then
-        focusManager:SetFocusByIndex(1)
+    local numItems = listObject:GetNumItems()
+    if numItems > 0 then
+        lastSelectedIndex = zo_clamp(lastSelectedIndex, 1, numItems)
+        listObject:SetSelectedIndex(lastSelectedIndex)
     end
 
     UpdateKeybinds()
-end
-
--- ── bookmarks ─────────────────────────────────────────────────
-
-local function RemoveBookmark(c)
-    local key = MakeBookmarkKey(c)
-    local arr = GetBookmarksArray()
-    for i, bm in ipairs(arr) do
-        if bm.key == key then
-            table.remove(arr, i)
-            RebuildList()
-            return
-        end
-    end
-end
-
-local function ToggleBookmark(c)
-    if IsBookmarked(c) then
-        ZO_Dialogs_ShowGamepadDialog("GPH_UNBOOKMARK_CONFIRM", c)
-    else
-        local arr = GetBookmarksArray()
-        arr[#arr + 1] = {
-            key        = MakeBookmarkKey(c),
-            name       = c.name,
-            searchName = c.name:lower(),
-            type       = c.type,
-            icon       = c.icon,
-            nodeIndex  = c.nodeIndex,
-            zoneId     = c.zoneId,
-            zoneIndex  = c.zoneIndex,
-            mapIndex   = c.mapIndex,
-            poiIndex   = c.poiIndex,
-            zoneName   = c.zoneName,
-            isLocked   = c.isLocked,
-            known      = c.known,
-        }
-        RebuildList()
-    end
 end
 
 -- ── map interaction ───────────────────────────────────────────
@@ -617,87 +610,99 @@ local function BuildKeybindDescriptor()
     keybindDescriptor = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
-            name = function()
-                return currentFocusIndex == 1 and "Search" or "Show on Map"
-            end,
             keybind  = "UI_SHORTCUT_PRIMARY",
+            name     = function()
+                if editControl and editControl:HasFocus() then return "Done" end
+                local td = listObject and listObject:GetTargetData()
+                return (td and td.candidate) and "Show on Map" or "Done"
+            end,
             callback = function()
-                if currentFocusIndex == 1 then
-                    if isTextMode and focusManager then
-                        if editControl then editControl:LoseFocus() end
-                        focusManager:SetFocusByIndex(2)
-                    elseif editControl then
-                        editControl:TakeFocus()
-                        pendingNarration = "Text input active"
-                        SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+                if editControl and editControl:HasFocus() then
+                    editControl:LoseFocus()
+                    if listObject and IsFragmentShowing() then
+                        listObject:SetSelectedIndex(1)
+                        listObject:Activate()
                     end
-                else
-                    local td = listObject and listObject:GetTargetData()
-                    if td and td.candidate then
-                        CenterMapOnCandidate(td.candidate)
-                        local keybindName = ZO_Keybindings_GetBindingStringFromAction("UI_SHORTCUT_QUINARY") or "Teleport"
-                        pendingNarration = td.candidate.name .. " selected on map. Ready to teleport. Hold " .. keybindName .. " to teleport."
-                        SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
-                    end
+                    return
+                end
+                local td = listObject and listObject:GetTargetData()
+                if td and td.candidate then
+                    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
+                    GamePadHelperSavedVars.lastSelectedPOI = td.candidate
+                    CenterMapOnCandidate(td.candidate)
+                    local keybindName = ZO_Keybindings_GetBindingStringFromAction("UI_SHORTCUT_QUINARY") or "Teleport"
+                    pendingNarration = BuildCandidateNarrationText(td.candidate, td.isBookmark) .. ". Shown on map. Hold " .. keybindName .. " to teleport."
+                    SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
                 end
             end,
-            visible = function()
-                if currentFocusIndex == 1 then return true end
+            visible  = function()
+                if editControl and editControl:HasFocus() then return true end
                 local td = listObject and listObject:GetTargetData()
                 return td ~= nil and td.candidate ~= nil
             end,
         },
         {
-            name = function()
-                return currentFocusIndex == 1 and "Clear" or "Search"
-            end,
+            -- In text mode: X = Clear (clears text, stays in search box)
+            -- In list mode: X = Search (opens text mode)
             keybind  = "UI_SHORTCUT_SECONDARY",
+            name     = function()
+                return (editControl and editControl:HasFocus()) and "Clear" or "Search"
+            end,
             callback = function()
-                if currentFocusIndex == 1 then
-                    GPH_MapSearch_ClearSearch()
-                elseif focusManager then
-                    focusManager:SetFocusByIndex(1)
-                    UpdateKeybinds()
-                    local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
-                    pendingNarration = label .. ", text field"
+                if editControl and editControl:HasFocus() then
+                    currentTerm = ""
+                    editControl:SetText("")
+                    results = {}
+                    RebuildList()
+                    pendingNarration = "Search cleared. Ready to search."
                     SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+                else
+                    if editControl then editControl:TakeFocus() end
                 end
             end,
-            visible = function()
-                return currentFocusIndex == 1 or currentFocusIndex == 2
-            end,
+            visible  = function() return IsFragmentShowing() end,
         },
         {
-            name = function()
+            keybind  = "UI_SHORTCUT_QUATERNARY",
+            name     = function()
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
                     return IsBookmarked(td.candidate) and "Unbookmark" or "Bookmark"
                 end
                 return "Bookmark"
             end,
-            keybind  = "UI_SHORTCUT_QUATERNARY",
             callback = function()
                 local td = listObject and listObject:GetTargetData()
-                if td and td.candidate then
-                    local wasBookmarked = IsBookmarked(td.candidate)
-                    local name = td.candidate.name
-                    ToggleBookmark(td.candidate)
-                    pendingNarration = (not wasBookmarked and "Bookmarked" or "Bookmark removed") .. ", " .. name
+                if not td or not td.candidate then return end
+                local c = td.candidate
+                local idx = listObject:GetSelectedIndex()
+                if IsBookmarked(c) then
+                    ZO_Dialogs_ShowGamepadDialog("GPH_UNBOOKMARK_CONFIRM", c)
+                else
+                    AddBookmark(c)
+                    pendingNarration = "Bookmarked, " .. c.name
                     SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+                    RunSearch(currentTerm)
+                    RebuildList()
+                    if idx and idx > 0 and listObject:GetNumItems() > 0 then
+                        listObject:SetSelectedIndex(zo_clamp(idx, 1, listObject:GetNumItems()))
+                    end
                 end
             end,
-            visible = function()
-                if currentFocusIndex ~= 2 then return false end
+            visible  = function()
+                if editControl and editControl:HasFocus() then return false end
                 local td = listObject and listObject:GetTargetData()
                 return td ~= nil and td.candidate ~= nil
             end,
         },
         {
+            keybind  = "UI_SHORTCUT_QUINARY",
             name     = function()
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
                     local c = td.candidate
-                    if (c.type == TYPE_WAYSHRINE and c.known and not c.isLocked) or c.type == TYPE_HOUSE_OWNED then
+                    if (c.type == TYPE_WAYSHRINE and c.known and not c.isLocked)
+                    or c.type == TYPE_HOUSE_OWNED then
                         return "Teleport"
                     end
                 end
@@ -707,36 +712,40 @@ local function BuildKeybindDescriptor()
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
                     local c = td.candidate
-                    if c.type == TYPE_WAYSHRINE and c.isLocked then
-                        return false
-                    end
+                    if c.type == TYPE_WAYSHRINE and c.isLocked then return false end
                 end
                 return true
             end,
-            keybind  = "UI_SHORTCUT_QUINARY",
-            visible  = function() return currentFocusIndex == 2 end,
-            callback = function()
-                local nodeIndex = nil
-                local failReason = nil
+            visible  = function()
+                if editControl and editControl:HasFocus() then return false end
                 local td = listObject and listObject:GetTargetData()
-                if td and td.candidate then
-                    local c = td.candidate
-                    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
-                    GamePadHelperSavedVars.lastSelectedPOI = c
-                    if c.type == TYPE_WAYSHRINE and c.known and not c.isLocked then
-                        nodeIndex = c.nodeIndex
-                    elseif c.type == TYPE_WAYSHRINE and c.isLocked then
-                        failReason = "locked"
-                    elseif c.zoneIndex and c.poiIndex then
-                        local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
-                        if nx and ny then
-                            nodeIndex = FindNearestWayshrineToPos(nx, ny, 0, c.zoneIndex)
-                        end
-                        if not nodeIndex then failReason = "undiscovered" end
-                    elseif c.nodeIndex then
-                        nodeIndex = c.nodeIndex
+                return td ~= nil and td.candidate ~= nil
+            end,
+            callback = function()
+                local td = listObject and listObject:GetTargetData()
+                if not td or not td.candidate then return end
+                local c = td.candidate
+
+                if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
+                GamePadHelperSavedVars.lastSelectedPOI = c
+
+                local nodeIndex, failReason = nil, nil
+                if c.type == TYPE_WAYSHRINE and c.known and not c.isLocked then
+                    nodeIndex = c.nodeIndex
+                elseif c.type == TYPE_WAYSHRINE and c.isLocked then
+                    failReason = "locked"
+                elseif c.type == TYPE_HOUSE_OWNED and c.nodeIndex then
+                    nodeIndex = c.nodeIndex
+                elseif c.zoneIndex and c.poiIndex then
+                    local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
+                    if nx and ny then
+                        nodeIndex = FindNearestWayshrineToPos(nx, ny, 0, c.zoneIndex)
                     end
+                    if not nodeIndex then failReason = "undiscovered" end
+                elseif c.nodeIndex then
+                    nodeIndex = c.nodeIndex
                 end
+
                 if not nodeIndex then
                     local msg = failReason == "locked"
                         and "This zone is locked — you don't own the required content"
@@ -744,12 +753,14 @@ local function BuildKeybindDescriptor()
                     ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, msg)
                     return
                 end
+
                 local atWayshrine = GetInteractionType() == INTERACTION_FAST_TRAVEL
                 local cost = (not atWayshrine) and GetRecallCost(nodeIndex) or 0
                 if cost > 0 then
                     ZO_Dialogs_ShowGamepadDialog("GPH_TELEPORT_CONFIRM", { nodeIndex = nodeIndex, cost = cost })
                 else
                     FastTravelToNode(nodeIndex)
+                    ZO_WorldMap_HideWorldMap()
                     local sv = _G["GamePadHelper_SavedVars"]
                     if sv == nil or sv.mapSearchNarratePreTeleport ~= false then
                         postTeleportMsg = "Teleporting. Open the map to find the visual pin marking your destination."
@@ -758,84 +769,65 @@ local function BuildKeybindDescriptor()
             end,
         },
     }
+
+    ZO_Gamepad_AddBackNavigationKeybindDescriptors(keybindDescriptor, GAME_NAVIGATION_TYPE_BUTTON, function()
+        if editControl and editControl:HasFocus() then
+            editControl:LoseFocus()
+        elseif GAMEPAD_WORLD_MAP_INFO then
+            GAMEPAD_WORLD_MAP_INFO:Hide()
+        end
+    end)
+
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindDescriptor, listObject)
-    keybindDescriptor[#keybindDescriptor + 1] = {
-        alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        order     = -1500,
-        name      = GetString(SI_GAMEPAD_BACK_OPTION),
-        keybind   = "UI_SHORTCUT_NEGATIVE",
-        visible   = IsInGamepadPreferredMode,
-        sound     = SOUNDS.GAMEPAD_MENU_BACK,
-        callback  = function()
-            if isTextMode then
-                if editControl then editControl:LoseFocus() end
-                focusManager:SetFocusByIndex(1)
-                if focusManager:IsActive() and not focusManager.directionalInputEnabled then
-                    focusManager:SetDirectionalInputEnabled(true)
-                end
-                local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
-                pendingNarration = label .. ", text field"
-                SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
-            elseif GAMEPAD_WORLD_MAP_INFO then
-                GAMEPAD_WORLD_MAP_INFO:Hide()
-            end
-        end,
-    }
 end
 
 -- ── XML callbacks ─────────────────────────────────────────────
 
 function GPH_MapSearch_OnShown(edit)
     editControl = edit
-    ZO_EditDefaultText_Initialize(edit, "Search locations… (bookmarks shown below)")
+    ZO_EditDefaultText_Initialize(edit, "Search locations\226\128\166 (bookmarks shown below)")
+    edit:SetHandler("OnKeyDown", function(_, key)
+        if key == KEY_GAMEPAD_DPAD_LEFT then
+            edit:LoseFocus()
+        end
+    end)
+    RunSearch(currentTerm)
     RebuildList()
 end
 
 function GPH_MapSearch_OnTextChanged(text)
-    currentTerm = text
-    if text == "" then results = {} end
-    if text ~= "" then RunSearch(text) end
+    if not IsFragmentShowing() then return end
+    currentTerm = text or ""
+    if currentTerm ~= "" then RunSearch(currentTerm) else results = {} end
     RebuildList()
 end
 
-function GPH_MapSearch_ClearSearch()
-    results     = {}
-    currentTerm = ""
-    if editControl then
-        editControl:SetText("")
-        editControl:LoseFocus()
-    end
-    if focusManager then
-        if currentFocusIndex ~= 1 then
-            focusManager:SetFocusByIndex(1)
-        end
-        if focusManager:IsActive() and not focusManager.directionalInputEnabled then
-            focusManager:SetDirectionalInputEnabled(true)
+function GPH_MapSearch_OnSearchFocused(focused)
+    if searchBarBG then searchBarBG:SetHidden(not focused) end
+    if listObject then
+        if focused then
+            listObject:Deactivate()
+        elseif IsFragmentShowing() then
+            listObject:Activate()
         end
     end
-    RebuildList()
     UpdateKeybinds()
-end
-
-function GPH_MapSearch_FocusList()
-    if isTextMode then
-        if editControl then editControl:LoseFocus() end
-        -- stay on search bar; next down press will move to list via focus manager
-    elseif focusManager then
-        focusManager:SetFocusByIndex(2)
-        UpdateKeybinds()
+    if focused then
+        local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Ready to search"
+        pendingNarration = label .. ". Type to filter locations."
+        SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
     end
 end
 
 function GPH_MapSearch_SelectCurrent()
-    if listObject then
-        local td = listObject:GetTargetData()
-        if td and td.candidate then
-            CenterMapOnCandidate(td.candidate)
-            return
-        end
+    if not IsFragmentShowing() then return end
+    if editControl and editControl:HasFocus() then editControl:LoseFocus() end
+    local td = listObject and listObject:GetTargetData()
+    if td and td.candidate then
+        if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
+        GamePadHelperSavedVars.lastSelectedPOI = td.candidate
+        CenterMapOnCandidate(td.candidate)
     end
-    if results[1] then CenterMapOnCandidate(results[1]) end
 end
 
 -- ── UI init ───────────────────────────────────────────────────
@@ -845,130 +837,24 @@ local function InitList(control)
     listObject = ZO_GamepadVerticalParametricScrollList:New(listCtrl)
     listObject:SetAlignToScreenCenter(true)
 
-    local SELECTED_COLOR = ZO_ColorDef:New(0.95, 0.82, 0.45, 1)  -- soft golden
-
-    local function EntrySetup(ctrl, data, selected, reselectingDuringRebuild, enabled, active)
-        local isFocused = currentFocusIndex == 2
-        ZO_SharedGamepadEntry_OnSetup(ctrl, data, selected and isFocused, reselectingDuringRebuild, enabled, active)
-        if selected and isFocused and ctrl.label then
-            ctrl.label:SetColor(SELECTED_COLOR:UnpackRGBA())
-        end
-    end
-
-    local function EntryParametric(ctrl, distanceFromCenter, continousParametricOffset)
-        if currentFocusIndex == 2 then
-            ZO_GamepadMenuEntryTemplateParametricListFunction(ctrl, distanceFromCenter, continousParametricOffset)
-        else
-            if ctrl.icon then ctrl.icon:SetScale(1) end
-        end
-    end
-
     listObject:AddDataTemplate(
         "ZO_GamepadMenuEntryTemplateLowercase34",
-        EntrySetup,
-        EntryParametric)
+        ZO_SharedGamepadEntry_OnSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction)
     listObject:AddDataTemplateWithHeader(
         "ZO_GamepadMenuEntryTemplateLowercase34",
-        EntrySetup,
-        EntryParametric,
+        ZO_SharedGamepadEntry_OnSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction,
         nil, "ZO_GamepadMenuEntryHeaderTemplate")
 
-    local narrationPending = false
     listObject:SetOnTargetDataChangedCallback(function()
+        local idx = listObject:GetSelectedIndex()
+        if idx and idx > 0 then lastSelectedIndex = idx end
         UpdateKeybinds()
-        if currentFocusIndex == 2 and not narrationPending then
-            narrationPending = true
-            zo_callLater(function()
-                narrationPending = false
-                if currentFocusIndex == 2 then
-                    SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
-                end
-            end, 600)
+        if not (editControl and editControl:HasFocus()) then
+            SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
         end
     end)
-
-    local function ReturnToSearchBar()
-        if focusManager then
-            focusManager:SetFocusByIndex(1)
-            UpdateKeybinds()
-        end
-    end
-
-    listObject:SetOnHitBeginningOfListCallback(ReturnToSearchBar)
-
-    local origMovePrevious = listObject.MovePrevious
-    listObject.MovePrevious = function(self, ...)
-        if #self.dataList <= 1 then
-            ReturnToSearchBar()
-            return false
-        end
-        return origMovePrevious(self, ...)
-    end
-end
-
-local function InitFocusManager(control)
-    focusManager = ZO_GamepadFocus:New(control)
-
-    focusManager:AddEntry({
-        highlight     = searchBarHighlight,
-        narrationText = function()
-            local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
-            return SCREEN_NARRATION_MANAGER:CreateNarratableObject(label .. ", text field")
-        end,
-        activate = function()
-            currentFocusIndex = 1
-            if searchBarIcon then searchBarIcon:SetColor(ZO_SELECTED_TEXT:UnpackRGBA()) end
-            UpdateKeybinds()
-            local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
-            pendingNarration = label .. ", text field"
-            SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
-        end,
-        deactivate = function()
-            currentFocusIndex = 0
-            if editControl and editControl:HasFocus() then editControl:LoseFocus() end
-            if searchBarIcon then searchBarIcon:SetColor(ZO_DISABLED_TEXT:UnpackRGBA()) end
-        end,
-    })
-
-    focusManager:AddEntry({
-        canFocus = function()
-            if currentTerm == "" then return #GetBookmarksArray() > 0 end
-            return #results > 0
-        end,
-        narrationText = function()
-            local td = listObject and listObject:GetTargetData()
-            if not td or not td.candidate then
-                return SCREEN_NARRATION_MANAGER:CreateNarratableObject("Empty list")
-            end
-            return SCREEN_NARRATION_MANAGER:CreateNarratableObject(
-                BuildCandidateNarrationText(td.candidate, td.isBookmark))
-        end,
-        activate = function()
-            currentFocusIndex = 2
-            if listObject then
-                listObject:SetSelectedIndex(1)
-                listObject:SetDirectionalInputEnabled(false)
-                listObject:Activate()
-                listObject:RefreshVisible()
-                zo_callLater(function()
-                    if currentFocusIndex == 2 then
-                        listObject:SetDirectionalInputEnabled(true)
-                    end
-                end, 200)
-            end
-            focusManager:SetDirectionalInputEnabled(false)
-            UpdateKeybinds()
-            SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
-        end,
-        deactivate = function()
-            currentFocusIndex = 0
-            if listObject then
-                listObject:Deactivate()
-                listObject:RefreshVisible()
-            end
-            focusManager:SetDirectionalInputEnabled(true)
-        end,
-    })
 end
 
 local function InsertMapSearchTab()
@@ -982,13 +868,10 @@ local function InsertMapSearchTab()
 
     InitList(control)
 
-    local searchBar    = control:GetNamedChild("Main"):GetNamedChild("SearchBar")
-    searchBarBG        = searchBar:GetNamedChild("BG")
-    searchBarHighlight = searchBar:GetNamedChild("Highlight")
-    searchBarIcon      = searchBar:GetNamedChild("Icon")
+    local searchBar = control:GetNamedChild("Main"):GetNamedChild("SearchBar")
+    searchBarBG     = searchBar:GetNamedChild("BG")
 
     BuildKeybindDescriptor()
-    InitFocusManager(control)
 
     GPH_SEARCH_FRAGMENT = ZO_SimpleSceneFragment:New(control)
 
@@ -1007,9 +890,7 @@ local function InsertMapSearchTab()
 
     SCREEN_NARRATION_MANAGER:RegisterCustomObject("GPH_MapSearch_Narration", {
         narrationType = NARRATION_TYPE_UI_INTERACTIONS,
-        canNarrate    = function()
-            return GPH_SEARCH_FRAGMENT:IsShowing()
-        end,
+        canNarrate    = function() return IsFragmentShowing() end,
         selectedNarrationFunction = function()
             local narrations = {}
             if pendingNarration then
@@ -1017,35 +898,39 @@ local function InsertMapSearchTab()
                 pendingNarration = nil
                 return narrations
             end
-            if currentFocusIndex == 2 then
-                local td = listObject and listObject:GetTargetData()
-                if td and td.candidate then
-                    ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(
-                        BuildCandidateNarrationText(td.candidate, td.isBookmark)))
-                else
-                    ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject("Empty list"))
-                end
-            else
-                local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
-                ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(label))
+            local td = listObject and listObject:GetTargetData()
+            local text = td and (td.narrationText or (td.candidate and BuildCandidateNarrationText(td.candidate, td.isBookmark)))
+            if not text then
+                text = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
             end
+            ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(text))
             return narrations
         end,
     })
 
     GPH_SEARCH_FRAGMENT:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_SHOWING then
-            if focusManager then
-                focusManager:Activate()
-                if #GetBookmarksArray() > 0 then focusManager:SetFocusByIndex(2) end
+            RunSearch(currentTerm)
+            RebuildList()
+            if listObject then
+                listObject:Activate()
+                local numItems = listObject:GetNumItems()
+                if numItems > 0 then
+                    listObject:SetSelectedIndex(zo_clamp(lastSelectedIndex, 1, numItems))
+                end
+                listObject:RefreshVisible()
             end
             KEYBIND_STRIP:AddKeybindButtonGroup(keybindDescriptor)
             UpdateKeybinds()
             SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
-        elseif newState == SCENE_HIDDEN then
+        elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+            if listObject then
+                local idx = listObject:GetSelectedIndex()
+                if idx and idx > 0 then lastSelectedIndex = idx end
+                listObject:Deactivate()
+            end
             KEYBIND_STRIP:RemoveKeybindButtonGroup(keybindDescriptor)
-            if focusManager then focusManager:Deactivate() end
-            if editControl  then editControl:LoseFocus() end
+            if editControl then editControl:LoseFocus() end
         end
     end)
 
@@ -1071,7 +956,7 @@ end
 
 -- ── addon loaded ──────────────────────────────────────────────
 
-local function OnAddonLoaded(event, name)
+local function OnAddonLoaded(_, name)
     if name ~= "GamePadHelper" then return end
     EVENT_MANAGER:UnregisterForEvent("MapSearch", EVENT_ADD_ON_LOADED)
 
@@ -1080,8 +965,8 @@ local function OnAddonLoaded(event, name)
             local msg = postTeleportMsg
             postTeleportMsg = nil
             zo_callLater(function()
-                SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_PostTeleport")
                 pendingNarration = msg
+                SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_PostTeleport")
             end, 500)
         end
     end)
@@ -1102,10 +987,11 @@ local function OnAddonLoaded(event, name)
                 callback = function(dialog)
                     if dialog.data and dialog.data.nodeIndex then
                         FastTravelToNode(dialog.data.nodeIndex)
+                        ZO_WorldMap_HideWorldMap()
                         local sv = _G["GamePadHelper_SavedVars"]
-                    if sv == nil or sv.mapSearchNarratePreTeleport ~= false then
-                        postTeleportMsg = "Teleporting. Open the map to find the visual pin marking your destination."
-                    end
+                        if sv == nil or sv.mapSearchNarratePreTeleport ~= false then
+                            postTeleportMsg = "Teleporting. Open the map to find the visual pin marking your destination."
+                        end
                     end
                 end,
             },
@@ -1126,7 +1012,19 @@ local function OnAddonLoaded(event, name)
             {
                 keybind  = "DIALOG_PRIMARY",
                 text     = SI_YES,
-                callback = function(dialog) RemoveBookmark(dialog.data) end,
+                callback = function(dialog)
+                    if dialog.data then
+                        local idx = listObject and listObject:GetSelectedIndex()
+                        RemoveBookmark(dialog.data)
+                        pendingNarration = "Bookmark removed, " .. (dialog.data.name or "")
+                        SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+                        RunSearch(currentTerm)
+                        RebuildList()
+                        if idx and idx > 0 and listObject:GetNumItems() > 0 then
+                            listObject:SetSelectedIndex(zo_clamp(idx, 1, listObject:GetNumItems()))
+                        end
+                    end
+                end,
             },
             { keybind = "DIALOG_NEGATIVE", text = SI_NO },
         },
@@ -1142,7 +1040,7 @@ local function OnAddonLoaded(event, name)
                     GamePadHelperSavedVars.lastSelectedPOI = nil
                     local sv2 = _G["GamePadHelper_SavedVars"]
                     if sv2 == nil or sv2.mapSearchNarratePostTeleport ~= false then
-                        pendingNarration = "Teleported to nearest wayshrine. " .. poi.name .. " is visually marked on the map with a destination waypoint."
+                        pendingNarration = "Teleported. " .. poi.name .. " is marked on the map."
                         SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
                     end
                 end, 100)
