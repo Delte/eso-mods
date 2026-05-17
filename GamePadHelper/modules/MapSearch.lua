@@ -12,8 +12,8 @@ local TYPE_HOUSE_OWNED   = 4
 local TYPE_HOUSE_UNOWNED = 5
 local TYPE_LIFT          = 6
 
-local FAST_TRAVEL_TYPE_HOUSE = 3
-local FAST_TRAVEL_TYPE_LIFT  = 2
+-- Use ESO's named constants — never hardcode poiType numbers.
+-- POI_TYPE_WAYSHRINE / POI_TYPE_HOUSE / POI_TYPE_GROUP_DUNGEON etc. are defined by the game client.
 
 local ICON_WAYSHRINE_KNOWN   = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
 local ICON_WAYSHRINE_UNKNOWN = "/esoui/art/icons/poi/poi_wayshrine_incomplete.dds"
@@ -248,7 +248,7 @@ local function PreScan()
     local lockedZoneIndex = {}
     for nodeIndex = 1, GetNumFastTravelNodes() do
         local _, _, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
-        if isLocked and typePOI == 1 then
+        if isLocked and typePOI == POI_TYPE_WAYSHRINE then
             local zi = GetFastTravelNodePOIIndicies(nodeIndex)
             if zi then lockedZoneIndex[zi] = true end
         end
@@ -256,29 +256,31 @@ local function PreScan()
 
     for nodeIndex = 1, GetNumFastTravelNodes() do
         local known, name, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
-        local isWayshrine = typePOI == 1
-        local isHouse     = typePOI == FAST_TRAVEL_TYPE_HOUSE
-        local isLift      = typePOI == FAST_TRAVEL_TYPE_LIFT
-        if name ~= "" and (isWayshrine or isHouse or isLift) then
+        local isWayshrine = typePOI == POI_TYPE_WAYSHRINE
+        local isHouse     = typePOI == POI_TYPE_HOUSE
+        if name ~= "" and (isWayshrine or isHouse) then
             local zoneIndex, poiIndex = GetFastTravelNodePOIIndicies(nodeIndex)
             local zoneId = GetZoneId(zoneIndex)
             local _, _, _, poiIcon = GetPOIMapInfo(zoneIndex, poiIndex)
-            local defaultIcon = isLift and ICON_LIFT
-                             or (known and ICON_WAYSHRINE_KNOWN or ICON_WAYSHRINE_UNKNOWN)
+            local defaultIcon = known and ICON_WAYSHRINE_KNOWN or ICON_WAYSHRINE_UNKNOWN
             local icon = (poiIcon and poiIcon ~= "") and poiIcon or defaultIcon
+            -- HasCompletedFastTravelNodePOI is how ESO itself determines house ownership.
+            local isOwnedHouse = isHouse and HasCompletedFastTravelNodePOI(nodeIndex)
+            local houseId = isHouse and GetFastTravelNodeHouseId(nodeIndex) or nil
             data.wayshrines[#data.wayshrines + 1] = {
-                name      = name,
-                icon      = icon,
-                nodeIndex = nodeIndex,
-                zoneIndex = zoneIndex,
-                zoneId    = zoneId,
-                poiIndex  = poiIndex,
-                mapIndex  = zoneToMap[zoneIndex],
-                zoneName  = GetZoneNameById(zoneId),
-                known     = known,
-                isLocked  = isLocked,
-                isHouse   = isHouse,
-                isLift    = isLift,
+                name         = name,
+                icon         = icon,
+                nodeIndex    = nodeIndex,
+                zoneIndex    = zoneIndex,
+                zoneId       = zoneId,
+                poiIndex     = poiIndex,
+                mapIndex     = zoneToMap[zoneIndex],
+                zoneName     = GetZoneNameById(zoneId),
+                known        = known,
+                isLocked     = isLocked,
+                isHouse      = isHouse,
+                isOwnedHouse = isOwnedHouse,
+                houseId      = houseId,
             }
         end
     end
@@ -321,7 +323,8 @@ local function PreScan()
                             data.pois[#data.pois + 1] = {
                                 name      = name,
                                 icon      = poiIcon or ICON_POI_GENERIC,
-                                isUnowned = poiIcon ~= nil and poiIcon:find("_unowned") ~= nil,
+                                -- Only _owned suffix means you own it; _complete/_incomplete do not.
+                                isOwned = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
                                 zoneIndex = zoneIndex,
                                 zoneId    = zoneId,
                                 poiIndex  = poiIndex,
@@ -373,8 +376,7 @@ local function BuildCandidates()
         list[#list + 1] = {
             name       = ws.name,
             searchName = ws.name:lower(),
-            type       = ws.isHouse and (ws.isLocked and TYPE_HOUSE_UNOWNED or TYPE_HOUSE_OWNED)
-                      or ws.isLift  and TYPE_LIFT
+            type       = ws.isHouse and (ws.isOwnedHouse and TYPE_HOUSE_OWNED or TYPE_HOUSE_UNOWNED)
                       or TYPE_WAYSHRINE,
             icon       = ws.icon,
             nodeIndex  = ws.nodeIndex,
@@ -385,6 +387,7 @@ local function BuildCandidates()
             zoneName   = ws.zoneName,
             known      = ws.known,
             isLocked   = ws.isLocked,
+            houseId    = ws.houseId,
         }
     end
 
@@ -407,7 +410,7 @@ local function BuildCandidates()
         local poiTypeLabel = GetPOITypeLabel(poi.icon)
         local isHousePOI   = poiTypeLabel == "House"
         local entryType    = isHousePOI
-            and (poi.isUnowned and TYPE_HOUSE_UNOWNED or TYPE_HOUSE_OWNED)
+            and (poi.isOwned and TYPE_HOUSE_OWNED or TYPE_HOUSE_UNOWNED)
             or TYPE_POI
 
         local cityZoneId = (poi.icon:find("poi_city") and nameToZoneId[poi.name]) or nil
@@ -514,8 +517,8 @@ local function RebuildList()
     if currentTerm == "" then
         for i, bm in ipairs(bookmarks) do
             local entryData = ZO_GamepadEntryData:New(bm.name, bm.icon)
-            entryData.candidate    = bm
-            entryData.isBookmark   = true
+            entryData.candidate     = bm
+            entryData.isBookmark    = true
             entryData.narrationText = BuildCandidateNarrationText(bm, true)
             entryData:SetIconTintOnSelection(true)
             if bm.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
@@ -524,6 +527,28 @@ local function RebuildList()
                 listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
             else
                 listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+            end
+        end
+
+        -- Owned houses below bookmarks when no search term
+        if candidates then
+            local bookmarkKeys = {}
+            for _, bm in ipairs(bookmarks) do bookmarkKeys[MakeBookmarkKey(bm)] = true end
+            local firstHouse = true
+            for _, c in ipairs(candidates) do
+                if c.type == TYPE_HOUSE_OWNED and not bookmarkKeys[MakeBookmarkKey(c)] then
+                    local entryData = ZO_GamepadEntryData:New(c.name, c.icon)
+                    entryData.candidate     = c
+                    entryData.narrationText = BuildCandidateNarrationText(c, false)
+                    entryData:SetIconTintOnSelection(true)
+                    if firstHouse then
+                        firstHouse = false
+                        entryData:SetHeader("Owned Houses")
+                        listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                    else
+                        listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                    end
+                end
             end
         end
     elseif #results > 0 then
@@ -712,7 +737,7 @@ local function BuildKeybindDescriptor()
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
                     local c = td.candidate
-                    if c.type == TYPE_WAYSHRINE and c.isLocked then return false end
+                    if c.isLocked then return false end
                 end
                 return true
             end,
@@ -729,12 +754,22 @@ local function BuildKeybindDescriptor()
                 if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
                 GamePadHelperSavedVars.lastSelectedPOI = c
 
+                if c.isLocked then
+                    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "This zone is locked — you don't own the required content")
+                    return
+                end
+
+                if c.type == TYPE_HOUSE_OWNED and c.houseId then
+                    if not CanJumpToHouseFromCurrentLocation() then
+                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "You cannot travel to a house from this location")
+                        return
+                    end
+                    ZO_Dialogs_ShowGamepadDialog("GPH_HOUSE_TRAVEL", { candidate = c })
+                    return
+                end
+
                 local nodeIndex, failReason = nil, nil
-                if c.type == TYPE_WAYSHRINE and c.known and not c.isLocked then
-                    nodeIndex = c.nodeIndex
-                elseif c.type == TYPE_WAYSHRINE and c.isLocked then
-                    failReason = "locked"
-                elseif c.type == TYPE_HOUSE_OWNED and c.nodeIndex then
+                if c.type == TYPE_WAYSHRINE and c.known then
                     nodeIndex = c.nodeIndex
                 elseif c.zoneIndex and c.poiIndex then
                     local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
@@ -996,6 +1031,42 @@ local function OnAddonLoaded(_, name)
                 end,
             },
             { keybind = "DIALOG_NEGATIVE", text = SI_NO },
+        },
+    })
+
+    ZO_Dialogs_RegisterCustomDialog("GPH_HOUSE_TRAVEL", {
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
+        title       = { text = "Travel to House" },
+        mainText    = {
+            text = function(dialog)
+                local name = dialog.data and dialog.data.candidate and dialog.data.candidate.name or "this house"
+                return "Where would you like to travel for " .. name .. "?"
+            end,
+        },
+        buttons = {
+            {
+                keybind  = "DIALOG_PRIMARY",
+                text     = "Enter House",
+                callback = function(dialog)
+                    local c = dialog.data and dialog.data.candidate
+                    if c and c.houseId then
+                        RequestJumpToHouse(c.houseId, false) -- false = TRAVEL_INSIDE
+                        ZO_WorldMap_HideWorldMap()
+                    end
+                end,
+            },
+            {
+                keybind  = "DIALOG_SECONDARY",
+                text     = "Travel to Exterior",
+                callback = function(dialog)
+                    local c = dialog.data and dialog.data.candidate
+                    if c and c.houseId then
+                        RequestJumpToHouse(c.houseId, true) -- true = TRAVEL_OUTSIDE
+                        ZO_WorldMap_HideWorldMap()
+                    end
+                end,
+            },
+            { keybind = "DIALOG_NEGATIVE", text = SI_CANCEL },
         },
     })
 
