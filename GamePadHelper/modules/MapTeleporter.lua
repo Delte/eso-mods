@@ -83,7 +83,6 @@ local function CreateTeleportCallback()
     local normalizedMouseX, normalizedMouseY = GetNormalizedMousePositionToMap()
     local success, locationName = pcall(GetMapMouseoverInfo, normalizedMouseX, normalizedMouseY)
     if not success then
-        d("[GamePadHelper] Error getting map mouseover info: " .. tostring(locationName))
         return
     end
 
