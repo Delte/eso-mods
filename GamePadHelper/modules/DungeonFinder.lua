@@ -3,14 +3,20 @@
 
 local NAVIGATION_MODE_ENTRY_LIST = 3
 
+local function NormalizeText(value)
+    value = zo_strlower(value or "")
+    value = value:gsub("[%p]", " ")
+    value = value:gsub("%s+", " ")
+    return zo_strtrim(value)
+end
+
 local function FindPledgeQuestForDungeon(dungeonLocation)
     for i = 1, MAX_JOURNAL_QUESTS do
         if IsValidQuestIndex(i) then
             local questName = GetJournalQuestName(i)
-            local dungeonRegex = string.gsub(dungeonLocation.rawName, "-", ".")
-            dungeonRegex = string.gsub(dungeonRegex, "The ", "T?h?e? ?")
-            dungeonRegex = string.gsub(dungeonRegex, "Caverns ", "C?a?v?e?r?n?s? ?")
-            if string.match(questName, dungeonRegex) then
+            local dungeonName = NormalizeText(dungeonLocation.rawName)
+            local normalizedQuestName = NormalizeText(questName)
+            if dungeonName ~= "" and normalizedQuestName:find(dungeonName, 1, true) then
                 if not string.match(dungeonLocation.rawName, " I$") or not string.match(questName, "II") then
                     return questName
                 end

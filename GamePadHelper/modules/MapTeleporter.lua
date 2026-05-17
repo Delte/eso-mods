@@ -53,27 +53,27 @@ local function ExecuteTeleportFromEntry(entry, allowHouses)
     SCENE_MANAGER:HideCurrentScene()
 
     if allowHouses and entry.isOwnHouse then
-        local houseName = entry.houseNameFormatted or "Primary Residence"
+        local houseName = entry.houseNameFormatted or GetString(SI_GPH_TELEPORT_PRIMARY_RESIDENCE)
         local travelOutside = entry.forceOutside or false
-        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] your house: " .. houseName) end
+        if _ChatSystem then _ChatSystem:AddMessage(zo_strformat(GetString(SI_GPH_TELEPORT_CHAT_OWN_HOUSE), houseName)) end
         RequestJumpToHouse(entry.houseId, travelOutside)
         return true
     elseif allowHouses and entry.houseId then
-        local owner = entry.displayName or "Friend"
-        local houseName = entry.houseNameFormatted or (owner .. "'s house")
-        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] " .. owner .. "'s house: " .. houseName) end
+        local owner = entry.displayName or GetString(SI_GPH_TELEPORT_FRIEND)
+        local houseName = entry.houseNameFormatted or zo_strformat(GetString(SI_GPH_TELEPORT_FRIEND_HOUSE_FALLBACK), owner)
+        if _ChatSystem then _ChatSystem:AddMessage(zo_strformat(GetString(SI_GPH_TELEPORT_CHAT_FRIEND_HOUSE), owner, houseName)) end
         RequestJumpToHouse(entry.houseId, entry.forceOutside)
         return true
     elseif IsFriend(entry.displayName) then
-        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] friend " .. entry.displayName) end
+        if _ChatSystem then _ChatSystem:AddMessage(zo_strformat(GetString(SI_GPH_TELEPORT_CHAT_FRIEND), entry.displayName)) end
         JumpToFriend(entry.displayName)
         return true
     elseif entry.category == BMU.ZONE_CATEGORY_GROUP then
-        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] group member " .. entry.displayName) end
+        if _ChatSystem then _ChatSystem:AddMessage(zo_strformat(GetString(SI_GPH_TELEPORT_CHAT_GROUP), entry.displayName)) end
         JumpToGroupMember(entry.displayName)
         return true
     else
-        if _ChatSystem then _ChatSystem:AddMessage("[Teleport] guild member " .. entry.displayName) end
+        if _ChatSystem then _ChatSystem:AddMessage(zo_strformat(GetString(SI_GPH_TELEPORT_CHAT_GUILD), entry.displayName)) end
         JumpToGuildMember(entry.displayName)
         return true
     end
@@ -89,18 +89,18 @@ local function CreateTeleportCallback()
 
     local zoneId = MAP_NAME_TO_ZONE_ID[locationName]
     if not zoneId then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "No zone data for " .. locationName)
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, zo_strformat(SI_GPH_TELEPORT_NO_ZONE_DATA, locationName))
         return
     end
 
     if not BMU or not BMU.createTable then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "BeamMeUp is required for map teleportation")
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_TELEPORT_BMU_REQUIRED))
         return
     end
 
     local jumpType, entry = FindJumpablePlayerInZone(zoneId)
     if jumpType ~= "bmu" or not entry then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "No players or houses found to port to")
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_TELEPORT_NO_TARGET))
         return
     end
 
@@ -112,7 +112,7 @@ local GAMEPAD_KEYBIND_STRIP_DESCRIPTOR = nil
 local CHAT_KEYBIND_STRIP_DESCRIPTOR = nil
 local function PopulateKeybindStripDescriptor()
     local keybind = {
-        name = "Teleport",
+        name = GetString(SI_GPH_TELEPORT),
         keybind = "UI_SHORTCUT_QUINARY",
         enabled = function()
             return CanLeaveCurrentLocationViaTeleport() and not IsUnitDead("player") and BMU and BMU.createTable
@@ -202,7 +202,7 @@ local function GamepadChatInit()
         CHAT_KEYBIND_STRIP_DESCRIPTOR = {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             {
-                name = "Teleport",
+                name = GetString(SI_GPH_TELEPORT),
                 keybind = "UI_SHORTCUT_QUINARY",
                 enabled = function()
                     return CanLeaveCurrentLocationViaTeleport() and not IsUnitDead("player")
@@ -212,7 +212,7 @@ local function GamepadChatInit()
                     local data = CHAT_MENU_GAMEPAD.socialData
 
                     if not data or not IsAnyJumpable() then
-                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "No valid teleportable target selected")
+                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_TELEPORT_NO_VALID_TARGET))
                         return
                     end
 

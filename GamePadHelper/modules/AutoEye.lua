@@ -30,7 +30,7 @@ local function SlotEye()
         SetCurrentQuickslot(eyeSlot)
         if not eyeIsActive then
             eyeIsActive = true
-            AnnounceCenter("Antiquarian's Eye equipped")
+            AnnounceCenter(GetString(SI_GPH_AUTOEYE_EQUIPPED))
         end
     end
 end
@@ -40,7 +40,7 @@ local function UnslotEye()
         SetCurrentQuickslot(previousSlot)
         if eyeIsActive then
             eyeIsActive = false
-            AnnounceCenter("Antiquarian's Eye unequipped")
+            AnnounceCenter(GetString(SI_GPH_AUTOEYE_UNEQUIPPED))
         end
     end
 end

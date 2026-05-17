@@ -2,8 +2,8 @@
 -- Adds a filter option to hide low-level recipes (under CP160) in the provisioning interface
 
 local showLowLevelFilter = {
-    filterName = "Hide Low Level Recipes",
-    filterTooltip = "Hides Recipes under CP160",
+    filterName = GetString(SI_GPH_PROVISIONING_HIDE_LOW_LEVEL),
+    filterTooltip = GetString(SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP),
 }
 
 local function HideRecipes(recipeList)

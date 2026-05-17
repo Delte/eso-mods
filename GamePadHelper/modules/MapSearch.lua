@@ -12,7 +12,7 @@ local TYPE_HOUSE_OWNED   = 4
 local TYPE_HOUSE_UNOWNED = 5
 local TYPE_LIFT          = 6
 
--- Use ESO's named constants — never hardcode poiType numbers.
+-- Use ESO's named constants â€” never hardcode poiType numbers.
 -- POI_TYPE_WAYSHRINE / POI_TYPE_HOUSE / POI_TYPE_GROUP_DUNGEON etc. are defined by the game client.
 
 local ICON_WAYSHRINE_KNOWN   = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
@@ -49,7 +49,7 @@ local function UpdateKeybinds()
     end
 end
 
--- ── bookmarks ─────────────────────────────────────────────────
+-- â”€â”€ bookmarks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function MakeBookmarkKey(c)
     return c.type .. ":" .. tostring(c.nodeIndex or c.zoneId or "") .. ":" .. c.name
@@ -105,86 +105,86 @@ local function AddBookmark(c)
     }
 end
 
--- ── POI type labels ───────────────────────────────────────────
+-- â”€â”€ POI type labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local POI_TYPE_NAMES = {
-    areaofinterest  = "Area of Interest",
-    adventurezone   = "Adventure Zone",
-    ayleidruin      = "Ayleid Ruin",
-    ayliedruin      = "Ayleid Ruin",
-    battlefield     = "Battlefield",
-    battleground    = "Battlefield",
-    boss            = "World Boss",
-    camp            = "Camp",
-    cave            = "Cave",
-    cemetery        = "Cemetery",
-    cemetary        = "Cemetery",
-    city            = "City",
-    crafting        = "Crafting Station",
-    crypt           = "Crypt",
-    daedricruin     = "Daedric Ruin",
-    darkbrotherhood = "Dark Brotherhood",
-    delve           = "Delve",
-    dock            = "Dock",
-    dungeon         = "Group Dungeon",
-    dwemerruin      = "Dwemer Ruin",
-    endlessdungeon  = "Endless Dungeon",
-    estate          = "Estate",
-    explorable      = "Explorable",
-    farm            = "Farm",
-    gate            = "Gate",
-    grove           = "Grove",
-    harborage       = "Harborage",
-    house           = "House",
-    instance        = "Group Dungeon",
-    groupboss       = "World Boss",
-    groupdelve      = "Delve",
-    groupinstance   = "Group Dungeon",
+    areaofinterest  = GetString(SI_GPH_MAPSEARCH_LABEL_AREA_OF_INTEREST),
+    adventurezone   = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    ayleidruin      = GetString(SI_GPH_MAPSEARCH_LABEL_AYLEID_RUIN),
+    ayliedruin      = GetString(SI_GPH_MAPSEARCH_LABEL_AYLEID_RUIN),
+    battlefield     = GetString(SI_GPH_MAPSEARCH_LABEL_BATTLEFIELD),
+    battleground    = GetString(SI_GPH_MAPSEARCH_LABEL_BATTLEFIELD),
+    boss            = GetString(SI_GPH_MAPSEARCH_LABEL_WORLD_BOSS),
+    camp            = GetString(SI_GPH_MAPSEARCH_LABEL_CAMP),
+    cave            = GetString(SI_GPH_MAPSEARCH_LABEL_CAVE),
+    cemetery        = GetString(SI_GPH_MAPSEARCH_LABEL_CEMETERY),
+    cemetary        = GetString(SI_GPH_MAPSEARCH_LABEL_CEMETERY),
+    city            = GetString(SI_GPH_MAPSEARCH_LABEL_CITY),
+    crafting        = GetString(SI_GPH_MAPSEARCH_LABEL_CRAFTING_STATION),
+    crypt           = GetString(SI_GPH_MAPSEARCH_LABEL_CRYPT),
+    daedricruin     = GetString(SI_GPH_MAPSEARCH_LABEL_DAEDRIC_RUIN),
+    darkbrotherhood = GetString(SI_GPH_MAPSEARCH_LABEL_DARK_BROTHERHOOD),
+    delve           = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
+    dock            = GetString(SI_GPH_MAPSEARCH_LABEL_DOCK),
+    dungeon         = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
+    dwemerruin      = GetString(SI_GPH_MAPSEARCH_LABEL_DWEMER_RUIN),
+    endlessdungeon  = GetString(SI_GPH_MAPSEARCH_LABEL_ENDLESS_DUNGEON),
+    estate          = GetString(SI_GPH_MAPSEARCH_LABEL_ESTATE),
+    explorable      = GetString(SI_GPH_MAPSEARCH_LABEL_EXPLORABLE),
+    farm            = GetString(SI_GPH_MAPSEARCH_LABEL_FARM),
+    gate            = GetString(SI_GPH_MAPSEARCH_LABEL_GATE),
+    grove           = GetString(SI_GPH_MAPSEARCH_LABEL_GROVE),
+    harborage       = GetString(SI_GPH_MAPSEARCH_LABEL_HARBORAGE),
+    house           = GetString(SI_GPH_MAPSEARCH_LABEL_HOUSE),
+    instance        = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
+    groupboss       = GetString(SI_GPH_MAPSEARCH_LABEL_WORLD_BOSS),
+    groupdelve      = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
+    groupinstance   = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
     -- explicit group_ keys so poi_group_house doesn't collapse to "house"
-    group_boss      = "World Boss",
-    group_delve     = "Delve",
-    group_instance  = "Group Dungeon",
-    group_dungeon   = "Group Dungeon",
-    group_house     = "Group Instance",   -- group housing content, not a player home
-    keep            = "Keep",
-    lighthouse      = "Lighthouse",
-    mine            = "Mine",
-    mine_compete    = "Mine",
-    mine_incompete  = "Mine",
-    mundus          = "Mundus Stone",
-    mushromtower    = "Mushroom Tower",
-    portal          = "Dolmen",
-    raiddungeon     = "Group Trial",
-    ruin            = "Ruin",
-    sewer           = "Sewer",
-    shrine          = "Shrine",
-    shrine_vampire  = "Vampire Shrine",
-    shrine_werewolf = "Werewolf Shrine",
-    solotrial       = "Solo Trial",
-    tower           = "Tower",
-    town            = "Town",
-    transit         = "Lift",
-    lift            = "Lift",
-    nord_boat       = "Nord Boat",
-    dwemergear      = "Lift",
-    ic_boneshard         = "Imperial City",
-    ic_darkether         = "Imperial City",
-    ic_tinyclaw          = "Imperial City",
-    ic_marklegion        = "Imperial City",
-    ic_monstrousteeth    = "Imperial City",
-    ic_planararmorscraps = "Imperial City",
-    ic_daedricshackles   = "Imperial City",
-    ic_daedricembers     = "Imperial City",
-    adventurezone_entrance             = "Adventure Zone",
-    adventurezone_jumppad              = "Adventure Zone",
-    adventurezone_faction_ruckus       = "Adventure Zone",
-    adventurezone_faction_thousandeyes = "Adventure Zone",
-    adventurezone_faction_glittering   = "Adventure Zone",
-    adventurezone_skirmish             = "Adventure Zone",
-    adventurezone_contentgrouptimed    = "Adventure Zone",
-    wayshrine    = "Wayshrine",
-    icon_missing = "Unknown",
-    unknown      = "Unknown",
+    group_boss      = GetString(SI_GPH_MAPSEARCH_LABEL_WORLD_BOSS),
+    group_delve     = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
+    group_instance  = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
+    group_dungeon   = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
+    group_house     = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_INSTANCE),   -- group housing content, not a player home
+    keep            = GetString(SI_GPH_MAPSEARCH_LABEL_KEEP),
+    lighthouse      = GetString(SI_GPH_MAPSEARCH_LABEL_LIGHTHOUSE),
+    mine            = GetString(SI_GPH_MAPSEARCH_LABEL_MINE),
+    mine_compete    = GetString(SI_GPH_MAPSEARCH_LABEL_MINE),
+    mine_incompete  = GetString(SI_GPH_MAPSEARCH_LABEL_MINE),
+    mundus          = GetString(SI_GPH_MAPSEARCH_LABEL_MUNDUS_STONE),
+    mushromtower    = GetString(SI_GPH_MAPSEARCH_LABEL_MUSHROOM_TOWER),
+    portal          = GetString(SI_GPH_MAPSEARCH_LABEL_DOLMEN),
+    raiddungeon     = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_TRIAL),
+    ruin            = GetString(SI_GPH_MAPSEARCH_LABEL_RUIN),
+    sewer           = GetString(SI_GPH_MAPSEARCH_LABEL_SEWER),
+    shrine          = GetString(SI_GPH_MAPSEARCH_LABEL_SHRINE),
+    shrine_vampire  = GetString(SI_GPH_MAPSEARCH_LABEL_VAMPIRE_SHRINE),
+    shrine_werewolf = GetString(SI_GPH_MAPSEARCH_LABEL_WEREWOLF_SHRINE),
+    solotrial       = GetString(SI_GPH_MAPSEARCH_LABEL_SOLO_TRIAL),
+    tower           = GetString(SI_GPH_MAPSEARCH_LABEL_TOWER),
+    town            = GetString(SI_GPH_MAPSEARCH_LABEL_TOWN),
+    transit         = GetString(SI_GPH_MAPSEARCH_LABEL_LIFT),
+    lift            = GetString(SI_GPH_MAPSEARCH_LABEL_LIFT),
+    nord_boat       = GetString(SI_GPH_MAPSEARCH_LABEL_NORD_BOAT),
+    dwemergear      = GetString(SI_GPH_MAPSEARCH_LABEL_LIFT),
+    ic_boneshard         = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    ic_darkether         = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    ic_tinyclaw          = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    ic_marklegion        = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    ic_monstrousteeth    = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    ic_planararmorscraps = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    ic_daedricshackles   = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    ic_daedricembers     = GetString(SI_GPH_MAPSEARCH_LABEL_IMPERIAL_CITY),
+    adventurezone_entrance             = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    adventurezone_jumppad              = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    adventurezone_faction_ruckus       = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    adventurezone_faction_thousandeyes = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    adventurezone_faction_glittering   = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    adventurezone_skirmish             = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    adventurezone_contentgrouptimed    = GetString(SI_GPH_MAPSEARCH_LABEL_ADVENTURE_ZONE),
+    wayshrine    = GetString(SI_GPH_MAPSEARCH_LABEL_WAYSHRINE),
+    icon_missing = GetString(SI_GPH_MAPSEARCH_LABEL_UNKNOWN),
+    unknown      = GetString(SI_GPH_MAPSEARCH_LABEL_UNKNOWN),
 }
 
 local function GetPOITypeLabel(icon)
@@ -204,33 +204,33 @@ local function GetPOITypeLabel(icon)
     return POI_TYPE_NAMES[plain]
 end
 
--- ── narration ─────────────────────────────────────────────────
+-- â”€â”€ narration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function BuildCandidateNarrationText(c, isBookmark)
     local parts = { c.name }
-    if isBookmark then parts[#parts + 1] = "bookmarked" end
+    if isBookmark then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_BOOKMARKED) end
     if c.type == TYPE_HOUSE_OWNED or c.type == TYPE_HOUSE_UNOWNED then
-        parts[#parts + 1] = c.type == TYPE_HOUSE_UNOWNED and "unowned" or "owned"
-        parts[#parts + 1] = "House"
+        parts[#parts + 1] = c.type == TYPE_HOUSE_UNOWNED and GetString(SI_GPH_MAPSEARCH_NARRATION_UNOWNED) or GetString(SI_GPH_MAPSEARCH_NARRATION_OWNED)
+        parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_HOUSE)
     elseif c.type == TYPE_POI then
-        if c.isLocked      then parts[#parts + 1] = "locked"
-        elseif not c.known then parts[#parts + 1] = "undiscovered" end
-        parts[#parts + 1] = c.poiTypeLabel or "Point of Interest"
+        if c.isLocked      then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED)
+        elseif not c.known then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
+        parts[#parts + 1] = c.poiTypeLabel or GetString(SI_GPH_MAPSEARCH_NARRATION_POI)
     elseif c.type == TYPE_ZONE then
-        if c.isLocked then parts[#parts + 1] = "locked" end
-        parts[#parts + 1] = "Zone"
+        if c.isLocked then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED) end
+        parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_ZONE)
     elseif c.type == TYPE_LIFT then
-        if not c.known     then parts[#parts + 1] = "undiscovered"
-        elseif c.isLocked  then parts[#parts + 1] = "locked" end
-        parts[#parts + 1] = "Lift"
+        if not c.known     then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED)
+        elseif c.isLocked  then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED) end
+        parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_LIFT)
     else
-        if c.isLocked      then parts[#parts + 1] = "locked"
-        elseif not c.known then parts[#parts + 1] = "undiscovered" end
+        if c.isLocked      then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED)
+        elseif not c.known then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
     end
     return table.concat(parts, ", ")
 end
 
--- ── pre-scan ──────────────────────────────────────────────────
+-- â”€â”€ pre-scan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function PreScan()
     local zoneToMap    = {}
@@ -346,7 +346,7 @@ local function PreScan()
     candidates  = nil
 end
 
--- ── candidates ────────────────────────────────────────────────
+-- â”€â”€ candidates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function FindNearestWayshrineToPos(px, py, minDist, filterZoneIndex)
     if not px or not py or px == 0 then return nil end
@@ -410,7 +410,7 @@ local function BuildCandidates()
 
     for _, poi in ipairs(scannedData.pois) do
         local poiTypeLabel = GetPOITypeLabel(poi.icon)
-        local isHousePOI   = poiTypeLabel == "House"
+        local isHousePOI   = poiTypeLabel == GetString(SI_GPH_MAPSEARCH_LABEL_HOUSE)
         local entryType    = isHousePOI
             and (poi.isOwned and TYPE_HOUSE_OWNED or TYPE_HOUSE_UNOWNED)
             or TYPE_POI
@@ -449,7 +449,7 @@ local function BuildCandidates()
     return list
 end
 
--- ── search ────────────────────────────────────────────────────
+-- â”€â”€ search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function ScoreMatch(nameLower, termLower)
     if termLower == "" then return 1.0 end
@@ -499,15 +499,15 @@ local function RunSearch(term)
     end
 end
 
--- ── list ──────────────────────────────────────────────────────
+-- â”€â”€ list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local CAT_NAMES = {
-    [TYPE_WAYSHRINE]     = "Wayshrines",
-    [TYPE_LIFT]          = "Lifts",
-    [TYPE_ZONE]          = "Zones",
-    [TYPE_POI]           = "Locations",
-    [TYPE_HOUSE_OWNED]   = "Owned Houses",
-    [TYPE_HOUSE_UNOWNED] = "Unowned Houses",
+    [TYPE_WAYSHRINE]     = GetString(SI_GPH_MAPSEARCH_GROUP_WAYSHRINES),
+    [TYPE_LIFT]          = GetString(SI_GPH_MAPSEARCH_GROUP_LIFTS),
+    [TYPE_ZONE]          = GetString(SI_GPH_MAPSEARCH_GROUP_ZONES),
+    [TYPE_POI]           = GetString(SI_GPH_MAPSEARCH_GROUP_LOCATIONS),
+    [TYPE_HOUSE_OWNED]   = GetString(SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES),
+    [TYPE_HOUSE_UNOWNED] = GetString(SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES),
 }
 
 local function RebuildList()
@@ -525,7 +525,7 @@ local function RebuildList()
             entryData:SetIconTintOnSelection(true)
             if bm.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
             if i == 1 then
-                entryData:SetHeader("Bookmarks")
+                entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_BOOKMARKS))
                 listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
             else
                 listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
@@ -545,7 +545,7 @@ local function RebuildList()
                     entryData:SetIconTintOnSelection(true)
                     if firstHouse then
                         firstHouse = false
-                        entryData:SetHeader("Owned Houses")
+                        entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES))
                         listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
                     else
                         listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
@@ -566,7 +566,7 @@ local function RebuildList()
             if c.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
             if c.type ~= lastType then
                 lastType = c.type
-                entryData:SetHeader(CAT_NAMES[c.type] or "Other")
+                entryData:SetHeader(CAT_NAMES[c.type] or GetString(SI_GPH_MAPSEARCH_GROUP_OTHER))
                 listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
             else
                 listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
@@ -585,7 +585,7 @@ local function RebuildList()
     UpdateKeybinds()
 end
 
--- ── map interaction ───────────────────────────────────────────
+-- â”€â”€ map interaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function AddPing(x, y)
     local pinMgr = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
@@ -631,7 +631,7 @@ local function CenterMapOnCandidate(c)
     end
 end
 
--- ── keybinds ──────────────────────────────────────────────────
+-- â”€â”€ keybinds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function BuildKeybindDescriptor()
     keybindDescriptor = {
@@ -639,9 +639,9 @@ local function BuildKeybindDescriptor()
         {
             keybind  = "UI_SHORTCUT_PRIMARY",
             name     = function()
-                if editControl and editControl:HasFocus() then return "Done" end
+                if editControl and editControl:HasFocus() then return GetString(SI_GPH_MAPSEARCH_KEYBIND_DONE) end
                 local td = listObject and listObject:GetTargetData()
-                return (td and td.candidate) and "Show on Map" or "Done"
+                return (td and td.candidate) and GetString(SI_GPH_MAPSEARCH_KEYBIND_SHOW_ON_MAP) or GetString(SI_GPH_MAPSEARCH_KEYBIND_DONE)
             end,
             callback = function()
                 if editControl and editControl:HasFocus() then
@@ -657,8 +657,8 @@ local function BuildKeybindDescriptor()
                     if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
                     GamePadHelperSavedVars.lastSelectedPOI = td.candidate
                     CenterMapOnCandidate(td.candidate)
-                    local keybindName = ZO_Keybindings_GetBindingStringFromAction("UI_SHORTCUT_QUINARY") or "Teleport"
-                    pendingNarration = BuildCandidateNarrationText(td.candidate, td.isBookmark) .. ". Shown on map. Hold " .. keybindName .. " to teleport."
+                    local keybindName = ZO_Keybindings_GetBindingStringFromAction("UI_SHORTCUT_QUINARY") or GetString(SI_GPH_TELEPORT)
+                    pendingNarration = BuildCandidateNarrationText(td.candidate, td.isBookmark) .. ". " .. zo_strformat(SI_GPH_MAPSEARCH_SHOWN_ON_MAP, keybindName)
                     SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
                 end
             end,
@@ -673,7 +673,7 @@ local function BuildKeybindDescriptor()
             -- In list mode: X = Search (opens text mode)
             keybind  = "UI_SHORTCUT_SECONDARY",
             name     = function()
-                return (editControl and editControl:HasFocus()) and "Clear" or "Search"
+                return (editControl and editControl:HasFocus()) and GetString(SI_GPH_MAPSEARCH_CLEAR) or GetString(SI_SCREEN_NARRATION_EDIT_BOX_SEARCH_NAME)
             end,
             callback = function()
                 if editControl and editControl:HasFocus() then
@@ -681,7 +681,7 @@ local function BuildKeybindDescriptor()
                     editControl:SetText("")
                     results = {}
                     RebuildList()
-                    pendingNarration = "Search cleared. Ready to search."
+                    pendingNarration = GetString(SI_GPH_MAPSEARCH_SEARCH_CLEARED)
                     SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
                 else
                     if editControl then editControl:TakeFocus() end
@@ -694,9 +694,9 @@ local function BuildKeybindDescriptor()
             name     = function()
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
-                    return IsBookmarked(td.candidate) and "Unbookmark" or "Bookmark"
+                    return IsBookmarked(td.candidate) and GetString(SI_GPH_MAPSEARCH_UNBOOKMARK) or GetString(SI_GPH_MAPSEARCH_BOOKMARK)
                 end
-                return "Bookmark"
+                return GetString(SI_GPH_MAPSEARCH_BOOKMARK)
             end,
             callback = function()
                 local td = listObject and listObject:GetTargetData()
@@ -707,7 +707,7 @@ local function BuildKeybindDescriptor()
                     ZO_Dialogs_ShowGamepadDialog("GPH_UNBOOKMARK_CONFIRM", c)
                 else
                     AddBookmark(c)
-                    pendingNarration = "Bookmarked, " .. c.name
+                    pendingNarration = zo_strformat(SI_GPH_MAPSEARCH_BOOKMARKED, c.name)
                     SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
                     RunSearch(currentTerm)
                     RebuildList()
@@ -730,10 +730,10 @@ local function BuildKeybindDescriptor()
                     local c = td.candidate
                     if (c.type == TYPE_WAYSHRINE and c.known and not c.isLocked)
                     or c.type == TYPE_HOUSE_OWNED then
-                        return "Teleport"
+                        return GetString(SI_GPH_TELEPORT)
                     end
                 end
-                return "Teleport to Nearest Wayshrine"
+                return GetString(SI_GPH_MAPSEARCH_TELEPORT_NEAREST)
             end,
             enabled  = function()
                 local td = listObject and listObject:GetTargetData()
@@ -757,13 +757,13 @@ local function BuildKeybindDescriptor()
                 GamePadHelperSavedVars.lastSelectedPOI = c
 
                 if c.isLocked then
-                    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "This zone is locked — you don't own the required content")
+                    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_ZONE_LOCKED))
                     return
                 end
 
                 if c.type == TYPE_HOUSE_OWNED and c.houseId then
                     if not CanJumpToHouseFromCurrentLocation() then
-                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, "You cannot travel to a house from this location")
+                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_NO_HOUSE_TRAVEL))
                         return
                     end
                     ZO_Dialogs_ShowGamepadDialog("GPH_HOUSE_TRAVEL", { candidate = c })
@@ -778,15 +778,15 @@ local function BuildKeybindDescriptor()
                     if nx and ny then
                         nodeIndex = FindNearestWayshrineToPos(nx, ny, 0, c.zoneIndex)
                     end
-                    if not nodeIndex then failReason = "undiscovered" end
+                    if not nodeIndex then failReason = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
                 elseif c.nodeIndex then
                     nodeIndex = c.nodeIndex
                 end
 
                 if not nodeIndex then
-                    local msg = failReason == "locked"
-                        and "This zone is locked — you don't own the required content"
-                        or  "No discovered wayshrine in this zone"
+                    local msg = failReason == GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED)
+                        and GetString(SI_GPH_MAPSEARCH_ZONE_LOCKED)
+                        or  GetString(SI_GPH_MAPSEARCH_NO_DISCOVERED_WAYSHRINE)
                     ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, msg)
                     return
                 end
@@ -798,7 +798,7 @@ local function BuildKeybindDescriptor()
                 else
                     local sv = _G["GamePadHelper_SavedVars"]
                     if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
-                        postTeleportMsg = "Teleported to " .. c.name .. ". Check map for destination pin."
+                        postTeleportMsg = zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, c.name)
                     end
                     FastTravelToNode(nodeIndex)
                     ZO_WorldMap_HideWorldMap()
@@ -818,11 +818,11 @@ local function BuildKeybindDescriptor()
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindDescriptor, listObject)
 end
 
--- ── XML callbacks ─────────────────────────────────────────────
+-- â”€â”€ XML callbacks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function GPH_MapSearch_OnShown(edit)
     editControl = edit
-    ZO_EditDefaultText_Initialize(edit, "Search locations\226\128\166 (bookmarks shown below)")
+    ZO_EditDefaultText_Initialize(edit, GetString(SI_GPH_MAPSEARCH_SEARCH_HINT))
     edit:SetHandler("OnKeyDown", function(_, key)
         if key == KEY_GAMEPAD_DPAD_LEFT then
             edit:LoseFocus()
@@ -850,8 +850,8 @@ function GPH_MapSearch_OnSearchFocused(focused)
     end
     UpdateKeybinds()
     if focused then
-        local label = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Ready to search"
-        pendingNarration = label .. ". Type to filter locations."
+        local label = currentTerm ~= "" and (zo_strformat(SI_GPH_MAPSEARCH_SEARCHING_FOR, currentTerm)) or GetString(SI_GPH_MAPSEARCH_SEARCH_READY)
+        pendingNarration = label .. ". " .. GetString(SI_GPH_MAPSEARCH_FILTER_HINT)
         SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
     end
 end
@@ -867,7 +867,7 @@ function GPH_MapSearch_SelectCurrent()
     end
 end
 
--- ── UI init ───────────────────────────────────────────────────
+-- â”€â”€ UI init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function InitList(control)
     local listCtrl = control:GetNamedChild("Main"):GetNamedChild("List")
@@ -938,7 +938,7 @@ local function InsertMapSearchTab()
             local td = listObject and listObject:GetTargetData()
             local text = td and (td.narrationText or (td.candidate and BuildCandidateNarrationText(td.candidate, td.isBookmark)))
             if not text then
-                text = currentTerm ~= "" and ("Searching for " .. currentTerm) or "Search locations"
+                text = currentTerm ~= "" and (zo_strformat(SI_GPH_MAPSEARCH_SEARCHING_FOR, currentTerm)) or GetString(SI_GPH_MAPSEARCH_SEARCH_LOCATIONS)
             end
             ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(text))
             return narrations
@@ -977,7 +977,7 @@ local function InsertMapSearchTab()
                    and BMU_savedVarsAcc.ShowOnMapOpen == true
     local tabIndex = bmuActive and 2 or 1
     table.insert(mapInfo.tabBarEntries, tabIndex, {
-        text     = "|c3399FFGPH|r Search",
+        text     = GetString(SI_GPH_MAPSEARCH_TAB),
         callback = function()
             mapInfo:SwitchToFragment(GPH_SEARCH_FRAGMENT, false)
         end,
@@ -988,7 +988,7 @@ local function InsertMapSearchTab()
     GPH_SEARCH_TAB_INSERTED = true
 end
 
--- ── addon loaded ──────────────────────────────────────────────
+-- â”€â”€ addon loaded â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 local function OnAddonLoaded(_, name)
     if name ~= "GamePadHelper" then return end
@@ -1008,11 +1008,11 @@ local function OnAddonLoaded(_, name)
 
     ZO_Dialogs_RegisterCustomDialog("GPH_TELEPORT_CONFIRM", {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        title       = { text = "Confirm Teleport" },
+        title       = { text = SI_GPH_MAPSEARCH_CONFIRM_TELEPORT },
         mainText    = {
             text = function(dialog)
                 local cost = dialog.data and dialog.data.cost or 0
-                return zo_strformat("This teleport will cost <<1>> gold. Proceed?", cost)
+                return zo_strformat(GetString(SI_GPH_MAPSEARCH_TELEPORT_COST), cost)
             end,
         },
         buttons = {
@@ -1024,7 +1024,7 @@ local function OnAddonLoaded(_, name)
                         local sv = _G["GamePadHelper_SavedVars"]
                         if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
                             local poi = GamePadHelperSavedVars and GamePadHelperSavedVars.lastSelectedPOI
-                            postTeleportMsg = "Teleported" .. (poi and (" to " .. poi.name) or "") .. ". Check map for destination pin."
+                            postTeleportMsg = poi and zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, poi.name) or GetString(SI_GPH_MAPSEARCH_TELEPORTED)
                         end
                         FastTravelToNode(dialog.data.nodeIndex)
                         ZO_WorldMap_HideWorldMap()
@@ -1037,17 +1037,17 @@ local function OnAddonLoaded(_, name)
 
     ZO_Dialogs_RegisterCustomDialog("GPH_HOUSE_TRAVEL", {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        title       = { text = "Travel to House" },
+        title       = { text = SI_GPH_MAPSEARCH_TRAVEL_TO_HOUSE },
         mainText    = {
             text = function(dialog)
-                local name = dialog.data and dialog.data.candidate and dialog.data.candidate.name or "this house"
-                return "Where would you like to travel for " .. name .. "?"
+                local name = dialog.data and dialog.data.candidate and dialog.data.candidate.name or GetString(SI_GPH_MAPSEARCH_THIS_HOUSE)
+                return zo_strformat(GetString(SI_GPH_MAPSEARCH_TRAVEL_HOUSE_PROMPT), name)
             end,
         },
         buttons = {
             {
                 keybind  = "DIALOG_PRIMARY",
-                text     = "Enter House",
+                text     = SI_GPH_MAPSEARCH_ENTER_HOUSE,
                 callback = function(dialog)
                     local c = dialog.data and dialog.data.candidate
                     if c and c.houseId then
@@ -1058,7 +1058,7 @@ local function OnAddonLoaded(_, name)
             },
             {
                 keybind  = "DIALOG_SECONDARY",
-                text     = "Travel to Exterior",
+                text     = SI_GPH_MAPSEARCH_TRAVEL_EXTERIOR,
                 callback = function(dialog)
                     local c = dialog.data and dialog.data.candidate
                     if c and c.houseId then
@@ -1073,11 +1073,11 @@ local function OnAddonLoaded(_, name)
 
     ZO_Dialogs_RegisterCustomDialog("GPH_UNBOOKMARK_CONFIRM", {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        title       = { text = "Remove Bookmark" },
+        title       = { text = SI_GPH_MAPSEARCH_REMOVE_BOOKMARK },
         mainText    = {
             text = function(dialog)
-                local n = dialog.data and dialog.data.name or "this location"
-                return "Remove bookmark for " .. n .. "?"
+                local n = dialog.data and dialog.data.name or GetString(SI_GPH_MAPSEARCH_SEARCH_LOCATIONS)
+                return zo_strformat(GetString(SI_GPH_MAPSEARCH_REMOVE_BOOKMARK_PROMPT), n)
             end,
         },
         buttons = {
@@ -1088,7 +1088,7 @@ local function OnAddonLoaded(_, name)
                     if dialog.data then
                         local idx = listObject and listObject:GetSelectedIndex()
                         RemoveBookmark(dialog.data)
-                        pendingNarration = "Bookmark removed, " .. (dialog.data.name or "")
+                        pendingNarration = zo_strformat(SI_GPH_MAPSEARCH_BOOKMARK_REMOVED, (dialog.data.name or ""))
                         SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
                         RunSearch(currentTerm)
                         RebuildList()

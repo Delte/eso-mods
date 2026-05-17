@@ -21,12 +21,32 @@ local BAIT_SALTWATER_WORMS_ITEMID = 42869
 local BAIT_SALTWATER_CHUB     = 7
 local BAIT_SALTWATER_CHUB_ITEMID  = 42875
 
-local FISHING_HOLES = {
-    ["Lake Fishing Hole"]      = { reg = BAIT_LAKE_GUTS,       regId = BAIT_LAKE_GUTS_ITEMID,       alt = BAIT_LAKE_MINNOW,    altId = BAIT_LAKE_MINNOW_ITEMID },
-    ["Saltwater Fishing Hole"] = { reg = BAIT_SALTWATER_WORMS, regId = BAIT_SALTWATER_WORMS_ITEMID, alt = BAIT_SALTWATER_CHUB, altId = BAIT_SALTWATER_CHUB_ITEMID },
-    ["Foul Fishing Hole"]      = { reg = BAIT_FOUL_CRAWLERS,   regId = BAIT_FOUL_CRAWLERS_ITEMID,   alt = BAIT_FOUL_ROE,       altId = BAIT_FOUL_ROE_ITEMID },
-    ["River Fishing Hole"]     = { reg = BAIT_RIVER_INSECT,    regId = BAIT_RIVER_INSECT_ITEMID,    alt = BAIT_RIVER_SHAD,     altId = BAIT_RIVER_SHAD_ITEMID },
-}
+local LAKE_HOLE      = { reg = BAIT_LAKE_GUTS,       regId = BAIT_LAKE_GUTS_ITEMID,       alt = BAIT_LAKE_MINNOW,    altId = BAIT_LAKE_MINNOW_ITEMID }
+local SALTWATER_HOLE = { reg = BAIT_SALTWATER_WORMS, regId = BAIT_SALTWATER_WORMS_ITEMID, alt = BAIT_SALTWATER_CHUB, altId = BAIT_SALTWATER_CHUB_ITEMID }
+local FOUL_HOLE      = { reg = BAIT_FOUL_CRAWLERS,   regId = BAIT_FOUL_CRAWLERS_ITEMID,   alt = BAIT_FOUL_ROE,       altId = BAIT_FOUL_ROE_ITEMID }
+local RIVER_HOLE     = { reg = BAIT_RIVER_INSECT,    regId = BAIT_RIVER_INSECT_ITEMID,    alt = BAIT_RIVER_SHAD,     altId = BAIT_RIVER_SHAD_ITEMID }
+
+-- List of {keyword, data} pairs; matched via case-insensitive substring search
+-- against the interactable name the game returns, so minor wording differences
+-- between the addon strings and actual game strings don't break matching.
+local FISHING_HOLES = {}
+
+local function AddFishingHoleName(name, data)
+    if name and name ~= "" then
+        table.insert(FISHING_HOLES, { keyword = zo_strlower(name), data = data })
+    end
+end
+
+AddFishingHoleName(GetString(SI_GPH_FISHING_HOLE_LAKE),      LAKE_HOLE)
+AddFishingHoleName(GetString(SI_GPH_FISHING_HOLE_SALTWATER), SALTWATER_HOLE)
+AddFishingHoleName(GetString(SI_GPH_FISHING_HOLE_FOUL),      FOUL_HOLE)
+AddFishingHoleName(GetString(SI_GPH_FISHING_HOLE_RIVER),     RIVER_HOLE)
+
+-- English fallback covers clients whose API still returns the English name.
+AddFishingHoleName("Lake Fishing Hole",      LAKE_HOLE)
+AddFishingHoleName("Saltwater Fishing Hole", SALTWATER_HOLE)
+AddFishingHoleName("Foul Fishing Hole",      FOUL_HOLE)
+AddFishingHoleName("River Fishing Hole",     RIVER_HOLE)
 
 local setBait = true
 
@@ -40,7 +60,14 @@ local function SelectFishingBait(interactableName)
     local savedVars = _G["GamePadHelper_SavedVars"]
     if not savedVars or not savedVars.fishingEnabled then return end
 
-    local hole = FISHING_HOLES[interactableName]
+    local nameLower = zo_strlower(interactableName)
+    local hole = nil
+    for _, entry in ipairs(FISHING_HOLES) do
+        if nameLower:find(entry.keyword, 1, true) then
+            hole = entry.data
+            break
+        end
+    end
     if not hole then return end
 
     if savedVars.fishingAlternativeBaits and GetItemQuantity(hole.altId) > 0 then
@@ -79,7 +106,7 @@ local function onSlotUpdate(event, bagId, slotIndex, isNew)
         local action = GetGameCameraInteractableActionInfo()
         if action == GetString(SI_GAMECAMERAACTIONTYPE17) then
             local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_MAJOR_TEXT, SOUNDS.BOOK_ACQUIRED)
-            messageParams:SetText("|t32:32:/esoui/art/tutorial/gamepad/achievement_categoryicon_fishing.dds|t Reel in!")
+            messageParams:SetText(GetString(SI_GPH_FISHING_REEL_IN))
             CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
         end
     else

@@ -1,10 +1,10 @@
 local GPH_PANEL_ID = 9106
-local GPH_CATEGORY_NAME = "|c3399FFGPH|r Settings"
+local GPH_CATEGORY_NAME = GetString(SI_GPH_SETTINGS_CATEGORY)
 local GPH_RELOAD_DIALOG = "GPH_RELOADUI_CONFIRM"
 local gphLootReloadPending = false
 local gphExitHookRegistered = false
 local gphBackOverrideActive = false
-local TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n|cFFFF00Yellow|r: Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank\n|cFFFFFFWhite|r: Equipped item uses ESO's default magnifying glass icon; details are shown in the tooltip"
+local TRAIT_COLOR_LEGEND = GetString(SI_GPH_TRAIT_COLOR_LEGEND)
 
 local function GetSavedVars()
     return _G["GamePadHelper_SavedVars"]
@@ -126,7 +126,7 @@ local function ShowReloadPrompt(onConfirm, onCancel)
     elseif ESO_Dialogs["LIBGAMEPAD_RELOADUI_CONFIRM"] then
         ZO_Dialogs_ShowGamepadDialog("LIBGAMEPAD_RELOADUI_CONFIRM")
     else
-        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, "Reload UI required.")
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, GetString(SI_GPH_RELOAD_REQUIRED_SHORT))
         if onCancel then
             onCancel()
         end
@@ -145,8 +145,8 @@ local function EnsureReloadDialog()
     -- Dedicated confirmation used by both "Reload UI" button and deferred loot changes.
     ESO_Dialogs[GPH_RELOAD_DIALOG] = {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        title = { text = "Reload UI Required" },
-        mainText = { text = "Changes require a UI reload. Reload now?" },
+        title = { text = SI_GPH_RELOAD_TITLE },
+        mainText = { text = SI_GPH_RELOAD_BODY },
         buttons = {
             {
                 text = SI_DIALOG_CONFIRM,
@@ -183,26 +183,26 @@ local function BuildSettingsData()
         data[#data + 1] = row
     end
 
-    add(BuildInvoke("Reload UI", "Reloads the user interface. Required after changing loot offset settings.", function()
+    add(BuildInvoke(GetString(SI_GPH_SETTING_RELOAD_UI_NAME), GetString(SI_GPH_SETTING_RELOAD_UI_TOOLTIP), function()
         ShowReloadPrompt()
     end))
 
-    add(BuildCheckboxCustom("Fishing Module", "Vibrates the controller when a fish bites, shows a 'Reel in!' center-screen alert, and automatically equips the correct bait for the water type (lake, river, saltwater, foul).", function()
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_FISHING_MODULE_NAME), GetString(SI_GPH_SETTING_FISHING_MODULE_TOOLTIP), function()
         return GetBoolSetting("fishingEnabled", false)
     end, function(v)
         SetSetting("fishingEnabled", v)
-    end, "Fishing"))
+    end, GetString(SI_GPH_SETTINGS_HEADER_FISHING)))
 
-    add(BuildCheckbox("Alternative Baits", "When in stock, prefer the higher-quality bait for each water type (e.g. Lake Minnow over Lake Guts). Falls back to the standard bait if the alternative runs out.", "fishingAlternativeBaits"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_ALTERNATIVE_BAITS_NAME), GetString(SI_GPH_SETTING_ALTERNATIVE_BAITS_TOOLTIP), "fishingAlternativeBaits"))
 
-    add(BuildCheckboxCustom("Auto Repair", "Repairs all damaged equipped gear automatically when you open a merchant. Gold is deducted at the standard repair cost.", function()
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_AUTO_REPAIR_NAME), GetString(SI_GPH_SETTING_AUTO_REPAIR_TOOLTIP), function()
         return GetBoolSetting("autoRepairEnabled", false)
     end, function(v)
         SetSetting("autoRepairEnabled", v)
-    end, "Automation"))
+    end, GetString(SI_GPH_SETTINGS_HEADER_AUTOMATION)))
 
-    add(BuildCheckbox("Auto Weapon Charge", "Recharges weapons using the highest-level filled soul gem in your backpack when enchantment charge drops below the threshold, triggered after leaving combat.", "autoChargeEnabled"))
-    add(BuildSlider("Charge Threshold %", "Recharge weapons when enchantment charge drops below this percentage. Default is 25%.", 5, 95, 5, 25, function()
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_AUTO_CHARGE_NAME), GetString(SI_GPH_SETTING_AUTO_CHARGE_TOOLTIP), "autoChargeEnabled"))
+    add(BuildSlider(GetString(SI_GPH_SETTING_AUTO_CHARGE_THRESHOLD_NAME), GetString(SI_GPH_SETTING_AUTO_CHARGE_THRESHOLD_TOOLTIP), 5, 95, 5, 25, function()
         local sv = GetSavedVars()
         return (sv and sv.autoChargeThreshold) or 25
     end, function(v)
@@ -210,42 +210,42 @@ local function BuildSettingsData()
     end, nil, function()
         return not GetBoolSetting("autoChargeEnabled", false)
     end))
-    add(BuildCheckbox("Antiquarian's Eye", "Automatically equips the Antiquarian's Eye quickslot and activates it while scrying. Returns to your previous quickslot when done. Disabled in PvP zones and dungeons.", "antiquariansEyeEnabled"))
-    add(BuildCheckbox("Teleporter", "Adds fast-travel options to the world map for wayshrines and owned homes. Player houses offer a choice between entering inside or travelling to the exterior.", "teleporterEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_ANTIQUARIAN_EYE_NAME), GetString(SI_GPH_SETTING_ANTIQUARIAN_EYE_TOOLTIP), "antiquariansEyeEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_TELEPORTER_NAME), GetString(SI_GPH_SETTING_TELEPORTER_TOOLTIP), "teleporterEnabled"))
 
-    add(BuildCheckboxCustom("Set Destination on Show Map", "Places a waypoint marker at the selected location when you use 'Show on Map' from the search results.", function()
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_SET_DESTINATION_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_SET_DESTINATION_TOOLTIP), function()
         return GetBoolSetting("mapSearchSetDestination", true)
     end, function(v)
         SetSetting("mapSearchSetDestination", v)
-    end, "Map Search"))
+    end, GetString(SI_GPH_SETTINGS_HEADER_MAP_SEARCH)))
 
-    add(BuildCheckboxCustom("Announce Teleport Destination", "Shows a small on-screen announcement after arriving at the destination, confirming the location name and reminding you to check the map for the destination pin.", function()
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_ANNOUNCE_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_ANNOUNCE_TOOLTIP), function()
         return GetBoolSetting("mapSearchNarratePostTeleport", true)
     end, function(v)
         SetSetting("mapSearchNarratePostTeleport", v)
     end))
 
-    add(BuildCheckboxCustom("Dungeon Finder Enhancement", "Shows the active Undaunted pledge quest name next to matching dungeons in the dungeon finder, making it easy to identify which dungeons count for today's pledges.", function()
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_DUNGEON_FINDER_NAME), GetString(SI_GPH_SETTING_DUNGEON_FINDER_TOOLTIP), function()
         return GetBoolSetting("dungeonFinderEnabled", false)
     end, function(v)
         SetSetting("dungeonFinderEnabled", v)
-    end, "UI Enhancements"))
+    end, GetString(SI_GPH_SETTINGS_HEADER_UI_ENHANCEMENTS)))
 
-    add(BuildCheckbox("Hide Low Level Recipes", "Hides provisioning recipes whose food or drink buff only applies below CP160, keeping the recipe list focused on end-game content.", "showLowLevelRecipes"))
+    add(BuildCheckbox(GetString(SI_GPH_PROVISIONING_HIDE_LOW_LEVEL), GetString(SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP), "showLowLevelRecipes"))
 
-    add(BuildCheckboxCustom("Tooltip Traits", "Shows a research status icon in item tooltips to indicate whether the item's trait can still be researched." .. TRAIT_COLOR_LEGEND, function()
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_TOOLTIP_TRAITS_NAME), GetString(SI_GPH_SETTING_TOOLTIP_TRAITS_TOOLTIP) .. TRAIT_COLOR_LEGEND, function()
         return GetBoolSetting("tooltipTraitEnabled", false)
     end, function(v)
         SetSetting("tooltipTraitEnabled", v)
-    end, "Tooltips & UI"))
+    end, GetString(SI_GPH_SETTINGS_HEADER_TOOLTIPS_UI)))
 
-    add(BuildCheckbox("Tooltip Price", "Shows vendor sell value and market price (from TTC, TSC, or LibPriceCache if installed) in item tooltips. Also displays material costs in crafting panels.", "tooltipPriceEnabled"))
-    add(BuildCheckbox("Gear Comparison", "Displays a stat comparison between the hovered item and your currently equipped gear in the tooltip, showing the difference for each attribute.", "gearComparisonEnabled"))
-    add(BuildCheckbox("Inventory Traits", "Shows a research status icon on items in your inventory." .. TRAIT_COLOR_LEGEND, "inventoryTraitEnabled"))
-    add(BuildCheckbox("Inventory Covetous Countess", "Marks items requested by the Covetous Countess daily writ with a highlight icon in your inventory for quick identification.", "inventoryCovetousCountessEnabled"))
-    add(BuildCheckbox("Overview Panel", "Shows a summary of active research timers, pending survey maps, available antiquities, and treasure maps in the gamepad main menu sidebar.", "overviewEnabled"))
-    add(BuildCheckbox("Tooltip Poison Info", "Shows the active poison's name, application chance, and effect duration in the weapon tooltip.", "tooltipPoisonEnabled"))
-    add(BuildCheckboxCustom("Tooltip Font Changes", "Increases the font size for item descriptions, flavor text, and other tooltip fields. Useful when playing on a TV or large display.", function()
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_TOOLTIP_PRICE_NAME), GetString(SI_GPH_SETTING_TOOLTIP_PRICE_TOOLTIP), "tooltipPriceEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_GEAR_COMPARISON_NAME), GetString(SI_GPH_SETTING_GEAR_COMPARISON_TOOLTIP), "gearComparisonEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_INVENTORY_TRAITS_NAME), GetString(SI_GPH_SETTING_INVENTORY_TRAITS_TOOLTIP) .. TRAIT_COLOR_LEGEND, "inventoryTraitEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_INVENTORY_COVETOUS_COUNTESS_NAME), GetString(SI_GPH_SETTING_INVENTORY_COVETOUS_COUNTESS_TOOLTIP), "inventoryCovetousCountessEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_OVERVIEW_NAME), GetString(SI_GPH_SETTING_OVERVIEW_TOOLTIP), "overviewEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_TOOLTIP_POISON_NAME), GetString(SI_GPH_SETTING_TOOLTIP_POISON_TOOLTIP), "tooltipPoisonEnabled"))
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_TOOLTIP_FONT_NAME), GetString(SI_GPH_SETTING_TOOLTIP_FONT_TOOLTIP), function()
         return GetBoolSetting("tooltipFontEnabled", false)
     end, function(v)
         SetSetting("tooltipFontEnabled", v)
@@ -259,19 +259,19 @@ local function BuildSettingsData()
             end
         end
     end))
-    add(BuildCheckbox("Tooltip Enchantments", "Shows the enchantment name and remaining charge percentage in tooltips for weapons and armor.", "tooltipEnchantmentEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_TOOLTIP_ENCHANTMENTS_NAME), GetString(SI_GPH_SETTING_TOOLTIP_ENCHANTMENTS_TOOLTIP), "tooltipEnchantmentEnabled"))
 
-    add(BuildCheckboxCustom("Enable Loot Offset", "Moves the loot history panel upward so it does not overlap the chat box. Adjust the amount with the slider below.\n\n|cFFAA00Reload UI required after changing this setting.|r", function()
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_LOOT_OFFSET_NAME), GetString(SI_GPH_SETTING_LOOT_OFFSET_TOOLTIP), function()
         return GetBoolSetting("lootOffsetEnabled", false)
     end, function(v)
         SetSetting("lootOffsetEnabled", v)
         MarkLootReloadPending()
-    end, "Loot", function()
+    end, GetString(SI_GPH_SETTINGS_HEADER_LOOT), function()
         return IsConsoleUI and IsConsoleUI()
     end))
 
     -- UI shows -350..350, but saved value stays compatible with loot module (0..700 where 350 is midpoint).
-    add(BuildSlider("Loot Offset Amount", "Controls how far the loot panel is shifted. Negative values move it down, positive values move it up. 0 is the default position.\n\n|cFFAA00Reload UI required after changing this setting.|r", -350, 350, 10, 0, function()
+    add(BuildSlider(GetString(SI_GPH_SETTING_LOOT_OFFSET_AMOUNT_NAME), GetString(SI_GPH_SETTING_LOOT_OFFSET_AMOUNT_TOOLTIP), -350, 350, 10, 0, function()
         local sv = GetSavedVars()
         local internalValue = (sv and sv.lootOffset) or 350
         return internalValue - 350

@@ -1,24 +1,9 @@
-﻿-- =============================================================================
--- ADDON HEADER
--- =============================================================================
-
--- Overview Addon
--- Enhanced tooltips in the main menu showing crafting research, surveys, antiquities, and treasure maps
--- Manages tooltip positioning when chat slider is active
-
 local Overview = {}
 
--- Global flag for chat faded state.
 -- On console GAMEPAD_CHAT_SYSTEM is absent; treat as faded so the full
 -- GAMEPAD_RIGHT_TOOLTIP slot is used for the tasks panel.
 local isChatFaded = (GAMEPAD_CHAT_SYSTEM == nil)
 
-
--- =============================================================================
--- CONFIGURATION
--- =============================================================================
-
--- Crafting profession types
 local CRAFTING = {
   CRAFTING_TYPE_BLACKSMITHING,
   CRAFTING_TYPE_CLOTHIER,
@@ -30,11 +15,6 @@ local CRAFTING = {
 }
 
 
--- =============================================================================
--- HELPER FUNCTIONS
--- =============================================================================
-
--- Helper function to format time in days, hours, minutes with color coding
 local function FormatTimeRemaining(seconds)
   if not seconds or seconds <= 0 then return "" end
   local days = math.floor(seconds / 86400)
@@ -43,38 +23,26 @@ local function FormatTimeRemaining(seconds)
   local timeString = ""
 
   if days > 0 then
-    -- If days are present, show days and hours only (no minutes)
-    timeString = timeString .. days .. "d "
-    if hours > 0 then timeString = timeString .. hours .. "h " end
+    timeString = timeString .. zo_strformat(GetString(SI_GPH_TIME_DAY_SHORT), days) .. " "
+    if hours > 0 then timeString = timeString .. zo_strformat(GetString(SI_GPH_TIME_HOUR_SHORT), hours) .. " " end
   else
-    -- If no days, show hours and minutes
-    if hours > 0 then timeString = timeString .. hours .. "h " end
-    if minutes > 0 then timeString = timeString .. minutes .. "m" end
+    if hours > 0 then timeString = timeString .. zo_strformat(GetString(SI_GPH_TIME_HOUR_SHORT), hours) .. " " end
+    if minutes > 0 then timeString = timeString .. zo_strformat(GetString(SI_GPH_TIME_MINUTE_SHORT), minutes) end
   end
 
-  -- Remove trailing space
   timeString = timeString:gsub("%s+$", "")
 
-  -- Color coding based on time remaining
   local totalDays = seconds / 86400
   if totalDays <= 3 then
-    -- Red for less than 3 days - matches urgent color
     return "|cCC4C4C" .. timeString .. "|r"
   elseif totalDays <= 7 then
-    -- Yellow for less than 7 days
     return "|cFFFF00" .. timeString .. "|r"
   else
-    -- Default color for more than 7 days
     return "|cFFFFFF" .. timeString .. "|r"
   end
 end
 
 
--- =============================================================================
--- DATA COLLECTION FUNCTIONS
--- =============================================================================
-
--- Get information about a research line (finds currently researching trait)
 local function GetResearchLineInfo(craftingType, researchLineIndex, numTraits)
     local areAllTraitsKnown = true
     for traitIndex = 1, numTraits do
@@ -92,7 +60,6 @@ local function GetResearchLineInfo(craftingType, researchLineIndex, numTraits)
     return nil, areAllTraitsKnown
 end
 
--- Get research information for a crafting type
 -- Returns: researchableTraits, researchableItems, currentResearching, availableSlots
 local function GetResearchInfo(craftingType)
   local maximum = GetMaxSimultaneousSmithingResearch(craftingType)
@@ -100,7 +67,6 @@ local function GetResearchInfo(craftingType)
   local researchableTraits = 0
   local researchableItems = 0
 
-  -- Collect researchable traits (unknown and not researching)
   local researchableTraitList = {}
   for researchLineIndex = 1, GetNumSmithingResearchLines(craftingType) do
     local _, _, numTraits = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
@@ -124,12 +90,10 @@ local function GetResearchInfo(craftingType)
     end
   end
 
-  -- Count researchable traits that have items available
   if #researchableTraitList > 0 then
     for _, traitInfo in ipairs(researchableTraitList) do
       local hasItem = false
 
-      -- Check backpack
       for slotIndex = 0, GetBagSize(BAG_BACKPACK) - 1 do
         if GetItemId(BAG_BACKPACK, slotIndex) > 0 then
           if CanItemBeSmithingTraitResearched(BAG_BACKPACK, slotIndex, craftingType, traitInfo.researchLineIndex, traitInfo.traitIndex) then
@@ -139,7 +103,6 @@ local function GetResearchInfo(craftingType)
         end
       end
 
-      -- Check bank if not found in backpack
       if not hasItem then
         for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
           if GetItemId(BAG_BANK, slotIndex) > 0 then
@@ -151,7 +114,6 @@ local function GetResearchInfo(craftingType)
         end
       end
 
-      -- Check subscriber bank if not found
       if not hasItem then
         for slotIndex = 0, GetBagSize(BAG_SUBSCRIBER_BANK) - 1 do
           if GetItemId(BAG_SUBSCRIBER_BANK, slotIndex) > 0 then
@@ -173,28 +135,32 @@ local function GetResearchInfo(craftingType)
   return researchableTraits, researchableItems, current, availableSlots
 end
 
--- Consolidated function to count all inventory items in one pass
 -- Returns: treasureCount, totalSurveyCount, totalWritCount
 local function CountAllInventoryItems()
   local treasureCount = 0
   local totalSurveyCount = 0
   local totalWritCount = 0
+  local treasureKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_TREASURE) or "")
+  local mapKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_MAP) or "")
+  local surveyKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_SURVEY) or "")
+  local writKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_WRIT) or "")
 
-  -- Single pass through all bags
+  local function NameContains(name, keyword)
+    return keyword ~= "" and name:find(keyword, 1, true) ~= nil
+  end
+
   for bagId = BAG_BACKPACK, BAG_SUBSCRIBER_BANK do
     for slotIndex = 0, GetBagSize(bagId) - 1 do
       if GetItemId(bagId, slotIndex) > 0 then
         local itemName = GetItemName(bagId, slotIndex)
         if itemName then
-          local itemNameLower = itemName:lower()
+          local itemNameLower = zo_strlower(itemName)
 
-          -- Count treasure maps
-          if itemNameLower:find("treasure") and itemNameLower:find("map") then
+          if NameContains(itemNameLower, treasureKeyword) and NameContains(itemNameLower, mapKeyword) then
             treasureCount = treasureCount + GetSlotStackSize(bagId, slotIndex)
-          -- Count all surveys and writs (simplified - no profession matching needed)
-          elseif itemNameLower:find("survey") then
+          elseif NameContains(itemNameLower, surveyKeyword) then
             totalSurveyCount = totalSurveyCount + GetSlotStackSize(bagId, slotIndex)
-          elseif itemNameLower:find("writ") then
+          elseif NameContains(itemNameLower, writKeyword) then
             totalWritCount = totalWritCount + GetSlotStackSize(bagId, slotIndex)
           end
         end
@@ -235,15 +201,9 @@ local function GetScryableAntiquitiesInfo()
   return totalLeads, totalMinTimeRemaining, urgentZoneName
 end
 
--- =============================================================================
--- TOOLTIP MANAGEMENT FUNCTIONS
--- =============================================================================
-
--- Main function to display tooltips with all game information
 local function ShowTooltips()
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.overviewEnabled then return end
-    -- Clear both possible right tooltip positions
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
 
@@ -251,7 +211,6 @@ local function ShowTooltips()
     local questName, backgroundText, activeStepText, activeStepType, activeStepOverrideText = GetJournalQuestInfo(questIndex)
     local questDescription = string.format("|cDAA520%s|r\n\n%s\n\n%s", questName, backgroundText, activeStepText)
 
-    -- Add quest tasks
     local questStrings = {}
     local fakeQuestJournal = {questStrings = questStrings}
     ZO_ClearNumericallyIndexedTable(questStrings)
@@ -266,84 +225,76 @@ local function ShowTooltips()
         end
     end
     if taskText ~= "" then
-        questDescription = questDescription .. "\n\n|cDAA520Tasks:|r" .. taskText
+        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "|r" .. taskText
     end
     if completedTasks ~= "" then
-        questDescription = questDescription .. "\n\n|cDAA520Completed:|r" .. completedTasks
+        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPLETED_LABEL) .. "|r" .. completedTasks
     end
 
-    -- Add optional steps
     ZO_ClearNumericallyIndexedTable(questStrings)
     ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_OPTIONAL)
     if #questStrings > 0 then
-        questDescription = questDescription .. "\n\n|cDAA520Optional:|r"
+        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_OPTIONAL_LABEL) .. "|r"
         for index = 1, #questStrings do
             questDescription = questDescription .. "\n|cAAAAAA• " .. questStrings[index] .. "|r"
         end
     end
 
-    -- Add hints
     ZO_ClearNumericallyIndexedTable(questStrings)
     ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_HINT)
     if #questStrings > 0 then
-        questDescription = questDescription .. "\n\n|cDAA520Hints:|r"
+        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_HINTS_LABEL) .. "|r"
         for index = 1, #questStrings do
             questDescription = questDescription .. "\n|cAAAAAA• " .. questStrings[index] .. "|r"
         end
     end
 
-    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, "|c57A64EQuest|r", questDescription)
+    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r", questDescription)
 
-    -- Determine tooltip position based on chat faded state
     local rightTooltip = isChatFaded and GAMEPAD_RIGHT_TOOLTIP or GAMEPAD_QUAD3_TOOLTIP
 
     local tasksDescription = ""
 
-    -- Check for urgent antiquity timers first (show at very top)
+    -- urgent antiquity timers shown first
     local totalCount, totalMinTime, urgentZoneName = GetScryableAntiquitiesInfo()
     local isUrgent = totalMinTime and (totalMinTime / 86400) <= 3
     if isUrgent then
-        local zoneText = urgentZoneName and (" in |cFFFF00" .. urgentZoneName .. "|r") or ""
-        tasksDescription = tasksDescription .. "|cCC4C4CURGENT:|r\n   Lead" .. zoneText .. " expires in " .. FormatTimeRemaining(totalMinTime) .. "\n\n"
+        local zoneText = urgentZoneName and zo_strformat(GetString(SI_GPH_OVERVIEW_IN_ZONE), "|cFFFF00" .. urgentZoneName .. "|r") or ""
+        tasksDescription = tasksDescription .. "|cCC4C4C" .. GetString(SI_GPH_OVERVIEW_URGENT) .. "|r\n   " .. zo_strformat(GetString(SI_GPH_OVERVIEW_LEAD_EXPIRES), zoneText, FormatTimeRemaining(totalMinTime)) .. "\n\n"
     end
 
-    -- horse training reminder
     local horseTrainingTimeRemaining = GetTimeUntilCanBeTrained()
     local speedBonus, maxSpeedBonus, staminaBonus, maxStaminaBonus, inventoryBonus, maxInventoryBonus = STABLE_MANAGER:GetStats()
     if horseTrainingTimeRemaining == 0 and ((speedBonus < maxSpeedBonus) or (staminaBonus < maxStaminaBonus) or (inventoryBonus < maxInventoryBonus)) then
-        tasksDescription = tasksDescription .. "|cDAA520Horse Training:|r Available\n\n"
+        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_HORSE_TRAINING) .. "|r " .. GetString(SI_GPH_OVERVIEW_AVAILABLE) .. "\n\n"
     end
 
-    -- crafting research reminder
     local hasCrafting = false
     local treasureCount, totalSurveyCount, totalWritCount = CountAllInventoryItems()
 
-    -- Add main crafting header with total counts
     if totalSurveyCount > 0 or totalWritCount > 0 then
         local craftingCountersText = ""
         if totalSurveyCount > 0 then
-            craftingCountersText = craftingCountersText .. " |cFFFFFF" .. totalSurveyCount .. "|r Survey"
+            craftingCountersText = craftingCountersText .. " |cFFFFFF" .. totalSurveyCount .. "|r " .. GetString(SI_GPH_OVERVIEW_SURVEY)
         end
         if totalSurveyCount > 0 and totalWritCount > 0 then
             craftingCountersText = craftingCountersText .. " -"
         end
         if totalWritCount > 0 then
-            craftingCountersText = craftingCountersText .. " |cFFFFFF" .. totalWritCount .. "|r Writ"
+            craftingCountersText = craftingCountersText .. " |cFFFFFF" .. totalWritCount .. "|r " .. GetString(SI_GPH_OVERVIEW_WRIT)
         end
-        tasksDescription = tasksDescription .. "|cDAA520Crafting:|r" .. craftingCountersText .. "\n"
+        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_CRAFTING) .. "|r" .. craftingCountersText .. "\n"
         hasCrafting = true
     end
 
-    -- Second pass: show individual profession research info
     for _, craftingType in ipairs(CRAFTING) do
         local researchableTraits, researchableItems, current, availableSlots = GetResearchInfo(craftingType)
         local craftText = GetCraftingSkillName(craftingType)
 
         if GetNumSmithingResearchLines(craftingType) == 0 then
-            -- For non-smithing skills, check if player has the skill
             local hasSkill = false
             if craftingType == CRAFTING_TYPE_PROVISIONING or craftingType == CRAFTING_TYPE_ENCHANTING or craftingType == CRAFTING_TYPE_ALCHEMY then
-                -- Check if player has these crafting skills
+                local targetSkillName = zo_strlower(GetCraftingSkillName(craftingType) or "")
                 -- GetSkillLineName is a PC-only alias; use GetSkillLineNameById on console
                 local function SafeGetSkillLineName(skillType, skillLineIndex)
                     if GetSkillLineName then return GetSkillLineName(skillType, skillLineIndex) end
@@ -354,9 +305,7 @@ local function ShowTooltips()
                     for skillLine = 1, GetNumSkillLines(skillCategory) do
                         local skillLineName = SafeGetSkillLineName(skillCategory, skillLine)
                         if skillLineName then
-                            if (craftingType == CRAFTING_TYPE_PROVISIONING and skillLineName:lower():find("provisioning")) or
-                                (craftingType == CRAFTING_TYPE_ENCHANTING and skillLineName:lower():find("enchanting")) or
-                                (craftingType == CRAFTING_TYPE_ALCHEMY and skillLineName:lower():find("alchemy")) then
+                            if targetSkillName ~= "" and zo_strlower(skillLineName):find(targetSkillName, 1, true) then
                                  hasSkill = true
                                  break
                              end
@@ -367,19 +316,17 @@ local function ShowTooltips()
              end
 
              if not hasSkill then
-                 -- Player doesn't have this crafting skill
                  if not hasCrafting then
                      hasCrafting = true
                  end
-                 tasksDescription = tasksDescription .. "|cDAA520" .. craftText .. ":|r\n  Visit crafting station\n"
+                 tasksDescription = tasksDescription .. "|cDAA520" .. craftText .. ":|r\n  " .. GetString(SI_GPH_OVERVIEW_VISIT_STATION) .. "\n"
              end
-             -- Don't show empty entries for non-smithing professions that player has
          elseif researchableTraits > 0 and availableSlots > 0 then
              if not hasCrafting then
                  hasCrafting = true
              end
-             local slotText = availableSlots > 0 and string.format(" |c00FF00%d|r %s available", availableSlots, zo_strformat("<<1[slot/slots/slots]>>", availableSlots)) or ""
-             local text = string.format("  |cFFFFFF%d|r/|cFFFFFF%d|r Researchable%s", researchableTraits, researchableItems, slotText)
+             local slotText = availableSlots > 0 and string.format(" |c00FF00%d|r %s", availableSlots, zo_strformat(GetString(SI_GPH_OVERVIEW_AVAILABLE_SLOTS), zo_strformat("<<1[slot/slots/slots]>>", availableSlots), "")) or ""
+             local text = string.format("  |cFFFFFF%d|r/|cFFFFFF%d|r %s%s", researchableTraits, researchableItems, GetString(SI_GPH_OVERVIEW_RESEARCHABLE), slotText)
              tasksDescription = tasksDescription .. "|cDAA520" .. craftText .. ":|r\n" .. text .. "\n"
          end
      end
@@ -387,19 +334,17 @@ local function ShowTooltips()
         tasksDescription = tasksDescription .. "\n"
     end
 
-    -- antiquities scryable count and lead expiration timer
     if totalCount > 0 then
         -- Main leads line with total count and timer
         local totalTimeString = ""
         if totalMinTime and not isUrgent then
             totalTimeString = " (" .. FormatTimeRemaining(totalMinTime) .. ")"
         end
-        tasksDescription = tasksDescription .. "|cDAA520Leads:|r |cFFFFFF" .. totalCount .. "|r scryable" .. totalTimeString .. "\n"
+        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LEADS) .. "|r |cFFFFFF" .. totalCount .. "|r " .. GetString(SI_GPH_OVERVIEW_SCRYABLE) .. totalTimeString .. "\n"
     end
 
-    -- treasure maps count
     if treasureCount > 0 then
-        tasksDescription = tasksDescription .. "|cDAA520Treasure:|r |cFFFFFF" .. treasureCount .. "|r maps\n"
+        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TREASURE) .. "|r |cFFFFFF" .. treasureCount .. "|r " .. GetString(SI_GPH_OVERVIEW_MAPS) .. "\n"
     end
 
     if totalCount > 0 or treasureCount > 0 then
@@ -407,27 +352,20 @@ local function ShowTooltips()
     end
 
     if tasksDescription == "" then
-        tasksDescription = "Access daily tasks, achievements, and other activities."
+        tasksDescription = GetString(SI_GPH_OVERVIEW_TASKS_AVAILABLE)
     end
 
-    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(rightTooltip, "|cDAA520Tasks|r", tasksDescription)
+    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(rightTooltip, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS) .. "|r", tasksDescription)
 end
 
--- Hide all tooltips when menu is closed
 local function HideTooltips()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
 end
 
 
--- =============================================================================
--- ADDON INITIALIZATION
--- =============================================================================
-
--- Initialize the addon by registering scene callbacks and chat system hooks
 function Overview:Initialize()
-    -- On console GAMEPAD_CHAT_SYSTEM is absent; treat as faded so the full
-    -- GAMEPAD_RIGHT_TOOLTIP slot is used. On PC, check the actual minimized state.
+    -- re-evaluate: on PC check actual minimized state; on console always faded (no GAMEPAD_CHAT_SYSTEM)
     isChatFaded = not GAMEPAD_CHAT_SYSTEM or GAMEPAD_CHAT_SYSTEM:IsMinimized()
 
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState)

@@ -1,14 +1,14 @@
-﻿local function GetSlotName(equipSlot)
+local function GetSlotName(equipSlot)
     if equipSlot == EQUIP_SLOT_MAIN_HAND then
-        return "main hand"
+        return GetString(SI_GPH_AUTOCHARGE_MAIN_HAND)
     elseif equipSlot == EQUIP_SLOT_OFF_HAND then
-        return "off hand"
+        return GetString(SI_GPH_AUTOCHARGE_OFF_HAND)
     elseif equipSlot == EQUIP_SLOT_BACKUP_MAIN then
-        return "backup main hand"
+        return GetString(SI_GPH_AUTOCHARGE_BACKUP_MAIN)
     elseif equipSlot == EQUIP_SLOT_BACKUP_OFF then
-        return "backup off hand"
+        return GetString(SI_GPH_AUTOCHARGE_BACKUP_OFF)
     else
-        return "unknown slot"
+        return GetString(SI_GPH_AUTOCHARGE_UNKNOWN_SLOT)
     end
 end
 
@@ -65,7 +65,7 @@ local function AutoCharge()
                         local newCharges, newMaxCharges = GetChargeInfoForItem(BAG_WORN, equipSlot)
                         local newPercentage = (newMaxCharges and newMaxCharges > 0) and (newCharges / newMaxCharges * 100) or 0
                         local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_SMALL_TEXT)
-                        messageParams:SetText(slotName .. " charged (" .. string.format("%.0f", newPercentage) .. "%)")
+                        messageParams:SetText(zo_strformat(SI_GPH_AUTOCHARGE_CHARGED, slotName, string.format("%.0f", newPercentage)))
                         CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
                     end, 200)
                 end

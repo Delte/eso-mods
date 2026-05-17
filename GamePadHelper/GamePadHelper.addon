@@ -8,6 +8,9 @@
 ## DependsOn: LibCovetousCountess>=102 LibItemLinkDecoder>=102 LibTraitResearch>=103 LibMultiIcon>=102
 ## OptionalDependsOn: TamrielTradeCentre BeamMeUp LibPriceCache TSCPriceDataAPIXBNA TSCPriceDataAPIPSNA TSCPriceDataAPIXBEU TSCPriceDataAPIPSEU
 
+lang/common.lua
+lang/$(language).lua
+
 GamePadHelper.lua
 Settings.lua
 modules/Provisioning.lua
