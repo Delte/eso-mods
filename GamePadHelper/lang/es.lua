@@ -213,6 +213,13 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(pila de <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> pilas)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nSignificado del color del rasgo:\n|c2DC50EVerde|r: Solo tiene acceso a la copia con este rasgo\n|cFFFF00Amarillo|r: Existe otra copia con el mismo rasgo en su inventario\n|cFF4444Rojo|r: Existe otra copia con el mismo rasgo en tu banco\n|cFFFFFFBlanco|r: el artículo equipado usa el ícono de lupa predeterminado de ESO; Los detalles se muestran en la información sobre herramientas.",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r se ha actualizado con nuevas funciones:\n\n• |cFFFF00Soporte multiidioma|r — todas las funciones del addon (pesca, descripciones emergentes, teletransportador, resumen y más) ahora son totalmente compatibles con los 7 idiomas oficiales del cliente ESO: EN, DE, FR, ES, RU, JP, ZH.\n\n• |cFFFF00Búsqueda en el mapa|r — busca y teletranspórtate a cualquier lugar directamente desde el mapa del mundo. Abre el mapa y selecciona la pestaña |c3399FFGPH Búsqueda|r.",
+    SI_GPH_WHATS_NEW_CONFIRM = "Entendido",
+    SI_GPH_WHATS_NEW_MAPSEARCH_BODY = "busca y teletranspórtate a cualquier lugar desde el mapa (pestaña GPH Búsqueda).",
+    SI_GPH_WHATS_NEW_MAPSEARCH_LABEL = "Búsqueda en el mapa —",
+    SI_GPH_WHATS_NEW_MULTILANG_BODY = "todas las funciones ahora son compatibles con los 7 idiomas ESO: EN, DE, FR, ES, RU, JP, ZH.",
+    SI_GPH_WHATS_NEW_MULTILANG_LABEL = "Soporte multiidioma —",
+    SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — Novedades",
 }
 
 for stringId, stringValue in pairs(strings) do

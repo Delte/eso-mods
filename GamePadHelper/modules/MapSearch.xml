@@ -22,7 +22,7 @@
                                     <Dimensions x="48" y="48"/>
                                     <Anchor point="LEFT" offsetX="6"/>
                                 </Texture>
-                                <EditBox name="$(parent)Edit" maxInputCharacters="50" inherits="ZO_DefaultEditForBackdrop_Gamepad ZO_EditDefaultText">
+                                <EditBox name="$(parent)Edit" maxInputCharacters="50" inherits="ZO_DefaultEditForBackdrop_Gamepad">
                                     <Anchor point="LEFT" relativeTo="$(parent)Icon" relativePoint="RIGHT" offsetX="8"/>
                                     <Anchor point="RIGHT" offsetX="-8"/>
                                     <OnEffectivelyShown>

@@ -213,6 +213,13 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(<<1>>のスタック)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> スタック)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\n特性色の意味:\n|c2DC50E緑|r: アクセスできるこの特性を持つコピーのみ\n|cFFFF00黄色|r: 同じ特性を持つ別のコピーがインベントリに存在します\n|cFF4444赤|r: 同じ特性を持つ別のコピーがあなたの銀行に存在します\n|cFFFFFF白|r: 装備アイテムはESOのデフォルトの虫眼鏡アイコンを使用します。詳細はツールチップに表示されます",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r が新機能で更新されました：\n\n• |cFFFF00多言語サポート|r — アドオンのすべての機能（釣り、ツールチップ、テレポーター、概要など）が、ESOクライアントの7つの公式言語に完全対応しました：EN、DE、FR、ES、RU、JP、ZH。\n\n• |cFFFF00マップ検索|r — ワールドマップから直接任意の場所を検索してテレポートできます。マップを開いて |c3399FFGPH 検索|r タブを選択してください。",
+    SI_GPH_WHATS_NEW_CONFIRM = "了解",
+    SI_GPH_WHATS_NEW_MAPSEARCH_BODY = "ワールドマップから任意の場所を検索してテレポートできます（GPH 検索タブ）。",
+    SI_GPH_WHATS_NEW_MAPSEARCH_LABEL = "マップ検索 —",
+    SI_GPH_WHATS_NEW_MULTILANG_BODY = "すべての機能がESOの7つの公式言語に対応しました：EN、DE、FR、ES、RU、JP、ZH。",
+    SI_GPH_WHATS_NEW_MULTILANG_LABEL = "多言語サポート —",
+    SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — 新機能",
 }
 
 for stringId, stringValue in pairs(strings) do

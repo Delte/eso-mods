@@ -213,6 +213,13 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "（堆叠<<1>>）",
     SI_GPH_TOOLTIPPRICE_STACKS = "（<<1>>堆叠）",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\n特质颜色含义：\n|c2DC50E绿色|r：只能复制具有此特质的副本\n|cFFFF00黄色|r：您的库存中存在具有相同特质的另一个副本\n|cFF4444红色|r：具有相同特质的另一个副本在您的银行中存在\n|cFFFFFF白色|r：装备的物品使用ESO的默认放大镜图标；详细信息显示在工具提示中",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 已更新，新增以下功能：\n\n• |cFFFF00多语言支持|r — 插件的所有功能（钓鱼、工具提示、传送、概览等）现已完全支持 ESO 客户端的全部 7 种官方语言：EN、DE、FR、ES、RU、JP、ZH。\n\n• |cFFFF00地图搜索|r — 直接从世界地图搜索并传送到任意地点。打开地图，选择 |c3399FFGPH 搜索|r 标签页。",
+    SI_GPH_WHATS_NEW_CONFIRM = "知道了",
+    SI_GPH_WHATS_NEW_MAPSEARCH_BODY = "从世界地图搜索并传送到任意地点（GPH 搜索标签页）。",
+    SI_GPH_WHATS_NEW_MAPSEARCH_LABEL = "地图搜索 —",
+    SI_GPH_WHATS_NEW_MULTILANG_BODY = "插件的所有功能现已支持全部 7 种 ESO 官方语言：EN、DE、FR、ES、RU、JP、ZH。",
+    SI_GPH_WHATS_NEW_MULTILANG_LABEL = "多语言支持 —",
+    SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — 新功能",
 }
 
 for stringId, stringValue in pairs(strings) do

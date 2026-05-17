@@ -12,7 +12,7 @@ local TYPE_HOUSE_OWNED   = 4
 local TYPE_HOUSE_UNOWNED = 5
 local TYPE_LIFT          = 6
 
--- Use ESO's named constants â€” never hardcode poiType numbers.
+-- Use ESO's named constants - never hardcode poiType numbers.
 -- POI_TYPE_WAYSHRINE / POI_TYPE_HOUSE / POI_TYPE_GROUP_DUNGEON etc. are defined by the game client.
 
 local ICON_WAYSHRINE_KNOWN   = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
@@ -49,7 +49,7 @@ local function UpdateKeybinds()
     end
 end
 
--- â”€â”€ bookmarks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- bookmarks
 
 local function MakeBookmarkKey(c)
     return c.type .. ":" .. tostring(c.nodeIndex or c.zoneId or "") .. ":" .. c.name
@@ -105,7 +105,7 @@ local function AddBookmark(c)
     }
 end
 
--- â”€â”€ POI type labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- POI type labels
 
 local POI_TYPE_NAMES = {
     areaofinterest  = GetString(SI_GPH_MAPSEARCH_LABEL_AREA_OF_INTEREST),
@@ -204,7 +204,7 @@ local function GetPOITypeLabel(icon)
     return POI_TYPE_NAMES[plain]
 end
 
--- â”€â”€ narration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- narration
 
 local function BuildCandidateNarrationText(c, isBookmark)
     local parts = { c.name }
@@ -230,7 +230,7 @@ local function BuildCandidateNarrationText(c, isBookmark)
     return table.concat(parts, ", ")
 end
 
--- â”€â”€ pre-scan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- pre-scan 
 
 local function PreScan()
     local zoneToMap    = {}
@@ -346,7 +346,7 @@ local function PreScan()
     candidates  = nil
 end
 
--- â”€â”€ candidates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- candidates
 
 local function FindNearestWayshrineToPos(px, py, minDist, filterZoneIndex)
     if not px or not py or px == 0 then return nil end
@@ -449,7 +449,7 @@ local function BuildCandidates()
     return list
 end
 
--- â”€â”€ search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- search
 
 local function ScoreMatch(nameLower, termLower)
     if termLower == "" then return 1.0 end
@@ -499,7 +499,7 @@ local function RunSearch(term)
     end
 end
 
--- â”€â”€ list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- list
 
 local CAT_NAMES = {
     [TYPE_WAYSHRINE]     = GetString(SI_GPH_MAPSEARCH_GROUP_WAYSHRINES),
@@ -585,7 +585,7 @@ local function RebuildList()
     UpdateKeybinds()
 end
 
--- â”€â”€ map interaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- map interaction
 
 local function AddPing(x, y)
     local pinMgr = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
@@ -631,7 +631,7 @@ local function CenterMapOnCandidate(c)
     end
 end
 
--- â”€â”€ keybinds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- keybinds
 
 local function BuildKeybindDescriptor()
     keybindDescriptor = {
@@ -818,11 +818,11 @@ local function BuildKeybindDescriptor()
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindDescriptor, listObject)
 end
 
--- â”€â”€ XML callbacks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- XML callbacks
 
 function GPH_MapSearch_OnShown(edit)
     editControl = edit
-    ZO_EditDefaultText_Initialize(edit, GetString(SI_GPH_MAPSEARCH_SEARCH_HINT))
+    edit:SetDefaultText(GetString(SI_GPH_MAPSEARCH_SEARCH_HINT))
     edit:SetHandler("OnKeyDown", function(_, key)
         if key == KEY_GAMEPAD_DPAD_LEFT then
             edit:LoseFocus()
@@ -867,7 +867,7 @@ function GPH_MapSearch_SelectCurrent()
     end
 end
 
--- â”€â”€ UI init â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- UI init
 
 local function InitList(control)
     local listCtrl = control:GetNamedChild("Main"):GetNamedChild("List")
@@ -988,7 +988,7 @@ local function InsertMapSearchTab()
     GPH_SEARCH_TAB_INSERTED = true
 end
 
--- â”€â”€ addon loaded â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- addon loaded
 
 local function OnAddonLoaded(_, name)
     if name ~= "GamePadHelper" then return end

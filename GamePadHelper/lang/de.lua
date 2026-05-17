@@ -213,6 +213,13 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(Stapel von <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> Stapel)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nBedeutung der Eigenschaftsfarbe:\n|c2DC50EGrün|r: Einzige verfügbare Kopie mit dieser Eigenschaft\n|cFFFF00Gelb|r: Eine weitere Kopie mit derselben Eigenschaft befindet sich im Inventar\n|cFF4444Rot|r: Eine weitere Kopie mit derselben Eigenschaft befindet sich in der Bank\n|cFFFFFFWeiß|r: Ausgerüstete Gegenstände verwenden das ESO-Standard-Lupensymbol; Details werden in der Kurzinfo angezeigt",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r wurde mit neuen Funktionen aktualisiert:\n\n• |cFFFF00Mehrsprachige Unterstützung|r — alle Addon-Funktionen (Angeln, Tooltips, Teleporter, Übersicht und mehr) unterstützen nun vollständig alle 7 offiziellen ESO-Clientsprachen: EN, DE, FR, ES, RU, JP, ZH.\n\n• |cFFFF00Kartensuche|r — suche und teleportiere dich direkt von der Weltkarte zu jedem Ort. Öffne die Karte und wähle den Tab |c3399FFGPH Suche|r.",
+    SI_GPH_WHATS_NEW_CONFIRM = "Verstanden",
+    SI_GPH_WHATS_NEW_MAPSEARCH_BODY = "Suche und teleportiere dich zu jedem Ort von der Weltkarte (Tab GPH Suche).",
+    SI_GPH_WHATS_NEW_MAPSEARCH_LABEL = "Kartensuche —",
+    SI_GPH_WHATS_NEW_MULTILANG_BODY = "alle Addon-Funktionen unterstützen nun alle 7 ESO-Sprachen: EN, DE, FR, ES, RU, JP, ZH.",
+    SI_GPH_WHATS_NEW_MULTILANG_LABEL = "Mehrsprachige Unterstützung —",
+    SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — Neuigkeiten",
 }
 
 for stringId, stringValue in pairs(strings) do

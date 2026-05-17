@@ -1,4 +1,4 @@
-﻿-- fr overrides for GamePadHelper strings.
+-- fr overrides for GamePadHelper strings.
 local strings = {
     SI_GPH_API_TOO_OLD = "[%s] ESO Version API trop ancienne. Nécessite l'API %s ou supérieure.",
     SI_GPH_AUTOCHARGE_BACKUP_MAIN = "main principale de secours",
@@ -213,6 +213,13 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(pile de <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> piles)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nSignification de la couleur du trait :\n|c2DC50EVert|r : Seule la copie avec ce trait à laquelle vous avez accès\n|cFFFF00Jaune|r : Une autre copie avec le même trait existe dans votre inventaire\n|cFF4444Rouge|r : Une autre copie avec le même trait existe dans votre banque\n|cFFFFFFBlanc|r : l'objet équipé utilise l'icône de loupe par défaut de ESO ; les détails sont affichés dans l'info-bulle",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r a été mis à jour avec de nouvelles fonctionnalités :\n\n• |cFFFF00Support multilingue|r — toutes les fonctionnalités du addon (pêche, infobulles, téléporteur, aperçu et plus) prennent désormais en charge les 7 langues officielles du client ESO : EN, DE, FR, ES, RU, JP, ZH.\n\n• |cFFFF00Recherche sur la carte|r — recherchez et téléportez-vous vers n'importe quel lieu directement depuis la carte du monde. Ouvrez la carte et sélectionnez l'onglet |c3399FFGPH Recherche|r.",
+    SI_GPH_WHATS_NEW_CONFIRM = "Compris",
+    SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — Nouveautés",
+    SI_GPH_WHATS_NEW_MAPSEARCH_BODY = "recherchez et téléportez-vous vers n'importe quel lieu depuis la carte du monde (onglet GPH Recherche).",
+    SI_GPH_WHATS_NEW_MAPSEARCH_LABEL = "Recherche sur la carte —",
+    SI_GPH_WHATS_NEW_MULTILANG_BODY = "toutes les fonctionnalités prennent désormais en charge les 7 langues ESO : EN, DE, FR, ES, RU, JP, ZH.",
+    SI_GPH_WHATS_NEW_MULTILANG_LABEL = "Support multilingue —",
 }
 
 for stringId, stringValue in pairs(strings) do

@@ -213,6 +213,13 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(стопка из <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> стеков)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nЗначение цвета черты:\n|c2DC50EЗеленый|r: Доступна только копия с этой чертой \n|cFFFF00Желтый|r: В вашем инвентаре существует еще одна копия с той же чертой\n|cFF4444Красный|r: Еще одна копия с той же чертой существует и в вашем банке\n|cFFFFFFБелый|r: Оборудованный предмет использует значок лупы по умолчанию ESO; подробности показаны во всплывающей подсказке",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r обновлён с новыми функциями:\n\n• |cFFFF00Многоязычная поддержка|r — все функции аддона (рыбалка, подсказки, телепортер, обзор и другое) теперь полностью поддерживают все 7 официальных языков клиента ESO: EN, DE, FR, ES, RU, JP, ZH.\n\n• |cFFFF00Поиск на карте|r — ищите и телепортируйтесь к любому месту прямо с карты мира. Откройте карту и выберите вкладку |c3399FFGPH Поиск|r.",
+    SI_GPH_WHATS_NEW_CONFIRM = "Понятно",
+    SI_GPH_WHATS_NEW_MAPSEARCH_BODY = "ищите и телепортируйтесь к любому месту с карты мира (вкладка GPH Поиск).",
+    SI_GPH_WHATS_NEW_MAPSEARCH_LABEL = "Поиск на карте —",
+    SI_GPH_WHATS_NEW_MULTILANG_BODY = "все функции аддона теперь поддерживают все 7 языков ESO: EN, DE, FR, ES, RU, JP, ZH.",
+    SI_GPH_WHATS_NEW_MULTILANG_LABEL = "Многоязычная поддержка —",
+    SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — Что нового",
 }
 
 for stringId, stringValue in pairs(strings) do

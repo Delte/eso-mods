@@ -213,6 +213,13 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(stack of <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> stacks)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n|cFFFF00Yellow|r: Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank\n|cFFFFFFWhite|r: Equipped item uses ESO's default magnifying glass icon; details are shown in the tooltip",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r has been updated with new features:\n\n• |cFFFF00Multilanguage Support|r — all addon features (fishing, tooltips, teleporter, overview, and more) now fully support all 7 official ESO client languages: EN, DE, FR, ES, RU, JP, ZH.\n\n• |cFFFF00Map Search|r — search and teleport to any location directly from the world map. Open the map and select the |c3399FFGPH Search|r tab.",
+    SI_GPH_WHATS_NEW_CONFIRM = "Got It",
+    SI_GPH_WHATS_NEW_MAPSEARCH_BODY = "search and teleport to any location from the world map (GPH Search tab).",
+    SI_GPH_WHATS_NEW_MAPSEARCH_LABEL = "Map Search —",
+    SI_GPH_WHATS_NEW_MULTILANG_BODY = "all addon features now support all 7 ESO languages: EN, DE, FR, ES, RU, JP, ZH.",
+    SI_GPH_WHATS_NEW_MULTILANG_LABEL = "Multilanguage Support —",
+    SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — What's New",
 }
 
 for stringId, stringValue in pairs(strings) do
