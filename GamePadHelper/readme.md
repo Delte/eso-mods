@@ -1,6 +1,6 @@
 # GamePadHelper
 
-**Version:** 1.06 · **Authors:** olegbl, quelron · **API:** 101049
+**Version:** 1.066 · **Authors:** olegbl, quelron · **API:** 101049
 
 A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed for gamepad play but compatible with keyboard & mouse too. Every feature can be toggled individually from the in-game settings panel. 
 
@@ -76,7 +76,7 @@ Automatically repairs all equipped items when you open any merchant store, as lo
 
 ### Auto Weapon Charge
 
-Automatically recharges equipped weapons (main hand, off hand, backup main, backup off) using the highest-level filled soul gem available when charge drops below **25%** after leaving combat.
+Automatically recharges equipped weapons (main hand, off hand, backup main, backup off) using the highest-level filled soul gem available when charge drops below a configurable threshold (default **25%**) after leaving combat. The threshold is adjustable from the settings panel in 5% increments.
 
 ---
 
@@ -121,6 +121,8 @@ Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search a
 - **Bookmark** any location (per character) for quick access — bookmarks appear when the search bar is empty.
 - **Show on Map** pans the world map to the selected result and places a ping marker.
 - **Teleport to Nearest Wayshrine** fast-travels to the closest discovered wayshrine in the same zone as the selected result (or directly to the wayshrine/house if it is one).
+- **Tab memory** — reopening the map returns you to the GPH Search tab if that was the last tab you had open.
+- **Teleport announcement** — after arriving at the destination, a small on-screen message confirms the location name and reminds you to check the map for the destination pin.
 - Full **screen narration** support for gamepad accessibility — reads the name, category, ownership (houses), and discovery/lock status of each result.
 
 ---

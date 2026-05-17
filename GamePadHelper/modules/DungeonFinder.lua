@@ -1,6 +1,8 @@
 -- DungeonFinder
 -- Enhanced dungeon finder with pledge quest highlighting
 
+local NAVIGATION_MODE_ENTRY_LIST = 3
+
 local function FindPledgeQuestForDungeon(dungeonLocation)
     for i = 1, MAX_JOURNAL_QUESTS do
         if IsValidQuestIndex(i) then
@@ -22,7 +24,7 @@ local function ShowPledgeDungeons()
     local savedVars = _G["GamePadHelper_SavedVars"]
     if not savedVars or not savedVars.dungeonFinderEnabled then return end
 
-    if not DUNGEON_FINDER_GAMEPAD:IsShowing() or DUNGEON_FINDER_GAMEPAD.navigationMode ~= 3 then
+    if not DUNGEON_FINDER_GAMEPAD:IsShowing() or DUNGEON_FINDER_GAMEPAD.navigationMode ~= NAVIGATION_MODE_ENTRY_LIST then
         return false
     end
 

@@ -786,6 +786,9 @@ local craftingHooksDone = {}
 
 -- Initialize crafting panel hooks
 local function InitializeCraftingHooks()
+  if not craftingHooksDone.keyboard then
+    craftingHooksDone.keyboard = true
+
   -- Hook into Smithing Improvement Panel
   if ZO_SmithingTopLevelImprovementPanelResultTooltip then
     AddCraftingPriceTooltip(
@@ -849,6 +852,8 @@ local function InitializeCraftingHooks()
       return GetAlchemyMaterialCost()
     end)
   end
+
+  end -- craftingHooksDone.keyboard
 
   -- Gamepad hooks (run once only since class tables are always present)
   if not craftingHooksDone.gamepad then

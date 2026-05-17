@@ -21,96 +21,34 @@ local BAIT_SALTWATER_WORMS_ITEMID = 42869
 local BAIT_SALTWATER_CHUB     = 7
 local BAIT_SALTWATER_CHUB_ITEMID  = 42875
 
+local FISHING_HOLES = {
+    ["Lake Fishing Hole"]      = { reg = BAIT_LAKE_GUTS,       regId = BAIT_LAKE_GUTS_ITEMID,       alt = BAIT_LAKE_MINNOW,    altId = BAIT_LAKE_MINNOW_ITEMID },
+    ["Saltwater Fishing Hole"] = { reg = BAIT_SALTWATER_WORMS, regId = BAIT_SALTWATER_WORMS_ITEMID, alt = BAIT_SALTWATER_CHUB, altId = BAIT_SALTWATER_CHUB_ITEMID },
+    ["Foul Fishing Hole"]      = { reg = BAIT_FOUL_CRAWLERS,   regId = BAIT_FOUL_CRAWLERS_ITEMID,   alt = BAIT_FOUL_ROE,       altId = BAIT_FOUL_ROE_ITEMID },
+    ["River Fishing Hole"]     = { reg = BAIT_RIVER_INSECT,    regId = BAIT_RIVER_INSECT_ITEMID,    alt = BAIT_RIVER_SHAD,     altId = BAIT_RIVER_SHAD_ITEMID },
+}
+
 local setBait = true
 
 local function GetItemQuantity(itemId)
-    local icon, qnt = GetItemInfo(BAG_VIRTUAL, itemId)
-    local icon, qnt2 = GetItemInfo(BAG_BACKPACK, itemId)
+    local _, qnt  = GetItemInfo(BAG_VIRTUAL, itemId)
+    local _, qnt2 = GetItemInfo(BAG_BACKPACK, itemId)
     if HasCraftBagAccess() then return (qnt + qnt2) else return qnt2 end
 end
 
 local function SelectFishingBait(interactableName)
     local savedVars = _G["GamePadHelper_SavedVars"]
-    if not savedVars or not savedVars.fishingEnabled or not savedVars.fishingAlternativeBaits then
-        return
+    if not savedVars or not savedVars.fishingEnabled then return end
+
+    local hole = FISHING_HOLES[interactableName]
+    if not hole then return end
+
+    if savedVars.fishingAlternativeBaits and GetItemQuantity(hole.altId) > 0 then
+        SetFishingLure(hole.alt)
+    else
+        SetFishingLure(hole.reg)
     end
-    if interactableName == "Lake Fishing Hole" then
-        local regularBaitQuantity = GetItemQuantity(BAIT_LAKE_GUTS_ITEMID)
-        local alternativeBaitQuantity = GetItemQuantity(BAIT_LAKE_MINNOW_ITEMID)
-
-        if savedVars.fishingAlternativeBaits then
-            if alternativeBaitQuantity > 0 then
-                SetFishingLure(BAIT_LAKE_MINNOW)
-            else
-                SetFishingLure(BAIT_LAKE_GUTS)
-            end
-        else
-            if regularBaitQuantity > 0 then
-                SetFishingLure(BAIT_LAKE_GUTS)
-            else
-                SetFishingLure(BAIT_LAKE_MINNOW)
-            end
-        end
-
-        setBait = false
-    elseif interactableName == "Saltwater Fishing Hole" then
-        local regularBaitQuantity = GetItemQuantity(BAIT_SALTWATER_WORMS_ITEMID)
-        local alternativeBaitQuantity = GetItemQuantity(BAIT_SALTWATER_CHUB_ITEMID)
-
-        if savedVars.fishingAlternativeBaits then
-            if alternativeBaitQuantity > 0 then
-                SetFishingLure(BAIT_SALTWATER_CHUB)
-            else
-                SetFishingLure(BAIT_SALTWATER_WORMS)
-            end
-        else
-            if regularBaitQuantity > 0 then
-                SetFishingLure(BAIT_SALTWATER_WORMS)
-            else
-                SetFishingLure(BAIT_SALTWATER_CHUB)
-            end
-        end
-
-        setBait = false
-    elseif interactableName == "Foul Fishing Hole" then
-        local regularBaitQuantity = GetItemQuantity(BAIT_FOUL_CRAWLERS_ITEMID)
-        local alternativeBaitQuantity = GetItemQuantity(BAIT_FOUL_ROE_ITEMID)
-
-        if savedVars.fishingAlternativeBaits then
-            if alternativeBaitQuantity > 0 then
-                SetFishingLure(BAIT_FOUL_ROE)
-            else
-                SetFishingLure(BAIT_FOUL_CRAWLERS)
-            end
-        else
-            if regularBaitQuantity > 0 then
-                SetFishingLure(BAIT_FOUL_CRAWLERS)
-            else
-                SetFishingLure(BAIT_FOUL_ROE)
-            end
-        end
-
-        setBait = false
-    elseif interactableName == "River Fishing Hole" then
-        local regularBaitQuantity = GetItemQuantity(BAIT_RIVER_INSECT_ITEMID)
-        local alternativeBaitQuantity = GetItemQuantity(BAIT_RIVER_SHAD_ITEMID)
-
-        if savedVars.fishingAlternativeBaits then
-            if alternativeBaitQuantity > 0 then
-                SetFishingLure(BAIT_RIVER_SHAD)
-            else
-                SetFishingLure(BAIT_RIVER_INSECT)
-            end
-        else
-            if regularBaitQuantity > 0 then
-                SetFishingLure(BAIT_RIVER_INSECT)
-            else
-                SetFishingLure(BAIT_RIVER_SHAD)
-            end
-        end
-
-        setBait = false
-    end
+    setBait = false
 end
 
 local function startVibration2()

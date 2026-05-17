@@ -44,11 +44,6 @@ local function Tooltip_AddEnchant_Before(self, itemLink, enchantDiffMode, equipS
     -- insert the lines into the section
     enchantSection:AddLine(headerText, self:GetStyle("bodyHeader"))
     enchantSection:AddLine(bodyText, self:GetStyle("bodyDescription"))
-    -- {
-    --   fontFace = "$(GAMEPAD_LIGHT_FONT)",
-    --   fontSize = "$(GP_27)",
-    --   fontColorField = bodyColor,
-    -- }
   end
   self:AddSection(enchantSection)
 
@@ -64,6 +59,10 @@ local tooltips = {
   GAMEPAD_RIGHT_TOOLTIP
 }
 
-for index, tooltip in ipairs(tooltips) do
-  ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddEnchant", Tooltip_AddEnchant_Before)
-end
+EVENT_MANAGER:RegisterForEvent("TooltipEnchantment", EVENT_ADD_ON_LOADED, function(_, name)
+    if name ~= "GamePadHelper" then return end
+    EVENT_MANAGER:UnregisterForEvent("TooltipEnchantment", EVENT_ADD_ON_LOADED)
+    for _, tooltip in ipairs(tooltips) do
+        ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddEnchant", Tooltip_AddEnchant_Before)
+    end
+end)

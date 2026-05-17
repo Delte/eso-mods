@@ -75,7 +75,7 @@ end
 -- =============================================================================
 
 -- Get information about a research line (finds currently researching trait)
-local function GetResearhLineInfo(craftingType, researchLineIndex, numTraits)
+local function GetResearchLineInfo(craftingType, researchLineIndex, numTraits)
     local areAllTraitsKnown = true
     for traitIndex = 1, numTraits do
         local traitType, _, known = GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, traitIndex)
@@ -105,7 +105,7 @@ local function GetResearchInfo(craftingType)
   for researchLineIndex = 1, GetNumSmithingResearchLines(craftingType) do
     local _, _, numTraits = GetSmithingResearchLineInfo(craftingType, researchLineIndex)
     if numTraits > 0 then
-        local researchingTraitIndex, areAllTraitsKnown = GetResearhLineInfo(craftingType, researchLineIndex, numTraits)
+        local researchingTraitIndex, areAllTraitsKnown = GetResearchLineInfo(craftingType, researchLineIndex, numTraits)
         if researchingTraitIndex then
             current = current + 1
         end
@@ -378,8 +378,8 @@ local function ShowTooltips()
              if not hasCrafting then
                  hasCrafting = true
              end
-             local slotText = availableSlots > 0 and string.format(" |c00FF00%d|r %s avaliable", availableSlots, zo_strformat("<<1[slot/slots/slots]>>", availableSlots)) or ""
-             local text = string.format("  |cFFFFFF%d|r/|cFFFFFF%d|r Reseachable%s", researchableTraits, researchableItems, slotText)
+             local slotText = availableSlots > 0 and string.format(" |c00FF00%d|r %s available", availableSlots, zo_strformat("<<1[slot/slots/slots]>>", availableSlots)) or ""
+             local text = string.format("  |cFFFFFF%d|r/|cFFFFFF%d|r Researchable%s", researchableTraits, researchableItems, slotText)
              tasksDescription = tasksDescription .. "|cDAA520" .. craftText .. ":|r\n" .. text .. "\n"
          end
      end
@@ -441,29 +441,26 @@ function Overview:Initialize()
     end)
 
     if GAMEPAD_CHAT_SYSTEM then
-        local originalMinimize = GAMEPAD_CHAT_SYSTEM.Minimize
-        GAMEPAD_CHAT_SYSTEM.Minimize = function(self, ...)
+        ZO_PostHook(GAMEPAD_CHAT_SYSTEM, "Minimize", function()
             isChatFaded = true
-            local result = originalMinimize(self, ...)
             local sv = _G["GamePadHelper_SavedVars"]
             if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
                 ShowTooltips()
             end
-            return result
-        end
+        end)
 
-        local originalMaximize = GAMEPAD_CHAT_SYSTEM.Maximize
-        GAMEPAD_CHAT_SYSTEM.Maximize = function(self, ...)
+        ZO_PostHook(GAMEPAD_CHAT_SYSTEM, "Maximize", function()
             isChatFaded = false
-            local result = originalMaximize(self, ...)
             local sv = _G["GamePadHelper_SavedVars"]
             if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
                 ShowTooltips()
             end
-            return result
-        end
+        end)
     end
 end
 
--- Start the addon
-Overview:Initialize()
+EVENT_MANAGER:RegisterForEvent("Overview", EVENT_ADD_ON_LOADED, function(_, name)
+    if name ~= "GamePadHelper" then return end
+    EVENT_MANAGER:UnregisterForEvent("Overview", EVENT_ADD_ON_LOADED)
+    Overview:Initialize()
+end)

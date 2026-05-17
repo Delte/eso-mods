@@ -1,5 +1,5 @@
 local ADDON_NAME = "GamePadHelper"
-local ADDON_VERSION = 1.06
+local ADDON_VERSION = 1.066
 
 -- Make ADDON_NAME globally accessible for submodules
 _G["ADDON_NAME"] = ADDON_NAME
@@ -21,12 +21,13 @@ local defaults = {
     fishingAlternativeBaits = true,
     autoRepairEnabled = true,
     autoChargeEnabled = true,
+    autoChargeThreshold = 25,
     antiquariansEyeEnabled = true,
     dungeonFinderEnabled = true,
     teleporterEnabled = true,
     lootOffsetEnabled = true,
     lootOffset = 350,
-    showLowLevelRecipes = true,
+    showLowLevelRecipes = false,
     tooltipTraitEnabled = true,
     tooltipPriceEnabled = true,
     gearComparisonEnabled = true,

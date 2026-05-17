@@ -1,5 +1,4 @@
 local GPH_PANEL_ID = 9106
-local GPH_SYSTEM_ID = 9106
 local GPH_CATEGORY_NAME = "|c3399FFGPH|r Settings"
 local GPH_RELOAD_DIALOG = "GPH_RELOADUI_CONFIRM"
 local gphLootReloadPending = false
@@ -33,7 +32,7 @@ end
 local function BuildCheckbox(text, tooltip, key)
     return {
         panel = GPH_PANEL_ID,
-        system = GPH_SYSTEM_ID,
+        system = GPH_PANEL_ID,
         controlType = OPTIONS_CHECKBOX,
         text = text,
         gamepadTextOverride = text,
@@ -53,7 +52,7 @@ end
 local function BuildCheckboxCustom(text, tooltip, getFunc, setFunc, header, disabledFunc)
     return {
         panel = GPH_PANEL_ID,
-        system = GPH_SYSTEM_ID,
+        system = GPH_PANEL_ID,
         controlType = OPTIONS_CHECKBOX,
         text = text,
         gamepadTextOverride = text,
@@ -73,10 +72,10 @@ local function BuildCheckboxCustom(text, tooltip, getFunc, setFunc, header, disa
     }
 end
 
-local function BuildSlider(text, tooltip, minValue, maxValue, stepValue, getFunc, setFunc, header, disabledFunc)
+local function BuildSlider(text, tooltip, minValue, maxValue, stepValue, defaultValue, getFunc, setFunc, header, disabledFunc)
     return {
         panel = GPH_PANEL_ID,
-        system = GPH_SYSTEM_ID,
+        system = GPH_PANEL_ID,
         controlType = OPTIONS_SLIDER,
         text = text,
         gamepadTextOverride = text,
@@ -88,7 +87,7 @@ local function BuildSlider(text, tooltip, minValue, maxValue, stepValue, getFunc
         showValue = true,
         showValueMin = minValue,
         showValueMax = maxValue,
-        default = 350,
+        default = defaultValue,
         valueFormat = "%d",
         gamepadValueStepPercent = ((stepValue and stepValue > 0) and ((stepValue / (maxValue - minValue)) * 100)) or nil,
         gamepadCustomTooltipFunction = function(tooltipControl)
@@ -106,7 +105,7 @@ end
 local function BuildInvoke(text, tooltip, callback)
     return {
         panel = GPH_PANEL_ID,
-        system = GPH_SYSTEM_ID,
+        system = GPH_PANEL_ID,
         controlType = OPTIONS_INVOKE_CALLBACK,
         text = text,
         gamepadTextOverride = text,
@@ -184,87 +183,69 @@ local function BuildSettingsData()
         data[#data + 1] = row
     end
 
-    add(BuildInvoke("Reload UI", "Reloads the interface to apply all changes.", function()
+    add(BuildInvoke("Reload UI", "Reloads the user interface. Required after changing loot offset settings.", function()
         ShowReloadPrompt()
     end))
 
-    add(BuildCheckboxCustom("Fishing Module", "Enable controller vibration feedback, 'Reel in!' alerts, and automatic bait selection by water type.", function()
+    add(BuildCheckboxCustom("Fishing Module", "Vibrates the controller when a fish bites, shows a 'Reel in!' center-screen alert, and automatically equips the correct bait for the water type (lake, river, saltwater, foul).", function()
         return GetBoolSetting("fishingEnabled", false)
     end, function(v)
         SetSetting("fishingEnabled", v)
-    end, function()
-        return "Fishing"
-    end))
+    end, "Fishing"))
 
-    add(BuildCheckbox("Alternative Baits", "Fall back to alternative baits.", "fishingAlternativeBaits"))
+    add(BuildCheckbox("Alternative Baits", "When in stock, prefer the higher-quality bait for each water type (e.g. Lake Minnow over Lake Guts). Falls back to the standard bait if the alternative runs out.", "fishingAlternativeBaits"))
 
-    add(BuildCheckboxCustom("Auto Repair", "Automatically repair all equipped items when you open a merchant store.", function()
+    add(BuildCheckboxCustom("Auto Repair", "Repairs all damaged equipped gear automatically when you open a merchant. Gold is deducted at the standard repair cost.", function()
         return GetBoolSetting("autoRepairEnabled", false)
     end, function(v)
         SetSetting("autoRepairEnabled", v)
-    end, function()
-        return "Automation"
-    end))
+    end, "Automation"))
 
-    add(BuildCheckbox("Auto Weapon Charge", "Automatically recharge weapons.", "autoChargeEnabled"))
-    add(BuildCheckbox("Antiquarian's Eye", "Automatically activate the Eye.", "antiquariansEyeEnabled"))
-    add(BuildCheckbox("Teleporter", "Enable teleport functionality.", "teleporterEnabled"))
-
-    local function IsNarrationDisabled()
-        return not GetSetting_Bool(SETTING_TYPE_ACCESSIBILITY, ACCESSIBILITY_SETTING_SCREEN_NARRATION)
-    end
-
-    add(BuildCheckboxCustom("Map Search Default Tab", "Open the GPH Search tab by default when opening the world map.", function()
-        return GetBoolSetting("mapSearchDefaultTab", true)
+    add(BuildCheckbox("Auto Weapon Charge", "Recharges weapons using the highest-level filled soul gem in your backpack when enchantment charge drops below the threshold, triggered after leaving combat.", "autoChargeEnabled"))
+    add(BuildSlider("Charge Threshold %", "Recharge weapons when enchantment charge drops below this percentage. Default is 25%.", 5, 95, 5, 25, function()
+        local sv = GetSavedVars()
+        return (sv and sv.autoChargeThreshold) or 25
     end, function(v)
-        SetSetting("mapSearchDefaultTab", v)
-    end, function()
-        return "Map Search"
+        SetSetting("autoChargeThreshold", tonumber(v) or 25)
+    end, nil, function()
+        return not GetBoolSetting("autoChargeEnabled", false)
     end))
+    add(BuildCheckbox("Antiquarian's Eye", "Automatically equips the Antiquarian's Eye quickslot and activates it while scrying. Returns to your previous quickslot when done. Disabled in PvP zones and dungeons.", "antiquariansEyeEnabled"))
+    add(BuildCheckbox("Teleporter", "Adds fast-travel options to the world map for wayshrines and owned homes. Player houses offer a choice between entering inside or travelling to the exterior.", "teleporterEnabled"))
 
-    add(BuildCheckboxCustom("Set Destination on Show Map", "Set a player waypoint destination when showing a location on the map.", function()
+    add(BuildCheckboxCustom("Set Destination on Show Map", "Places a waypoint marker at the selected location when you use 'Show on Map' from the search results.", function()
         return GetBoolSetting("mapSearchSetDestination", true)
     end, function(v)
         SetSetting("mapSearchSetDestination", v)
-    end))
+    end, "Map Search"))
 
-    add(BuildCheckboxCustom("Narrate Before Teleport", "Read a message when a teleport is initiated, telling you to open the map for the visual pin.\n\n|cFFAA00Requires Screen Narration to be enabled.|r", function()
-        return GetBoolSetting("mapSearchNarratePreTeleport", true)
-    end, function(v)
-        SetSetting("mapSearchNarratePreTeleport", v)
-    end, nil, IsNarrationDisabled))
-
-    add(BuildCheckboxCustom("Narrate After Teleport", "Read a message on arrival confirming the teleport and describing the visual pin on the map.\n\n|cFFAA00Requires Screen Narration to be enabled.|r", function()
+    add(BuildCheckboxCustom("Announce Teleport Destination", "Shows a small on-screen announcement after arriving at the destination, confirming the location name and reminding you to check the map for the destination pin.", function()
         return GetBoolSetting("mapSearchNarratePostTeleport", true)
     end, function(v)
         SetSetting("mapSearchNarratePostTeleport", v)
-    end, nil, IsNarrationDisabled))
+    end))
 
-    add(BuildCheckboxCustom("Dungeon Finder Enhancement", "Show pledge quest names inside the dungeon finder.", function()
+    add(BuildCheckboxCustom("Dungeon Finder Enhancement", "Shows the active Undaunted pledge quest name next to matching dungeons in the dungeon finder, making it easy to identify which dungeons count for today's pledges.", function()
         return GetBoolSetting("dungeonFinderEnabled", false)
     end, function(v)
         SetSetting("dungeonFinderEnabled", v)
-    end, function()
-        return "UI Enhancements"
-    end))
+    end, "UI Enhancements"))
 
-    add(BuildCheckbox("Hide Low Level Recipes", "Hide recipes under CP160 in the provisioning panel.", "showLowLevelRecipes"))
+    add(BuildCheckbox("Hide Low Level Recipes", "Hides provisioning recipes whose food or drink buff only applies below CP160, keeping the recipe list focused on end-game content.", "showLowLevelRecipes"))
 
-    add(BuildCheckboxCustom("Tooltip Traits", "Show enhanced trait information with research icons in item tooltips." .. TRAIT_COLOR_LEGEND, function()
+    add(BuildCheckboxCustom("Tooltip Traits", "Shows a research status icon in item tooltips to indicate whether the item's trait can still be researched." .. TRAIT_COLOR_LEGEND, function()
         return GetBoolSetting("tooltipTraitEnabled", false)
     end, function(v)
         SetSetting("tooltipTraitEnabled", v)
-    end, function()
-        return "Tooltips & UI"
-    end))
+    end, "Tooltips & UI"))
 
-    add(BuildCheckbox("Tooltip Price", "Show item price information (including market addon data when available) in item tooltips.", "tooltipPriceEnabled"))
-    add(BuildCheckbox("Gear Comparison", "Show gear stat comparisons.", "gearComparisonEnabled"))
-    add(BuildCheckbox("Inventory Traits", "Show item traits in inventory." .. TRAIT_COLOR_LEGEND, "inventoryTraitEnabled"))
-    add(BuildCheckbox("Inventory Covetous Countess", "Highlight Covetous Countess items in inventory.", "inventoryCovetousCountessEnabled"))
-    add(BuildCheckbox("Overview Panel", "Enable character overview enhancements.", "overviewEnabled"))
-    add(BuildCheckbox("Tooltip Poison Info", "Show poison information in tooltips.", "tooltipPoisonEnabled"))
-    add(BuildCheckboxCustom("Tooltip Font Changes", "Apply font size changes to tooltips.", function()
+    add(BuildCheckbox("Tooltip Price", "Shows vendor sell value and market price (from TTC, TSC, or LibPriceCache if installed) in item tooltips. Also displays material costs in crafting panels.", "tooltipPriceEnabled"))
+    add(BuildCheckbox("Gear Comparison", "Displays a stat comparison between the hovered item and your currently equipped gear in the tooltip, showing the difference for each attribute.", "gearComparisonEnabled"))
+    add(BuildCheckbox("Inventory Traits", "Shows a research status icon on items in your inventory." .. TRAIT_COLOR_LEGEND, "inventoryTraitEnabled"))
+    add(BuildCheckbox("Inventory Covetous Countess", "Marks items requested by the Covetous Countess daily writ with a highlight icon in your inventory for quick identification.", "inventoryCovetousCountessEnabled"))
+    add(BuildCheckbox("Overview Panel", "Shows a summary of active research timers, pending survey maps, available antiquities, and treasure maps in the gamepad main menu sidebar.", "overviewEnabled"))
+    add(BuildCheckbox("Tooltip Poison Info", "Shows the active poison's name, application chance, and effect duration in the weapon tooltip.", "tooltipPoisonEnabled"))
+    add(BuildCheckboxCustom("Tooltip Font Changes", "Increases the font size for item descriptions, flavor text, and other tooltip fields. Useful when playing on a TV or large display.", function()
         return GetBoolSetting("tooltipFontEnabled", false)
     end, function(v)
         SetSetting("tooltipFontEnabled", v)
@@ -278,21 +259,19 @@ local function BuildSettingsData()
             end
         end
     end))
-    add(BuildCheckbox("Tooltip Enchantments", "Show enchantment information in tooltips.", "tooltipEnchantmentEnabled"))
+    add(BuildCheckbox("Tooltip Enchantments", "Shows the enchantment name and remaining charge percentage in tooltips for weapons and armor.", "tooltipEnchantmentEnabled"))
 
-    add(BuildCheckboxCustom("Enable Loot Offset", "Shift the loot history panel upward so it does not overlap the chat box.\n\n|cFFAA00Reload UI required after changing this setting.|r", function()
+    add(BuildCheckboxCustom("Enable Loot Offset", "Moves the loot history panel upward so it does not overlap the chat box. Adjust the amount with the slider below.\n\n|cFFAA00Reload UI required after changing this setting.|r", function()
         return GetBoolSetting("lootOffsetEnabled", false)
     end, function(v)
         SetSetting("lootOffsetEnabled", v)
         MarkLootReloadPending()
-    end, function()
-        return "Loot"
-    end, function()
+    end, "Loot", function()
         return IsConsoleUI and IsConsoleUI()
     end))
 
     -- UI shows -350..350, but saved value stays compatible with loot module (0..700 where 350 is midpoint).
-    add(BuildSlider("Loot Offset Amount", "Adjust loot panel offset from -350 to +350.\n\nInternal midpoint is 350 (shown here as 0).\n|cFFAA00Reload UI required after changing this setting.|r", -350, 350, 10, function()
+    add(BuildSlider("Loot Offset Amount", "Controls how far the loot panel is shifted. Negative values move it down, positive values move it up. 0 is the default position.\n\n|cFFAA00Reload UI required after changing this setting.|r", -350, 350, 10, 0, function()
         local sv = GetSavedVars()
         local internalValue = (sv and sv.lootOffset) or 350
         return internalValue - 350
@@ -316,12 +295,12 @@ local function RegisterSharedOptions(settingsData)
     end
 
     local shared = {
-        [GPH_SYSTEM_ID] = {},
+        [GPH_PANEL_ID] = {},
     }
 
     for _, optionData in ipairs(settingsData) do
         local copy = ZO_ShallowTableCopy(optionData)
-        shared[GPH_SYSTEM_ID][optionData.settingId] = copy
+        shared[GPH_PANEL_ID][optionData.settingId] = copy
     end
 
     ZO_SharedOptions.AddTableToPanel(GPH_PANEL_ID, shared)
@@ -369,7 +348,7 @@ local function HookInvokeCallback()
     -- OPTIONS_INVOKE_CALLBACK rows in custom systems need explicit routing in gamepad options.
     ZO_PreHook("ZO_Options_InvokeCallback", function(control)
         local data = control and control.data
-        if data and data.system == GPH_SYSTEM_ID and data.panel == GPH_PANEL_ID and data.callback then
+        if data and data.system == GPH_PANEL_ID and data.panel == GPH_PANEL_ID and data.callback then
             data.callback(control)
             return true
         end
@@ -414,11 +393,15 @@ local function InitializeGamepadSettings()
     EnsureReloadDialog()
     HookInvokeCallback()
 
+    local tryRegisterAttempts = 0
     local function TryRegister()
         if RegisterCategory() then
             return
         end
-        zo_callLater(TryRegister, 1000)
+        tryRegisterAttempts = tryRegisterAttempts + 1
+        if tryRegisterAttempts < 10 then
+            zo_callLater(TryRegister, 1000)
+        end
     end
 
     TryRegister()

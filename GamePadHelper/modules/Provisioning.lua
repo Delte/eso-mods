@@ -6,7 +6,7 @@ local showLowLevelFilter = {
     filterTooltip = "Hides Recipes under CP160",
 }
 
-local function HideRecipies(recipeList)
+local function HideRecipes(recipeList)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.showLowLevelRecipes then
         return false
@@ -70,7 +70,7 @@ local function OnAddonLoaded(event, name)
         showLowLevelFilter.checked = sv.showLowLevelRecipes
     end
 
-    ZO_PreHook(GAMEPAD_PROVISIONER.recipeList, "Commit", HideRecipies)
+    ZO_PreHook(GAMEPAD_PROVISIONER.recipeList, "Commit", HideRecipes)
     ZO_PostHook(GAMEPAD_PROVISIONER, "SaveFilters", SaveOptions)
     ZO_PreHook(GAMEPAD_PROVISIONER, "ShowOptionsMenu", HookOptions)
 end
