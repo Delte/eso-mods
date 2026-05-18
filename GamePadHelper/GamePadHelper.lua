@@ -1,5 +1,5 @@
 local ADDON_NAME = "GamePadHelper"
-local ADDON_VERSION = 1.066
+local ADDON_VERSION = 1.067
 local ANNOUNCE_VERSION = 10607
 
 -- Make ADDON_NAME globally accessible for submodules
@@ -47,27 +47,25 @@ local function ShowWhatsNewIfNeeded()
     if savedVars.lastAnnouncedVersion >= ANNOUNCE_VERSION then return end
     savedVars.lastAnnouncedVersion = ANNOUNCE_VERSION
 
+    ZO_Dialogs_RegisterCustomDialog("GPH_WHATS_NEW", {
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.CENTERED,
+        },
+        title    = { text = GetString(SI_GPH_WHATS_NEW_TITLE) },
+        mainText = { text = GetString(SI_GPH_WHATS_NEW_BODY) },
+        buttons  = {
+            {
+                text     = GetString(SI_GPH_WHATS_NEW_CONFIRM),
+                name     = GetString(SI_GPH_WHATS_NEW_CONFIRM),
+                ethereal = true,
+                keybind  = "DIALOG_PRIMARY",
+                callback = function() end,
+            },
+        },
+    })
+
     zo_callLater(function()
-        if IsInGamepadPreferredMode() then
-            local chat = KEYBOARD_CHAT_SYSTEM or CHAT_SYSTEM
-            if chat then
-                chat:AddMessage("|c3399FF[GamePadHelper]|r " .. GetString(SI_GPH_WHATS_NEW_TITLE))
-                chat:AddMessage("|cFFFF00• " .. GetString(SI_GPH_WHATS_NEW_MULTILANG_LABEL) .. "|r " .. GetString(SI_GPH_WHATS_NEW_MULTILANG_BODY))
-                chat:AddMessage("|cFFFF00• " .. GetString(SI_GPH_WHATS_NEW_MAPSEARCH_LABEL) .. "|r " .. GetString(SI_GPH_WHATS_NEW_MAPSEARCH_BODY))
-            end
-        else
-            ZO_Dialogs_RegisterCustomDialog("GPH_WHATS_NEW", {
-                title    = { text = GetString(SI_GPH_WHATS_NEW_TITLE) },
-                mainText = { text = GetString(SI_GPH_WHATS_NEW_BODY) },
-                buttons = {
-                    {
-                        text     = GetString(SI_GPH_WHATS_NEW_CONFIRM),
-                        callback = function() end,
-                    },
-                },
-            })
-            ZO_Dialogs_ShowDialog("GPH_WHATS_NEW")
-        end
+        ZO_Dialogs_ShowPlatformDialog("GPH_WHATS_NEW")
     end, 3000)
 end
 
