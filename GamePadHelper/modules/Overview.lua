@@ -1,4 +1,4 @@
-local Overview = {}
+﻿local Overview = {}
 
 -- On console GAMEPAD_CHAT_SYSTEM is absent; treat as faded so the full
 -- GAMEPAD_RIGHT_TOOLTIP slot is used for the tasks panel.
@@ -208,48 +208,126 @@ local function ShowTooltips()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
 
     local questIndex = QUEST_JOURNAL_MANAGER:GetFocusedQuestIndex()
-    local questName, backgroundText, activeStepText, activeStepType, activeStepOverrideText = GetJournalQuestInfo(questIndex)
-    local questDescription = string.format("|cDAA520%s|r\n\n%s\n\n%s", zo_strformat("<<C:1>>", questName), backgroundText, activeStepText)
+    local questTitle = "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r"
+    local questSections = {}
 
-    local questStrings = {}
-    local fakeQuestJournal = {questStrings = questStrings}
-    ZO_ClearNumericallyIndexedTable(questStrings)
-    QUEST_JOURNAL_MANAGER:BuildTextForTasks(activeStepOverrideText, questIndex, questStrings)
-    local taskText = ""
-    local completedTasks = ""
-    for key, value in ipairs(questStrings) do
-        if not value.isComplete then
-            taskText = taskText .. "\n• " .. value.name
-        else
-            completedTasks = completedTasks .. "\n|c9D9D9D• " .. value.name .. "|r"
+    if questIndex and IsValidQuestIndex(questIndex) then
+        local questName, backgroundText, activeStepText, _, activeStepOverrideText = GetJournalQuestInfo(questIndex)
+
+        local cleanName = zo_strformat("<<C:1>>", questName or "")
+        if cleanName ~= "" then
+            questSections[#questSections + 1] = "|cDAA520" .. cleanName .. "|r"
         end
-    end
-    if taskText ~= "" then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "|r" .. taskText
-    end
-    if completedTasks ~= "" then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPLETED_LABEL) .. "|r" .. completedTasks
-    end
 
-    ZO_ClearNumericallyIndexedTable(questStrings)
-    ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_OPTIONAL)
-    if #questStrings > 0 then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_OPTIONAL_LABEL) .. "|r"
-        for index = 1, #questStrings do
-            questDescription = questDescription .. "\n|cAAAAAA• " .. questStrings[index] .. "|r"
+        local bg = zo_strformat("<<1>>", backgroundText or "")
+        if bg ~= "" then
+            questSections[#questSections + 1] = bg
         end
-    end
 
-    ZO_ClearNumericallyIndexedTable(questStrings)
-    ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_HINT)
-    if #questStrings > 0 then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_HINTS_LABEL) .. "|r"
-        for index = 1, #questStrings do
-            questDescription = questDescription .. "\n|cAAAAAA• " .. questStrings[index] .. "|r"
+        local step = zo_strformat("<<1>>", activeStepText or "")
+        if step ~= "" then
+            questSections[#questSections + 1] = step
         end
+
+        local questStrings = {}
+        ZO_ClearNumericallyIndexedTable(questStrings)
+        QUEST_JOURNAL_MANAGER:BuildTextForTasks(activeStepOverrideText, questIndex, questStrings)
+
+        local taskLines = {}
+        local completedLines = {}
+        local function AddTaskWithOptionalSubtasks(targetLines, text, prefixColor)
+            local clean = zo_strformat("<<1>>", text or "")
+            if clean == "" then return end
+            local function ColorizeSubtaskLabel(line)
+                local key, value = line:match("^([^:]+:%s*)(.+)$")
+                if key and value then
+                    return "|c4A86B8" .. key .. "|r" .. value
+                end
+                return line
+            end
+
+            -- Normal tasks stay single-line. Only expand multiline compound tasks.
+            if not clean:find("\n", 1, true) then
+                if prefixColor then
+                    targetLines[#targetLines + 1] = prefixColor .. "• " .. clean .. "|r"
+                else
+                    targetLines[#targetLines + 1] = "• " .. clean
+                end
+                return
+            end
+
+            local lines = {}
+            for line in clean:gmatch("[^\r\n]+") do
+                local trimmed = line:gsub("^%s+", ""):gsub("%s+$", "")
+                if trimmed ~= "" then
+                    trimmed = trimmed:gsub("^•%s*", "")
+                    lines[#lines + 1] = trimmed
+                end
+            end
+
+            if #lines == 0 then return end
+
+            if prefixColor then
+                targetLines[#targetLines + 1] = prefixColor .. "• " .. lines[1] .. "|r"
+            else
+                targetLines[#targetLines + 1] = "• " .. lines[1]
+            end
+
+            -- Subtasks for compound conditions (e.g., quality/trait/set/progress lines).
+            for i = 2, #lines do
+                local subLine = ColorizeSubtaskLabel(lines[i])
+                if prefixColor then
+                    targetLines[#targetLines + 1] = prefixColor .. "    • " .. subLine .. "|r"
+                else
+                    targetLines[#targetLines + 1] = "    • " .. subLine
+                end
+            end
+        end
+
+        for _, value in ipairs(questStrings) do
+            local name = value and value.name or ""
+            if name ~= "" then
+                if value.isComplete then
+                    AddTaskWithOptionalSubtasks(completedLines, name, "|c9D9D9D")
+                else
+                    AddTaskWithOptionalSubtasks(taskLines, name, nil)
+                end
+            end
+        end
+        if #taskLines > 0 then
+            questSections[#questSections + 1] = "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "|r\n" .. table.concat(taskLines, "\n")
+        end
+        if #completedLines > 0 then
+            questSections[#questSections + 1] = "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPLETED_LABEL) .. "|r\n" .. table.concat(completedLines, "\n")
+        end
+
+        local optionalLines = {}
+        local hintLines = {}
+        local numSteps = GetJournalQuestNumSteps(questIndex)
+        for stepIndex = 2, numSteps do
+            local stepText, visibility = GetJournalQuestStepInfo(questIndex, stepIndex)
+            local cleanStep = zo_strformat("<<1>>", stepText or "")
+            if cleanStep ~= "" then
+                if visibility == QUEST_STEP_VISIBILITY_OPTIONAL then
+                    optionalLines[#optionalLines + 1] = "|cAAAAAA• " .. cleanStep .. "|r"
+                elseif visibility == QUEST_STEP_VISIBILITY_HINT then
+                    hintLines[#hintLines + 1] = "|cAAAAAA• " .. cleanStep .. "|r"
+                end
+            end
+        end
+
+        if #optionalLines > 0 then
+            questSections[#questSections + 1] = "|cDAA520" .. GetString(SI_GPH_OVERVIEW_OPTIONAL_LABEL) .. "|r\n" .. table.concat(optionalLines, "\n")
+        end
+        if #hintLines > 0 then
+            questSections[#questSections + 1] = "|cDAA520" .. GetString(SI_GPH_OVERVIEW_HINTS_LABEL) .. "|r\n" .. table.concat(hintLines, "\n")
+        end
+    else
+        questSections[#questSections + 1] = GetString(SI_GPH_OVERVIEW_TASKS_AVAILABLE)
     end
 
-    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r", questDescription)
+    GAMEPAD_TOOLTIPS:LayoutTitleAndMultiSectionDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, questTitle, unpack(questSections))
+    GAMEPAD_TOOLTIPS:SetInputEnabled(GAMEPAD_LEFT_TOOLTIP, true)
 
     local rightTooltip = isChatFaded and GAMEPAD_RIGHT_TOOLTIP or GAMEPAD_QUAD3_TOOLTIP
 
@@ -367,6 +445,8 @@ end
 function Overview:Initialize()
     -- re-evaluate: on PC check actual minimized state; on console always faded (no GAMEPAD_CHAT_SYSTEM)
     isChatFaded = not GAMEPAD_CHAT_SYSTEM or GAMEPAD_CHAT_SYSTEM:IsMinimized()
+    GAMEPAD_TOOLTIPS:SetTooltipResetScrollOnClear(GAMEPAD_LEFT_TOOLTIP, false)
+    GAMEPAD_TOOLTIPS:SetInputEnabled(GAMEPAD_LEFT_TOOLTIP, true)
 
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState)
         if scene:GetName() == "mainMenuGamepad" then
@@ -402,3 +482,4 @@ EVENT_MANAGER:RegisterForEvent("Overview", EVENT_ADD_ON_LOADED, function(_, name
     EVENT_MANAGER:UnregisterForEvent("Overview", EVENT_ADD_ON_LOADED)
     Overview:Initialize()
 end)
+

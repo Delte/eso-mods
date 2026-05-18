@@ -51,7 +51,14 @@ local function SafeFormatNumber(number, decimal)
             return result
         end
     end
-    return tostring(number or 0)
+    local n = tonumber(number) or 0
+    if decimal and decimal > 0 then
+      return string.format("%." .. tostring(decimal) .. "f", n)
+    end
+    if ZO_CommaDelimitNumber then
+      return ZO_CommaDelimitNumber(zo_floor(n + 0.5))
+    end
+    return tostring(zo_floor(n + 0.5))
 end
 
 local function NormalizePriceInfo(result)
