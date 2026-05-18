@@ -3,6 +3,10 @@ local _ChatSystem = KEYBOARD_CHAT_SYSTEM or CHAT_SYSTEM
 
 local MAP_NAME_TO_ZONE_ID = {}
 
+local function CleanName(s)
+    return (s and s ~= "") and zo_strformat("<<C:1>>", s) or (s or "")
+end
+
 local function GetNormalizedMousePositionToMap()
     if IsInGamepadPreferredMode() then
         local x, y = ZO_WorldMapScroll:GetCenter()
@@ -16,7 +20,7 @@ local function PopulateMapNameToZoneIdMapping()
     for mapIndex = 1, GetNumMaps() do
         local mapName, mapType, mapContentType, zoneIndex, description = GetMapInfoByIndex(mapIndex)
         local zoneId = GetZoneId(zoneIndex)
-        MAP_NAME_TO_ZONE_ID[mapName] = zoneId
+        MAP_NAME_TO_ZONE_ID[CleanName(mapName)] = zoneId
     end
 end
 
@@ -86,9 +90,10 @@ local function CreateTeleportCallback()
         return
     end
 
-    local zoneId = MAP_NAME_TO_ZONE_ID[locationName]
+    local cleanLocation = CleanName(locationName)
+    local zoneId = MAP_NAME_TO_ZONE_ID[cleanLocation]
     if not zoneId then
-        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, zo_strformat(SI_GPH_TELEPORT_NO_ZONE_DATA, locationName))
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, zo_strformat(SI_GPH_TELEPORT_NO_ZONE_DATA, cleanLocation))
         return
     end
 

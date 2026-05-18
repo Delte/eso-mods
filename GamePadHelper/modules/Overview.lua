@@ -192,7 +192,7 @@ local function GetScryableAntiquitiesInfo()
       -- Track global minimum time and zone
       if totalMinTimeRemaining == nil or timeRemaining < totalMinTimeRemaining then
         totalMinTimeRemaining = timeRemaining
-        urgentZoneName = GetZoneNameById(antiquityData:GetZoneId())
+        urgentZoneName = zo_strformat("<<C:1>>", GetZoneNameById(antiquityData:GetZoneId()))
       end
     end
 
@@ -209,7 +209,7 @@ local function ShowTooltips()
 
     local questIndex = QUEST_JOURNAL_MANAGER:GetFocusedQuestIndex()
     local questName, backgroundText, activeStepText, activeStepType, activeStepOverrideText = GetJournalQuestInfo(questIndex)
-    local questDescription = string.format("|cDAA520%s|r\n\n%s\n\n%s", questName, backgroundText, activeStepText)
+    local questDescription = string.format("|cDAA520%s|r\n\n%s\n\n%s", zo_strformat("<<C:1>>", questName), backgroundText, activeStepText)
 
     local questStrings = {}
     local fakeQuestJournal = {questStrings = questStrings}
@@ -289,12 +289,12 @@ local function ShowTooltips()
 
     for _, craftingType in ipairs(CRAFTING) do
         local researchableTraits, researchableItems, current, availableSlots = GetResearchInfo(craftingType)
-        local craftText = GetCraftingSkillName(craftingType)
+        local craftText = zo_strformat("<<C:1>>", GetCraftingSkillName(craftingType))
 
         if GetNumSmithingResearchLines(craftingType) == 0 then
             local hasSkill = false
             if craftingType == CRAFTING_TYPE_PROVISIONING or craftingType == CRAFTING_TYPE_ENCHANTING or craftingType == CRAFTING_TYPE_ALCHEMY then
-                local targetSkillName = zo_strlower(GetCraftingSkillName(craftingType) or "")
+                local targetSkillName = zo_strlower(zo_strformat("<<1>>", GetCraftingSkillName(craftingType) or ""))
                 -- GetSkillLineName is a PC-only alias; use GetSkillLineNameById on console
                 local function SafeGetSkillLineName(skillType, skillLineIndex)
                     if GetSkillLineName then return GetSkillLineName(skillType, skillLineIndex) end
@@ -305,7 +305,7 @@ local function ShowTooltips()
                     for skillLine = 1, GetNumSkillLines(skillCategory) do
                         local skillLineName = SafeGetSkillLineName(skillCategory, skillLine)
                         if skillLineName then
-                            if targetSkillName ~= "" and zo_strlower(skillLineName):find(targetSkillName, 1, true) then
+                            if targetSkillName ~= "" and zo_strlower(zo_strformat("<<1>>", skillLineName)):find(targetSkillName, 1, true) then
                                  hasSkill = true
                                  break
                              end

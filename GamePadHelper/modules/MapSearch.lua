@@ -5,6 +5,10 @@
 -- bookmarks with confirmation, narration, post-teleport restore.
 -- ============================================================
 
+local function CleanName(s)
+    return (s and s ~= "") and zo_strformat("<<C:1>>", s) or (s or "")
+end
+
 local TYPE_WAYSHRINE     = 1
 local TYPE_ZONE          = 2
 local TYPE_POI           = 3
@@ -270,14 +274,14 @@ local function PreScan()
             local isOwnedHouse = isHouse and HasCompletedFastTravelNodePOI(nodeIndex)
             local houseId = isHouse and GetFastTravelNodeHouseId(nodeIndex) or nil
             data.wayshrines[#data.wayshrines + 1] = {
-                name         = name,
+                name         = CleanName(name),
                 icon         = icon,
                 nodeIndex    = nodeIndex,
                 zoneIndex    = zoneIndex,
                 zoneId       = zoneId,
                 poiIndex     = poiIndex,
                 mapIndex     = zoneToMap[zoneIndex],
-                zoneName     = GetZoneNameById(zoneId),
+                zoneName     = CleanName(GetZoneNameById(zoneId)),
                 known        = known,
                 isLocked     = isLocked,
                 isHouse      = isHouse,
@@ -294,14 +298,15 @@ local function PreScan()
             local zoneId = GetZoneId(zoneIndex)
             if not seenZone[zoneId] and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_WORLD) then
                 seenZone[zoneId] = true
+                local cleanZoneName = CleanName(mapName)
                 data.zones[#data.zones + 1] = {
-                    name      = mapName,
+                    name      = cleanZoneName,
                     zoneId    = zoneId,
                     zoneIndex = zoneIndex,
                     mapIndex  = mapIndex,
                     isLocked  = lockedZoneIndex[zoneIndex] or false,
                 }
-                nameToZoneId[mapName] = zoneId
+                nameToZoneId[cleanZoneName] = zoneId
             end
         end
     end
@@ -311,7 +316,7 @@ local function PreScan()
         local _, _, _, zoneIndex = GetMapInfoByIndex(mapIndex)
         if zoneIndex and zoneIndex > 0 then
             local zoneId   = GetZoneId(zoneIndex)
-            local zoneName = GetZoneNameById(zoneId)
+            local zoneName = CleanName(GetZoneNameById(zoneId))
             for poiIndex = 1, GetNumPOIs(zoneIndex) do
                 local uid = zoneIndex .. ":" .. poiIndex
                 if not seenPOI[uid] then
@@ -323,7 +328,7 @@ local function PreScan()
                             local poiIcon  = (icon and icon ~= "") and icon or nil
                             local isLocked = linkedCollectibleIsLocked or lockedZoneIndex[zoneIndex] or false
                             data.pois[#data.pois + 1] = {
-                                name      = name,
+                                name      = CleanName(name),
                                 icon      = poiIcon or ICON_POI_GENERIC,
                                 -- Only _owned suffix means you own it; _complete/_incomplete do not.
                                 isOwned = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
