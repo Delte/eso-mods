@@ -13,11 +13,12 @@ end
 local function FindPledgeQuestForDungeon(dungeonLocation)
     for i = 1, MAX_JOURNAL_QUESTS do
         if IsValidQuestIndex(i) then
-            local questName = GetJournalQuestName(i)
-            local dungeonName = NormalizeText(dungeonLocation.rawName)
+            local questName = zo_strformat("<<1>>", GetJournalQuestName(i) or "")
+            local rawName   = zo_strformat("<<1>>", dungeonLocation.rawName or "")
+            local dungeonName = NormalizeText(rawName)
             local normalizedQuestName = NormalizeText(questName)
             if dungeonName ~= "" and normalizedQuestName:find(dungeonName, 1, true) then
-                if not string.match(dungeonLocation.rawName, " I$") or not string.match(questName, "II") then
+                if not string.match(rawName, " I$") or not string.match(questName, "II") then
                     return questName
                 end
             end
