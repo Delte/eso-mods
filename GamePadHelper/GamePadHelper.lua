@@ -39,6 +39,7 @@ local defaults = {
     tooltipFontEnabled = true,
     tooltipEnchantmentEnabled = true,
     lastAnnouncedVersion = 0,
+    overviewDebug = {},
 }
 
 local savedVars

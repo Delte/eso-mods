@@ -14,6 +14,191 @@ local CRAFTING = {
   CRAFTING_TYPE_WOODWORKING
 }
 
+local function FormatBulletText(text, colorPrefix)
+  local safeText = tostring(text or ""):gsub("|", "||")
+  local bulletText = zo_strformat(SI_FORMAT_BULLET_TEXT, safeText)
+  if colorPrefix and colorPrefix ~= "" then
+    return colorPrefix .. bulletText .. "|r"
+  end
+  return bulletText
+end
+
+local function SanitizeTooltipText(text)
+  local s = tostring(text or "")
+  s = s:gsub("|", "||")
+  s = s:gsub("\194\160", " ") -- UTF-8 NBSP
+  s = s:gsub("Â", "")         -- common mojibake artifact before NBSP
+  s = s:gsub("%s+$", "")
+  return s
+end
+
+local function SplitAndNormalizeTaskLines(text)
+  local lines = {}
+  local raw = tostring(text or "")
+  raw = raw:gsub("\r\n", "\n")
+  for line in raw:gmatch("([^\n]+)") do
+    local s = SanitizeTooltipText(line)
+    s = s:gsub("^%s+", ""):gsub("%s+$", "")
+    s = s:gsub("^â€¢%s*", "")
+    s = s:gsub("^•%s*", "")
+    s = s:gsub("^Â+", "")
+    s = s:gsub("^%s+", "")
+    if s ~= "" then
+      table.insert(lines, s)
+    end
+  end
+  if #lines == 0 and raw ~= "" then
+    table.insert(lines, raw)
+  end
+  return lines
+end
+
+local function TryAppendBulletLine(target, text, colorPrefix, fallbackPrefix)
+  local safe = SanitizeTooltipText(text)
+  local line = (fallbackPrefix or "- ") .. safe
+  if colorPrefix and colorPrefix ~= "" then
+    line = colorPrefix .. line .. "|r"
+  end
+  return target .. "\n" .. line
+end
+
+local function BuildBulletBlock(lines, colorPrefix)
+  local out = ""
+  for _, line in ipairs(lines or {}) do
+    out = TryAppendBulletLine(out, line, colorPrefix, "- ")
+  end
+  return out:gsub("^\n", "")
+end
+
+local function EnsureTooltipBulletList(tooltip, key, labelTemplate, bulletTemplate, secondaryBulletTemplate)
+  tooltip.gphBulletLists = tooltip.gphBulletLists or {}
+  local entry = tooltip.gphBulletLists[key]
+  if not entry then
+    local controlName = "GPHOverviewBulletList_" .. tostring(key or "default")
+    local control = _G[controlName]
+    if not control then
+      control = WINDOW_MANAGER:CreateControl(controlName, tooltip, CT_CONTROL)
+    else
+      control:SetParent(tooltip)
+    end
+    control:SetHidden(true)
+    local list = ZO_BulletList:New(control, labelTemplate or "ZO_BulletLabel", bulletTemplate, secondaryBulletTemplate)
+    list:SetLinePaddingY(7)
+    list:SetBulletPaddingX(14)
+    entry = { control = control, list = list }
+    tooltip.gphBulletLists[key] = entry
+  end
+  return entry.control, entry.list
+end
+
+local function AddBulletListSection(tooltip, lines, headerText, lineColor, listKey)
+  if not lines or #lines == 0 then return end
+  local headerSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+  headerSection:AddLine(headerText, tooltip:GetStyle("bodyDescription"))
+  tooltip:AddSection(headerSection)
+
+  local control, bulletList = EnsureTooltipBulletList(tooltip, listKey or "gphTasks", "ZO_QuestJournal_HintBulletLabel_Gamepad")
+  bulletList:Clear()
+
+  local normalized = {}
+  local bodyStyle = tooltip:GetStyle("bodyDescription")
+  local bodySectionStyle = tooltip:GetStyle("bodySection")
+  local bodyFont = tooltip:GetFontString(bodyStyle)
+  local function ResolveStyleColor(styleA, styleB)
+    local style = styleA or styleB or {}
+    if style.fontColor then
+      return style.fontColor:UnpackRGBA()
+    end
+    local colorType = style.fontColorType
+    local colorField = style.fontColorField
+    if colorType and colorField then
+      return GetInterfaceColor(colorType, colorField)
+    end
+    return 1, 1, 1, 1
+  end
+  local r, g, b, a = ResolveStyleColor(bodyStyle, bodySectionStyle)
+  for _, line in ipairs(lines) do
+    local text = SanitizeTooltipText(line)
+    if lineColor and lineColor ~= "" then
+      text = lineColor .. text .. "|r"
+    end
+    table.insert(normalized, text)
+    bulletList:AddLine(text)
+    if bulletList.lastLabel and bodyFont then
+      bulletList.lastLabel:SetFont(bodyFont)
+      if not (lineColor and lineColor ~= "") then
+        bulletList.lastLabel:SetColor(r, g, b, a)
+      end
+    end
+  end
+
+  local width = tooltip:GetWidth()
+  if not width or width <= 0 then
+    width = 420
+  end
+  control:SetWidth(width - 40)
+  control:SetHeight(math.max(1, control:GetHeight()))
+  control:SetHidden(false)
+
+  local section = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+  section:AddControl(control, control:GetHeight(), control:GetWidth())
+  tooltip:AddSection(section)
+end
+
+function ZO_Tooltip:LayoutGPHQuestOverviewTooltip(title, questName, backgroundText, activeStepText, taskLines, completedLines, optionalLines, hintLines)
+  local titleSection = self:AcquireSection(self:GetStyle("bodyHeader"))
+  titleSection:AddLine(title, self:GetStyle("title"))
+  self:AddSection(titleSection)
+
+  local body1 = self:AcquireSection(self:GetStyle("bodySection"))
+  body1:AddLine("|cDAA520" .. SanitizeTooltipText(questName) .. "|r", self:GetStyle("bodyDescription"))
+  self:AddSection(body1)
+
+  local body2 = self:AcquireSection(self:GetStyle("bodySection"))
+  body2:AddLine(SanitizeTooltipText(backgroundText), self:GetStyle("bodyDescription"))
+  self:AddSection(body2)
+
+  local body3 = self:AcquireSection(self:GetStyle("bodySection"))
+  body3:AddLine(SanitizeTooltipText(activeStepText), self:GetStyle("bodyDescription"))
+  self:AddSection(body3)
+
+  AddBulletListSection(self, taskLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "|r", nil, "gphTasks")
+  AddBulletListSection(self, completedLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPLETED_LABEL) .. "|r", "|c9D9D9D", "gphCompleted")
+  AddBulletListSection(self, optionalLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_OPTIONAL_LABEL) .. "|r", "|cAAAAAA", "gphOptional")
+  AddBulletListSection(self, hintLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_HINTS_LABEL) .. "|r", "|cAAAAAA", "gphHints")
+end
+
+local function TryBuildSection(builderFn)
+  local ok, result = pcall(builderFn)
+  if ok and type(result) == "string" and result ~= "" then
+    return result
+  end
+  return ""
+end
+
+local function GetBestQuestIndex()
+  local questIndex = QUEST_JOURNAL_MANAGER and QUEST_JOURNAL_MANAGER:GetFocusedQuestIndex() or nil
+  if questIndex and IsValidQuestIndex and IsValidQuestIndex(questIndex) then
+    return questIndex
+  end
+
+  for i = 1, MAX_JOURNAL_QUESTS do
+    if IsValidQuestIndex(i) then
+      local _, _, _, _, _, _, tracked = GetJournalQuestInfo(i)
+      if tracked then
+        return i
+      end
+    end
+  end
+
+  for i = 1, MAX_JOURNAL_QUESTS do
+    if IsValidQuestIndex(i) then
+      return i
+    end
+  end
+
+  return nil
+end
 
 local function FormatTimeRemaining(seconds)
   if not seconds or seconds <= 0 then return "" end
@@ -204,52 +389,135 @@ end
 local function ShowTooltips()
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.overviewEnabled then return end
+    sv.overviewDebug = sv.overviewDebug or {}
+    local dbg = sv.overviewDebug
+    dbg.timestamp = GetTimeStamp and GetTimeStamp() or 0
+    dbg.clientLang = GetCVar and GetCVar("Language.2") or "unknown"
+
+    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
 
-    local questIndex = QUEST_JOURNAL_MANAGER:GetFocusedQuestIndex()
+    local questIndex = GetBestQuestIndex()
+    dbg.questIndex = questIndex
+    if not questIndex then
+        dbg.noQuest = true
+        GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(
+            GAMEPAD_LEFT_TOOLTIP,
+            "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r",
+            GetString(SI_GPH_OVERVIEW_TASKS_AVAILABLE)
+        )
+        return
+    end
+
     local questName, backgroundText, activeStepText, activeStepType, activeStepOverrideText = GetJournalQuestInfo(questIndex)
-    local questDescription = string.format("|cDAA520%s|r\n\n%s\n\n%s", zo_strformat("<<C:1>>", questName), backgroundText, activeStepText)
+    dbg.noQuest = false
+    dbg.questName = tostring(questName or "")
+    dbg.backgroundText = tostring(backgroundText or "")
+    dbg.activeStepText = tostring(activeStepText or "")
+    dbg.activeStepType = tostring(activeStepType or "")
+    dbg.activeStepOverrideText = tostring(activeStepOverrideText or "")
+    local questSections = {}
+    local function AddSection(text)
+        if text and text ~= "" then
+            table.insert(questSections, text)
+        end
+    end
+
+    AddSection(TryBuildSection(function()
+        return "|cDAA520" .. SanitizeTooltipText(zo_strformat("<<C:1>>", questName or "")) .. "|r"
+    end))
+    AddSection(TryBuildSection(function()
+        return SanitizeTooltipText(backgroundText)
+    end))
+    AddSection(TryBuildSection(function()
+        return SanitizeTooltipText(activeStepText)
+    end))
 
     local questStrings = {}
     local fakeQuestJournal = {questStrings = questStrings}
     ZO_ClearNumericallyIndexedTable(questStrings)
     QUEST_JOURNAL_MANAGER:BuildTextForTasks(activeStepOverrideText, questIndex, questStrings)
-    local taskText = ""
-    local completedTasks = ""
+    dbg.taskRawCount = #questStrings
+    local taskLines = {}
+    local completedLines = {}
+    local debugTaskNames = {}
+    local debugCompletedNames = {}
     for key, value in ipairs(questStrings) do
+        local separatedLines = SplitAndNormalizeTaskLines(value.name)
         if not value.isComplete then
-            taskText = taskText .. "\n• " .. value.name
+            for _, taskLine in ipairs(separatedLines) do
+                table.insert(taskLines, taskLine)
+                table.insert(debugTaskNames, tostring(taskLine or ""))
+            end
         else
-            completedTasks = completedTasks .. "\n|c9D9D9D• " .. value.name .. "|r"
+            for _, taskLine in ipairs(separatedLines) do
+                table.insert(completedLines, taskLine)
+                table.insert(debugCompletedNames, tostring(taskLine or ""))
+            end
         end
     end
-    if taskText ~= "" then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "|r" .. taskText
-    end
-    if completedTasks ~= "" then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPLETED_LABEL) .. "|r" .. completedTasks
-    end
+    dbg.taskNames = debugTaskNames
+    dbg.completedTaskNames = debugCompletedNames
 
     ZO_ClearNumericallyIndexedTable(questStrings)
     ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_OPTIONAL)
+    dbg.optionalRawCount = #questStrings
+    local optionalLines = {}
     if #questStrings > 0 then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_OPTIONAL_LABEL) .. "|r"
+        local debugOptionalNames = {}
         for index = 1, #questStrings do
-            questDescription = questDescription .. "\n|cAAAAAA• " .. questStrings[index] .. "|r"
+            local separatedLines = SplitAndNormalizeTaskLines(questStrings[index])
+            for _, taskLine in ipairs(separatedLines) do
+                table.insert(optionalLines, taskLine)
+                table.insert(debugOptionalNames, tostring(taskLine or ""))
+            end
         end
+        dbg.optionalNames = debugOptionalNames
+    else
+        dbg.optionalNames = {}
     end
 
     ZO_ClearNumericallyIndexedTable(questStrings)
     ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_HINT)
+    dbg.hintsRawCount = #questStrings
+    local hintLines = {}
     if #questStrings > 0 then
-        questDescription = questDescription .. "\n\n|cDAA520" .. GetString(SI_GPH_OVERVIEW_HINTS_LABEL) .. "|r"
+        local debugHintNames = {}
         for index = 1, #questStrings do
-            questDescription = questDescription .. "\n|cAAAAAA• " .. questStrings[index] .. "|r"
+            local separatedLines = SplitAndNormalizeTaskLines(questStrings[index])
+            for _, taskLine in ipairs(separatedLines) do
+                table.insert(hintLines, taskLine)
+                table.insert(debugHintNames, tostring(taskLine or ""))
+            end
         end
+        dbg.hintNames = debugHintNames
+    else
+        dbg.hintNames = {}
     end
 
-    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r", questDescription)
+    if #questSections == 0 then
+        table.insert(questSections, SanitizeTooltipText(zo_strformat("<<C:1>>", questName or "")))
+    end
+    local previewText = table.concat(questSections, "\n\n")
+    if #taskLines > 0 then
+        previewText = previewText .. "\n\n" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "\n" .. table.concat(taskLines, "\n")
+    end
+    dbg.sectionCount = #questSections
+    dbg.questDescriptionLength = string.len(previewText)
+    dbg.questDescriptionPreview = string.sub(previewText, 1, 600)
+
+    GAMEPAD_TOOLTIPS:LayoutGPHQuestOverviewTooltip(
+        GAMEPAD_LEFT_TOOLTIP,
+        "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r",
+        SanitizeTooltipText(zo_strformat("<<C:1>>", questName or "")),
+        SanitizeTooltipText(backgroundText),
+        SanitizeTooltipText(activeStepText),
+        taskLines,
+        completedLines,
+        optionalLines,
+        hintLines
+    )
 
     local rightTooltip = isChatFaded and GAMEPAD_RIGHT_TOOLTIP or GAMEPAD_QUAD3_TOOLTIP
 
