@@ -135,13 +135,9 @@ function ZO_Tooltip:LayoutGPHQuestOverviewTooltip(title, questName, backgroundTe
 end
 
 local function GetBestQuestIndex()
-  local overridden = GetOverviewQuestIndex()
-  if overridden then
-    return overridden
-  end
-
   local questIndex = QUEST_JOURNAL_MANAGER and QUEST_JOURNAL_MANAGER:GetFocusedQuestIndex() or nil
   if questIndex and IsValidQuestIndex and IsValidQuestIndex(questIndex) then
+    gphOverviewQuestIndexOverride = nil
     return questIndex
   end
 
@@ -149,9 +145,15 @@ local function GetBestQuestIndex()
     if IsValidQuestIndex(i) then
       local _, _, _, _, _, _, tracked = GetJournalQuestInfo(i)
       if tracked then
+        gphOverviewQuestIndexOverride = nil
         return i
       end
     end
+  end
+
+  local overridden = GetOverviewQuestIndex()
+  if overridden then
+    return overridden
   end
 
   for i = 1, MAX_JOURNAL_QUESTS do
@@ -609,6 +611,22 @@ local function ReapplyOverviewTooltipSoon()
     end, 1)
 end
 
+local function OnNativeQuestSelectionChanged()
+    -- If player changes the tracked/focused quest through native UI,
+    -- stop forcing the old override and follow native selection again.
+    gphOverviewQuestIndexOverride = nil
+    RefreshOverviewIfVisible()
+end
+
+local function OnNativeQuestAssistChanged(questIndex)
+    gphOverviewQuestIndexOverride = nil
+    if questIndex and IsValidQuestIndex and IsValidQuestIndex(questIndex) then
+        -- Keep selection aligned with whichever quest the game just assisted.
+        gphOverviewQuestIndexOverride = questIndex
+    end
+    RefreshOverviewIfVisible()
+end
+
 local function CycleOverviewQuest(step)
   local validIndices = GetValidQuestIndices()
   if #validIndices <= 1 then return end
@@ -708,13 +726,24 @@ function Overview:Initialize()
     if QUEST_JOURNAL_MANAGER then
         if QUEST_JOURNAL_MANAGER.SetFocusedQuestIndex then
             ZO_PostHook(QUEST_JOURNAL_MANAGER, "SetFocusedQuestIndex", function()
-                RefreshOverviewIfVisible()
+                OnNativeQuestSelectionChanged()
             end)
         end
         if QUEST_JOURNAL_MANAGER.SetTrackedQuestIndex then
             ZO_PostHook(QUEST_JOURNAL_MANAGER, "SetTrackedQuestIndex", function()
-                RefreshOverviewIfVisible()
+                OnNativeQuestSelectionChanged()
             end)
+        end
+    end
+    EVENT_MANAGER:RegisterForEvent("GPH_Overview_QuestAssistChanged", EVENT_QUEST_ASSIST_STATE_CHANGED, function(_, _, assisted)
+        if assisted then
+            OnNativeQuestSelectionChanged()
+        end
+    end)
+    if FOCUSED_QUEST_TRACKER and FOCUSED_QUEST_TRACKER.ForceAssist then
+        ZO_PostHook(FOCUSED_QUEST_TRACKER, "ForceAssist", function(_, questIndex)
+            OnNativeQuestAssistChanged(questIndex)
+        end)
     end
 
     -- Main menu entries can clear/replace GAMEPAD_LEFT_TOOLTIP in their OnSelectionChanged callbacks.
@@ -727,8 +756,6 @@ function Overview:Initialize()
             end
         end)
     end
-end
-
 end
 
 EVENT_MANAGER:RegisterForEvent("Overview", EVENT_ADD_ON_LOADED, function(_, name)
