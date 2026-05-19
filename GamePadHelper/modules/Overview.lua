@@ -14,63 +14,32 @@ local CRAFTING = {
   CRAFTING_TYPE_WOODWORKING
 }
 
-local function FormatBulletText(text, colorPrefix)
-  local safeText = tostring(text or ""):gsub("|", "||")
-  local bulletText = zo_strformat(SI_FORMAT_BULLET_TEXT, safeText)
-  if colorPrefix and colorPrefix ~= "" then
-    return colorPrefix .. bulletText .. "|r"
-  end
-  return bulletText
-end
 
-local function SanitizeTooltipText(text)
-  local s = tostring(text or "")
-  s = s:gsub("|", "||")
-  s = s:gsub("\194\160", " ") -- UTF-8 NBSP
-  s = s:gsub("Â", "")         -- common mojibake artifact before NBSP
-  s = s:gsub("%s+$", "")
-  return s
-end
+local gphActiveBulletControls = {}
+local gphOverviewDeferredRefreshQueued = false
+local gphOverviewQuestIndexOverride = nil
+local gphOverviewKeybindDescriptor = nil
+local gphOverviewOwnsLeftPanel = false
 
-local function SplitAndNormalizeTaskLines(text)
-  local lines = {}
-  local raw = tostring(text or "")
-  raw = raw:gsub("\r\n", "\n")
-  for line in raw:gmatch("([^\n]+)") do
-    local s = SanitizeTooltipText(line)
-    s = s:gsub("^%s+", ""):gsub("%s+$", "")
-    s = s:gsub("^â€¢%s*", "")
-    s = s:gsub("^•%s*", "")
-    s = s:gsub("^Â+", "")
-    s = s:gsub("^%s+", "")
-    if s ~= "" then
-      table.insert(lines, s)
+local function GetValidQuestIndices()
+  local indices = {}
+  for i = 1, MAX_JOURNAL_QUESTS do
+    if IsValidQuestIndex(i) then
+      table.insert(indices, i)
     end
   end
-  if #lines == 0 and raw ~= "" then
-    table.insert(lines, raw)
-  end
-  return lines
+  return indices
 end
 
-local function TryAppendBulletLine(target, text, colorPrefix, fallbackPrefix)
-  local safe = SanitizeTooltipText(text)
-  local line = (fallbackPrefix or "- ") .. safe
-  if colorPrefix and colorPrefix ~= "" then
-    line = colorPrefix .. line .. "|r"
+local function GetOverviewQuestIndex()
+  if gphOverviewQuestIndexOverride and IsValidQuestIndex and IsValidQuestIndex(gphOverviewQuestIndexOverride) then
+    return gphOverviewQuestIndexOverride
   end
-  return target .. "\n" .. line
+  gphOverviewQuestIndexOverride = nil
+  return nil
 end
 
-local function BuildBulletBlock(lines, colorPrefix)
-  local out = ""
-  for _, line in ipairs(lines or {}) do
-    out = TryAppendBulletLine(out, line, colorPrefix, "- ")
-  end
-  return out:gsub("^\n", "")
-end
-
-local function EnsureTooltipBulletList(tooltip, key, labelTemplate, bulletTemplate, secondaryBulletTemplate)
+local function EnsureTooltipBulletList(tooltip, key, labelTemplate, secondaryBulletTemplate)
   tooltip.gphBulletLists = tooltip.gphBulletLists or {}
   local entry = tooltip.gphBulletLists[key]
   if not entry then
@@ -82,66 +51,59 @@ local function EnsureTooltipBulletList(tooltip, key, labelTemplate, bulletTempla
       control:SetParent(tooltip)
     end
     control:SetHidden(true)
-    local list = ZO_BulletList:New(control, labelTemplate or "ZO_BulletLabel", bulletTemplate, secondaryBulletTemplate)
-    list:SetLinePaddingY(7)
-    list:SetBulletPaddingX(14)
+    local list = ZO_BulletList:New(control, labelTemplate or "GPH_OverviewBulletLabel", nil, secondaryBulletTemplate)
+    list:SetLinePaddingY(8)
+    list:SetBulletPaddingX(16)
     entry = { control = control, list = list }
     tooltip.gphBulletLists[key] = entry
   end
   return entry.control, entry.list
 end
 
-local function AddBulletListSection(tooltip, lines, headerText, lineColor, listKey)
+local function AddBulletListSection(tooltip, lines, headerText, lineColor, listKey, secondaryBulletTemplate)
   if not lines or #lines == 0 then return end
+
   local headerSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
   headerSection:AddLine(headerText, tooltip:GetStyle("bodyDescription"))
   tooltip:AddSection(headerSection)
 
-  local control, bulletList = EnsureTooltipBulletList(tooltip, listKey or "gphTasks", "ZO_QuestJournal_HintBulletLabel_Gamepad")
+  local control, bulletList = EnsureTooltipBulletList(tooltip, listKey or "gphTasks", "GPH_OverviewBulletLabel", secondaryBulletTemplate)
   bulletList:Clear()
 
-  local normalized = {}
-  local bodyStyle = tooltip:GetStyle("bodyDescription")
-  local bodySectionStyle = tooltip:GetStyle("bodySection")
-  local bodyFont = tooltip:GetFontString(bodyStyle)
-  local function ResolveStyleColor(styleA, styleB)
-    local style = styleA or styleB or {}
-    if style.fontColor then
-      return style.fontColor:UnpackRGBA()
-    end
-    local colorType = style.fontColorType
-    local colorField = style.fontColorField
-    if colorType and colorField then
-      return GetInterfaceColor(colorType, colorField)
-    end
-    return 1, 1, 1, 1
-  end
-  local r, g, b, a = ResolveStyleColor(bodyStyle, bodySectionStyle)
+  local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_GAMEPAD_TOOLTIP, GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3)
   for _, line in ipairs(lines) do
-    local text = SanitizeTooltipText(line)
-    if lineColor and lineColor ~= "" then
-      text = lineColor .. text .. "|r"
-    end
-    table.insert(normalized, text)
+    local text = lineColor and lineColor ~= "" and (lineColor .. line .. "|r") or line
     bulletList:AddLine(text)
-    if bulletList.lastLabel and bodyFont then
-      bulletList.lastLabel:SetFont(bodyFont)
-      if not (lineColor and lineColor ~= "") then
-        bulletList.lastLabel:SetColor(r, g, b, a)
-      end
+    if (not lineColor or lineColor == "") and bulletList.lastLabel then
+      bulletList.lastLabel:SetColor(r, g, b, 1)
     end
   end
 
   local width = tooltip:GetWidth()
-  if not width or width <= 0 then
-    width = 420
-  end
+  if not width or width <= 0 then width = 420 end
   control:SetWidth(width - 40)
-  control:SetHeight(math.max(1, control:GetHeight()))
   control:SetHidden(false)
 
+  -- Wrapped bullet lines can exceed control:GetHeight(); measure actual used height.
+  local usedHeight = 0
+  local controlTop = control:GetTop()
+  for i = 1, control:GetNumChildren() do
+    local child = control:GetChild(i)
+    if child and not child:IsHidden() then
+      local childBottom = child:GetBottom()
+      if controlTop and childBottom then
+        usedHeight = math.max(usedHeight, childBottom - controlTop)
+      end
+    end
+  end
+  if usedHeight <= 0 then
+    usedHeight = control:GetHeight()
+  end
+  control:SetHeight(math.max(1, zo_ceil(usedHeight) + 8))
+  table.insert(gphActiveBulletControls, control)
+
   local section = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
-  section:AddControl(control, control:GetHeight(), control:GetWidth())
+  section:AddControl(control, control:GetHeight() + 12, control:GetWidth())
   tooltip:AddSection(section)
 end
 
@@ -150,33 +112,34 @@ function ZO_Tooltip:LayoutGPHQuestOverviewTooltip(title, questName, backgroundTe
   titleSection:AddLine(title, self:GetStyle("title"))
   self:AddSection(titleSection)
 
-  local body1 = self:AcquireSection(self:GetStyle("bodySection"))
-  body1:AddLine("|cDAA520" .. SanitizeTooltipText(questName) .. "|r", self:GetStyle("bodyDescription"))
-  self:AddSection(body1)
+  local nameSection = self:AcquireSection(self:GetStyle("bodySection"))
+  nameSection:AddLine("|cDAA520" .. questName .. "|r", self:GetStyle("bodyDescription"))
+  self:AddSection(nameSection)
 
-  local body2 = self:AcquireSection(self:GetStyle("bodySection"))
-  body2:AddLine(SanitizeTooltipText(backgroundText), self:GetStyle("bodyDescription"))
-  self:AddSection(body2)
-
-  local body3 = self:AcquireSection(self:GetStyle("bodySection"))
-  body3:AddLine(SanitizeTooltipText(activeStepText), self:GetStyle("bodyDescription"))
-  self:AddSection(body3)
-
-  AddBulletListSection(self, taskLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "|r", nil, "gphTasks")
-  AddBulletListSection(self, completedLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPLETED_LABEL) .. "|r", "|c9D9D9D", "gphCompleted")
-  AddBulletListSection(self, optionalLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_OPTIONAL_LABEL) .. "|r", "|cAAAAAA", "gphOptional")
-  AddBulletListSection(self, hintLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_HINTS_LABEL) .. "|r", "|cAAAAAA", "gphHints")
-end
-
-local function TryBuildSection(builderFn)
-  local ok, result = pcall(builderFn)
-  if ok and type(result) == "string" and result ~= "" then
-    return result
+  if backgroundText and backgroundText ~= "" then
+    local bgSection = self:AcquireSection(self:GetStyle("bodySection"))
+    bgSection:AddLine(backgroundText, self:GetStyle("bodyDescription"))
+    self:AddSection(bgSection)
   end
-  return ""
+
+  if activeStepText and activeStepText ~= "" then
+    local stepSection = self:AcquireSection(self:GetStyle("bodySection"))
+    stepSection:AddLine(activeStepText, self:GetStyle("bodyDescription"))
+    self:AddSection(stepSection)
+  end
+
+  AddBulletListSection(self, taskLines,      "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL)     .. "|r", nil,       "gphTasks")
+  AddBulletListSection(self, completedLines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPLETED_LABEL) .. "|r", "|c9D9D9D", "gphCompleted", "ZO_QuestJournal_CompletedTaskIcon_Gamepad")
+  AddBulletListSection(self, optionalLines,  "|cDAA520" .. GetString(SI_GPH_OVERVIEW_OPTIONAL_LABEL)  .. "|r", "|cAAAAAA", "gphOptional")
+  AddBulletListSection(self, hintLines,      "|cDAA520" .. GetString(SI_GPH_OVERVIEW_HINTS_LABEL)     .. "|r", "|cAAAAAA", "gphHints")
 end
 
 local function GetBestQuestIndex()
+  local overridden = GetOverviewQuestIndex()
+  if overridden then
+    return overridden
+  end
+
   local questIndex = QUEST_JOURNAL_MANAGER and QUEST_JOURNAL_MANAGER:GetFocusedQuestIndex() or nil
   if questIndex and IsValidQuestIndex and IsValidQuestIndex(questIndex) then
     return questIndex
@@ -227,11 +190,10 @@ local function FormatTimeRemaining(seconds)
   end
 end
 
-
 local function GetResearchLineInfo(craftingType, researchLineIndex, numTraits)
     local areAllTraitsKnown = true
     for traitIndex = 1, numTraits do
-        local traitType, _, known = GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, traitIndex)
+        local _, _, known = GetSmithingResearchLineTraitInfo(craftingType, researchLineIndex, traitIndex)
 
         if not known then
             areAllTraitsKnown = false
@@ -366,15 +328,12 @@ local function GetScryableAntiquitiesInfo()
   while antiquityId do
     local antiquityData = ANTIQUITY_DATA_MANAGER:GetAntiquityData(antiquityId)
 
-    -- Check if this antiquity has a lead and meets skill requirements (global count)
     if antiquityData:HasLead() and antiquityData:MeetsScryingSkillRequirements() and not antiquityData:HasAchievedAllGoals() then
       totalLeads = totalLeads + 1
     end
 
-    -- Check lead expiration time for all antiquities with expiring leads
     local timeRemaining = antiquityData:GetLeadTimeRemainingS()
     if timeRemaining and timeRemaining > 0 then
-      -- Track global minimum time and zone
       if totalMinTimeRemaining == nil or timeRemaining < totalMinTimeRemaining then
         totalMinTimeRemaining = timeRemaining
         urgentZoneName = zo_strformat("<<C:1>>", GetZoneNameById(antiquityData:GetZoneId()))
@@ -389,19 +348,14 @@ end
 local function ShowTooltips()
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.overviewEnabled then return end
-    sv.overviewDebug = sv.overviewDebug or {}
-    local dbg = sv.overviewDebug
-    dbg.timestamp = GetTimeStamp and GetTimeStamp() or 0
-    dbg.clientLang = GetCVar and GetCVar("Language.2") or "unknown"
 
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
+    gphOverviewOwnsLeftPanel = true
 
     local questIndex = GetBestQuestIndex()
-    dbg.questIndex = questIndex
     if not questIndex then
-        dbg.noQuest = true
         GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(
             GAMEPAD_LEFT_TOOLTIP,
             "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r",
@@ -410,109 +364,48 @@ local function ShowTooltips()
         return
     end
 
-    local questName, backgroundText, activeStepText, activeStepType, activeStepOverrideText = GetJournalQuestInfo(questIndex)
-    dbg.noQuest = false
-    dbg.questName = tostring(questName or "")
-    dbg.backgroundText = tostring(backgroundText or "")
-    dbg.activeStepText = tostring(activeStepText or "")
-    dbg.activeStepType = tostring(activeStepType or "")
-    dbg.activeStepOverrideText = tostring(activeStepOverrideText or "")
-    local questSections = {}
-    local function AddSection(text)
-        if text and text ~= "" then
-            table.insert(questSections, text)
+    local questName, backgroundText, activeStepText, _, activeStepOverrideText = GetJournalQuestInfo(questIndex)
+
+    local taskLines = {}
+    local completedLines = {}
+
+    if activeStepOverrideText and activeStepOverrideText ~= "" then
+        table.insert(taskLines, activeStepOverrideText)
+    else
+        local conditionCount = GetJournalQuestNumConditions(questIndex, QUEST_MAIN_STEP_INDEX)
+        for i = 1, conditionCount do
+            local conditionText, currentCount, maxCount, isFailCondition, isComplete, _, isVisible =
+                GetJournalQuestConditionInfo(questIndex, QUEST_MAIN_STEP_INDEX, i)
+            if isVisible and not isFailCondition and conditionText ~= "" then
+                if isComplete then
+                    table.insert(completedLines, conditionText)
+                elseif maxCount > 0 and currentCount >= maxCount then
+                    table.insert(taskLines, "|c9D9D9D" .. conditionText .. "|r")
+                else
+                    table.insert(taskLines, conditionText)
+                end
+            end
         end
     end
-
-    AddSection(TryBuildSection(function()
-        return "|cDAA520" .. SanitizeTooltipText(zo_strformat("<<C:1>>", questName or "")) .. "|r"
-    end))
-    AddSection(TryBuildSection(function()
-        return SanitizeTooltipText(backgroundText)
-    end))
-    AddSection(TryBuildSection(function()
-        return SanitizeTooltipText(activeStepText)
-    end))
 
     local questStrings = {}
     local fakeQuestJournal = {questStrings = questStrings}
-    ZO_ClearNumericallyIndexedTable(questStrings)
-    QUEST_JOURNAL_MANAGER:BuildTextForTasks(activeStepOverrideText, questIndex, questStrings)
-    dbg.taskRawCount = #questStrings
-    local taskLines = {}
-    local completedLines = {}
-    local debugTaskNames = {}
-    local debugCompletedNames = {}
-    for key, value in ipairs(questStrings) do
-        local separatedLines = SplitAndNormalizeTaskLines(value.name)
-        if not value.isComplete then
-            for _, taskLine in ipairs(separatedLines) do
-                table.insert(taskLines, taskLine)
-                table.insert(debugTaskNames, tostring(taskLine or ""))
-            end
-        else
-            for _, taskLine in ipairs(separatedLines) do
-                table.insert(completedLines, taskLine)
-                table.insert(debugCompletedNames, tostring(taskLine or ""))
-            end
-        end
-    end
-    dbg.taskNames = debugTaskNames
-    dbg.completedTaskNames = debugCompletedNames
 
-    ZO_ClearNumericallyIndexedTable(questStrings)
     ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_OPTIONAL)
-    dbg.optionalRawCount = #questStrings
     local optionalLines = {}
-    if #questStrings > 0 then
-        local debugOptionalNames = {}
-        for index = 1, #questStrings do
-            local separatedLines = SplitAndNormalizeTaskLines(questStrings[index])
-            for _, taskLine in ipairs(separatedLines) do
-                table.insert(optionalLines, taskLine)
-                table.insert(debugOptionalNames, tostring(taskLine or ""))
-            end
-        end
-        dbg.optionalNames = debugOptionalNames
-    else
-        dbg.optionalNames = {}
-    end
+    for _, v in ipairs(questStrings) do table.insert(optionalLines, v.name) end
 
     ZO_ClearNumericallyIndexedTable(questStrings)
     ZO_QuestJournal_Shared.BuildTextForStepVisibility(fakeQuestJournal, questIndex, QUEST_STEP_VISIBILITY_HINT)
-    dbg.hintsRawCount = #questStrings
     local hintLines = {}
-    if #questStrings > 0 then
-        local debugHintNames = {}
-        for index = 1, #questStrings do
-            local separatedLines = SplitAndNormalizeTaskLines(questStrings[index])
-            for _, taskLine in ipairs(separatedLines) do
-                table.insert(hintLines, taskLine)
-                table.insert(debugHintNames, tostring(taskLine or ""))
-            end
-        end
-        dbg.hintNames = debugHintNames
-    else
-        dbg.hintNames = {}
-    end
-
-    if #questSections == 0 then
-        table.insert(questSections, SanitizeTooltipText(zo_strformat("<<C:1>>", questName or "")))
-    end
-    local previewText = table.concat(questSections, "\n\n")
-    if #taskLines > 0 then
-        previewText = previewText .. "\n\n" .. GetString(SI_GPH_OVERVIEW_TASKS_LABEL) .. "\n" .. table.concat(taskLines, "\n")
-    end
-    dbg.sectionCount = #questSections
-    dbg.questDescriptionLength = string.len(previewText)
-    dbg.questDescriptionPreview = string.sub(previewText, 1, 600)
+    for _, v in ipairs(questStrings) do table.insert(hintLines, v.name) end
 
     GAMEPAD_TOOLTIPS:LayoutGPHQuestOverviewTooltip(
         GAMEPAD_LEFT_TOOLTIP,
         "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r",
-        SanitizeTooltipText(zo_strformat("<<C:1>>", questName or "")),
-        SanitizeTooltipText(backgroundText),
-        SanitizeTooltipText(activeStepText),
+        zo_strformat("<<C:1>>", questName or ""),
+        backgroundText or "",
+        activeStepText or "",
         taskLines,
         completedLines,
         optionalLines,
@@ -523,7 +416,6 @@ local function ShowTooltips()
 
     local tasksDescription = ""
 
-    -- urgent antiquity timers shown first
     local totalCount, totalMinTime, urgentZoneName = GetScryableAntiquitiesInfo()
     local isUrgent = totalMinTime and (totalMinTime / 86400) <= 3
     if isUrgent then
@@ -551,12 +443,12 @@ local function ShowTooltips()
         if totalWritCount > 0 then
             craftingCountersText = craftingCountersText .. " |cFFFFFF" .. totalWritCount .. "|r " .. GetString(SI_GPH_OVERVIEW_WRIT)
         end
-        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_CRAFTING) .. "|r" .. craftingCountersText .. "\n"
+        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_CRAFTING) .. "|r" .. craftingCountersText .. "\n\n"
         hasCrafting = true
     end
 
     for _, craftingType in ipairs(CRAFTING) do
-        local researchableTraits, researchableItems, current, availableSlots = GetResearchInfo(craftingType)
+        local researchableTraits, researchableItems, _, availableSlots = GetResearchInfo(craftingType)
         local craftText = zo_strformat("<<C:1>>", GetCraftingSkillName(craftingType))
 
         if GetNumSmithingResearchLines(craftingType) == 0 then
@@ -587,7 +479,7 @@ local function ShowTooltips()
                  if not hasCrafting then
                      hasCrafting = true
                  end
-                 tasksDescription = tasksDescription .. "|cDAA520" .. craftText .. ":|r\n  " .. GetString(SI_GPH_OVERVIEW_VISIT_STATION) .. "\n"
+                 tasksDescription = tasksDescription .. "|cDAA520" .. craftText .. ":|r\n  " .. GetString(SI_GPH_OVERVIEW_VISIT_STATION) .. "\n\n"
              end
          elseif researchableTraits > 0 and availableSlots > 0 then
              if not hasCrafting then
@@ -603,7 +495,6 @@ local function ShowTooltips()
     end
 
     if totalCount > 0 then
-        -- Main leads line with total count and timer
         local totalTimeString = ""
         if totalMinTime and not isUrgent then
             totalTimeString = " (" .. FormatTimeRemaining(totalMinTime) .. ")"
@@ -629,6 +520,115 @@ end
 local function HideTooltips()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+    gphOverviewOwnsLeftPanel = false
+    for _, control in ipairs(gphActiveBulletControls) do
+        control:SetHidden(true)
+    end
+    ZO_ClearNumericallyIndexedTable(gphActiveBulletControls)
+end
+
+local function QueueOverviewRefresh()
+    if gphOverviewDeferredRefreshQueued then return end
+    gphOverviewDeferredRefreshQueued = true
+    zo_callLater(function()
+        gphOverviewDeferredRefreshQueued = false
+        local sv = _G["GamePadHelper_SavedVars"]
+        if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
+            ShowTooltips()
+        end
+    end, 1)
+end
+
+local function RefreshOverviewIfVisible()
+    local sv = _G["GamePadHelper_SavedVars"]
+    if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
+        ShowTooltips()
+        QueueOverviewRefresh()
+    end
+end
+
+local function ShouldShowOverviewQuestKeybinds()
+    local sv = _G["GamePadHelper_SavedVars"]
+    if not (sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad")) then
+        return false
+    end
+
+    if #GetValidQuestIndices() <= 1 then
+        return false
+    end
+
+    if MAIN_MENU_GAMEPAD then
+        if MAIN_MENU_GAMEPAD.activeHelperPanel then
+            return false
+        end
+
+        local list = MAIN_MENU_GAMEPAD.GetCurrentList and MAIN_MENU_GAMEPAD:GetCurrentList()
+        local targetData = list and list.GetTargetData and list:GetTargetData()
+        local entryData = targetData and targetData.data
+
+        -- If selected entry provides custom selection behavior, avoid interfering with its keybind UX.
+        if entryData and (entryData.keybindStripDescriptor or entryData.customKeybindStripDescriptor) then
+            return false
+        end
+    end
+
+    if not gphOverviewOwnsLeftPanel then
+        return false
+    end
+
+    return true
+end
+
+local function SelectedEntryOwnsLeftPanel()
+    if not MAIN_MENU_GAMEPAD then
+        return false
+    end
+
+    local list = MAIN_MENU_GAMEPAD.GetCurrentList and MAIN_MENU_GAMEPAD:GetCurrentList()
+    local targetData = list and list.GetTargetData and list:GetTargetData()
+    local entryData = targetData and targetData.data
+    if not entryData then
+        return false
+    end
+
+    -- In the gamepad main menu, entries that implement onSelectedCallback commonly manage
+    -- helper/tooltip content. If present, prefer native left-panel behavior.
+    return entryData.onSelectedCallback ~= nil
+end
+
+local function ReapplyOverviewTooltipSoon()
+    zo_callLater(function()
+        if not SelectedEntryOwnsLeftPanel() then
+            RefreshOverviewIfVisible()
+        else
+            gphOverviewOwnsLeftPanel = false
+        end
+        if gphOverviewKeybindDescriptor then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(gphOverviewKeybindDescriptor)
+        end
+    end, 1)
+end
+
+local function CycleOverviewQuest(step)
+  local validIndices = GetValidQuestIndices()
+  if #validIndices <= 1 then return end
+
+  step = step or 1
+  local current = GetBestQuestIndex()
+  local pos = 1
+  for i, idx in ipairs(validIndices) do
+    if idx == current then
+      pos = i
+      break
+    end
+  end
+
+  local nextPos = pos + step
+  while nextPos > #validIndices do nextPos = nextPos - #validIndices end
+  while nextPos < 1 do nextPos = nextPos + #validIndices end
+
+  gphOverviewQuestIndexOverride = validIndices[nextPos]
+  RefreshOverviewIfVisible()
 end
 
 
@@ -636,12 +636,48 @@ function Overview:Initialize()
     -- re-evaluate: on PC check actual minimized state; on console always faded (no GAMEPAD_CHAT_SYSTEM)
     isChatFaded = not GAMEPAD_CHAT_SYSTEM or GAMEPAD_CHAT_SYSTEM:IsMinimized()
 
+    gphOverviewKeybindDescriptor = {
+        alignment = KEYBIND_STRIP_ALIGN_LEFT,
+        {
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            name = function()
+                return GetString(SI_GPH_OVERVIEW_KEYBIND_PREV_QUEST)
+            end,
+            visible = function()
+                return ShouldShowOverviewQuestKeybinds()
+            end,
+            callback = function()
+                CycleOverviewQuest(-1)
+            end,
+        },
+        {
+            keybind = "UI_SHORTCUT_QUINARY",
+            name = function()
+                return GetString(SI_GPH_OVERVIEW_KEYBIND_NEXT_QUEST)
+            end,
+            visible = function()
+                return ShouldShowOverviewQuestKeybinds()
+            end,
+            callback = function()
+                CycleOverviewQuest(1)
+            end,
+        },
+    }
+
     SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(scene, oldState, newState)
         if scene:GetName() == "mainMenuGamepad" then
             if newState == SCENE_SHOWING then
                 ShowTooltips()
+                QueueOverviewRefresh()
+                if gphOverviewKeybindDescriptor then
+                    KEYBIND_STRIP:AddKeybindButtonGroup(gphOverviewKeybindDescriptor)
+                    KEYBIND_STRIP:UpdateKeybindButtonGroup(gphOverviewKeybindDescriptor)
+                end
             elseif newState == SCENE_HIDING then
                 HideTooltips()
+                if gphOverviewKeybindDescriptor then
+                    KEYBIND_STRIP:RemoveKeybindButtonGroup(gphOverviewKeybindDescriptor)
+                end
             end
         end
     end)
@@ -649,20 +685,40 @@ function Overview:Initialize()
     if GAMEPAD_CHAT_SYSTEM then
         ZO_PostHook(GAMEPAD_CHAT_SYSTEM, "Minimize", function()
             isChatFaded = true
-            local sv = _G["GamePadHelper_SavedVars"]
-            if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
-                ShowTooltips()
-            end
+            RefreshOverviewIfVisible()
         end)
 
         ZO_PostHook(GAMEPAD_CHAT_SYSTEM, "Maximize", function()
             isChatFaded = false
-            local sv = _G["GamePadHelper_SavedVars"]
-            if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
-                ShowTooltips()
+            RefreshOverviewIfVisible()
+        end)
+    end
+
+    -- React to native quest cycling/focus changes (including d-pad cycle quest behavior).
+    if QUEST_JOURNAL_MANAGER then
+        if QUEST_JOURNAL_MANAGER.SetFocusedQuestIndex then
+            ZO_PostHook(QUEST_JOURNAL_MANAGER, "SetFocusedQuestIndex", function()
+                RefreshOverviewIfVisible()
+            end)
+        end
+        if QUEST_JOURNAL_MANAGER.SetTrackedQuestIndex then
+            ZO_PostHook(QUEST_JOURNAL_MANAGER, "SetTrackedQuestIndex", function()
+                RefreshOverviewIfVisible()
+            end)
+    end
+
+    -- Main menu entries can clear/replace GAMEPAD_LEFT_TOOLTIP in their OnSelectionChanged callbacks.
+    -- Reapply our overview tooltip right after selection changes.
+    if MAIN_MENU_GAMEPAD and MAIN_MENU_GAMEPAD.OnSelectionChanged then
+        ZO_PostHook(MAIN_MENU_GAMEPAD, "OnSelectionChanged", function()
+            ReapplyOverviewTooltipSoon()
+            if gphOverviewKeybindDescriptor then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(gphOverviewKeybindDescriptor)
             end
         end)
     end
+end
+
 end
 
 EVENT_MANAGER:RegisterForEvent("Overview", EVENT_ADD_ON_LOADED, function(_, name)

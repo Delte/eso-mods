@@ -125,6 +125,8 @@
     SI_GPH_OVERVIEW_SCRYABLE = "scryable",
     SI_GPH_OVERVIEW_SURVEY = "Survey",
     SI_GPH_OVERVIEW_TASKS = "Tasks",
+    SI_GPH_OVERVIEW_KEYBIND_PREV_QUEST = "Prev Quest",
+    SI_GPH_OVERVIEW_KEYBIND_NEXT_QUEST = "Next Quest",
     SI_GPH_OVERVIEW_TASKS_AVAILABLE = "Access daily tasks, achievements, and other activities.",
     SI_GPH_OVERVIEW_TASKS_LABEL = "Tasks:",
     SI_GPH_OVERVIEW_TREASURE = "Treasure:",

@@ -17,6 +17,7 @@ modules/Provisioning.lua
 modules/TooltipPrice.lua
 modules/TooltipFont.lua
 modules/MapTeleporter.lua
+modules/Styling.xml
 modules/Overview.lua
 modules/InventoryCovetousCountess.lua
 modules/InventoryTrait.lua

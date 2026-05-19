@@ -51,7 +51,8 @@ local function SafeFormatNumber(number, decimal)
             return result
         end
     end
-    return tostring(number or 0)
+    local n = zo_floor((tonumber(number) or 0) + 0.5)
+    return zo_strformat("<<1>>", ZO_LocalizeDecimalNumber(n))
 end
 
 local function NormalizePriceInfo(result)
