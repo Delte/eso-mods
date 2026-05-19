@@ -45,14 +45,27 @@ end
 
 -- Safe wrapper functions for market price providers (TTC, TSC, etc.)
 local function SafeFormatNumber(number, decimal)
-    if TamrielTradeCentre and TamrielTradeCentre.FormatNumber then
-        local success, result = pcall(TamrielTradeCentre.FormatNumber, TamrielTradeCentre, number or 0, decimal or 0)
-        if success then
+    local ttc = rawget(_G, "TamrielTradeCentre")
+    if type(ttc) == "table" and type(ttc.FormatNumber) == "function" then
+        local success, result = pcall(ttc.FormatNumber, ttc, number or 0, decimal or 0)
+        if success and type(result) == "string" and result ~= "" then
             return result
         end
     end
+
     local n = zo_floor((tonumber(number) or 0) + 0.5)
-    return zo_strformat("<<1>>", ZO_LocalizeDecimalNumber(n))
+
+    if type(ZO_LocalizeDecimalNumber) == "function" then
+      return zo_strformat("<<1>>", ZO_LocalizeDecimalNumber(n))
+    end
+    if type(ZO_CommaDelimitNumber) == "function" then
+      return zo_strformat("<<1>>", ZO_CommaDelimitNumber(n))
+    end
+    if type(FormatIntegerWithDigitGrouping) == "function" then
+      return zo_strformat("<<1>>", FormatIntegerWithDigitGrouping(n))
+    end
+
+    return tostring(n)
 end
 
 local function NormalizePriceInfo(result)

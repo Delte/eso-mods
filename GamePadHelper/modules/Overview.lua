@@ -628,6 +628,16 @@ local function CycleOverviewQuest(step)
   while nextPos < 1 do nextPos = nextPos + #validIndices end
 
   gphOverviewQuestIndexOverride = validIndices[nextPos]
+
+  -- Keep native quest state in sync with overview cycling.
+  local questIndex = gphOverviewQuestIndexOverride
+  if ZO_ZoneStories_Manager and ZO_ZoneStories_Manager.SetTrackedZoneStoryAssisted then
+    ZO_ZoneStories_Manager.SetTrackedZoneStoryAssisted(false)
+  end
+  if FOCUSED_QUEST_TRACKER and FOCUSED_QUEST_TRACKER.ForceAssist then
+    FOCUSED_QUEST_TRACKER:ForceAssist(questIndex)
+  end
+
   RefreshOverviewIfVisible()
 end
 
