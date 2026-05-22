@@ -129,9 +129,29 @@
     SI_GPH_OVERVIEW_KEYBIND_NEXT_QUEST = "Next Quest",
     SI_GPH_OVERVIEW_TASKS_AVAILABLE = "Access daily tasks, achievements, and other activities.",
     SI_GPH_OVERVIEW_TASKS_LABEL = "Tasks:",
+    SI_GPH_OVERVIEW_COMPANION_LABEL = "Companion:",
+    SI_GPH_OVERVIEW_COMPANION_RAPPORT_LABEL = "Rapport:",
+    SI_GPH_OVERVIEW_COMPANION_BEST_DAILIES = "Best Rapport Dailies",
+    SI_GPH_OVERVIEW_COMPANION_NO_CONFIG = "No rapport recommendations configured for this companion yet.",
+    SI_GPH_OVERVIEW_COMPANION_STATUS_DONE = "Done",
+    SI_GPH_OVERVIEW_COMPANION_STATUS_IN_PROGRESS = "In Progress",
+    SI_GPH_OVERVIEW_COMPANION_STATUS_NOT_DONE = "Not Done",
+    SI_GPH_OVERVIEW_COMPANION_TRACKING_NOTE = "(Tracking uses exact quest IDs and resets at daily reset.)",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_HEIST_DAILY = "Thieves Guild Heist",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_HIGHISLE_WB = "High Isle World Boss Daily",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_HIGHISLE_DELVE = "High Isle Delve Daily",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_NECROM_WB = "Necrom World Boss Daily",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_NECROM_DELVE = "Necrom Delve Daily",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_ASHLANDER_HUNT = "Ald'ruhn Hunt Daily",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_ASHLANDER_RELIC = "Ald'ruhn Relic Daily",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_ALCHEMY_WRIT = "Alchemist Writ",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_ENCHANTER_WRIT = "Enchanter Writ",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_NORTHERN_GRAHTWOOD_DEFENCE = "Northern Grahtwood Defence Force Daily",
+    SI_GPH_OVERVIEW_COMPANION_ACTIVITY_TALES_TRIBUTE = "Tales of Tribute Daily",
     SI_GPH_OVERVIEW_TREASURE = "Treasure:",
     SI_GPH_OVERVIEW_URGENT = "URGENT:",
     SI_GPH_OVERVIEW_VISIT_STATION = "Visit crafting station",
+    SI_GPH_OVERVIEW_DAILY_WRIT = "Daily Writ",
     SI_GPH_OVERVIEW_WRIT = "Writ",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "Hide Low Level Recipes",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "Hides Recipes under CP160",
@@ -168,6 +188,10 @@
     SI_GPH_SETTING_MAP_SEARCH_SET_DESTINATION_TOOLTIP = "Places a destination pin when Map Search shows a result on the map.",
     SI_GPH_SETTING_OVERVIEW_NAME = "Overview",
     SI_GPH_SETTING_OVERVIEW_TOOLTIP = "Adds quest, crafting, antiquity, and treasure-map information to the gamepad main menu tooltips.",
+    SI_GPH_SETTING_OVERVIEW_DAILY_WRIT_NAME = "Daily Writ",
+    SI_GPH_SETTING_OVERVIEW_DAILY_WRIT_TOOLTIP = "Shows daily writ status under each crafting type in the overview.",
+    SI_GPH_SETTING_OVERVIEW_COMPANION_NAME = "Companion Rapport",
+    SI_GPH_SETTING_OVERVIEW_COMPANION_TOOLTIP = "Shows companion rapport recommendations in the overview.",
     SI_GPH_SETTING_RELOAD_UI_NAME = "Reload UI",
     SI_GPH_SETTING_RELOAD_UI_TOOLTIP = "Reloads the user interface. Required after changing loot offset settings.",
     SI_GPH_SETTING_TELEPORTER_NAME = "Teleporter",
@@ -227,3 +251,6 @@ for stringId, stringValue in pairs(strings) do
     ZO_CreateStringId(stringId, stringValue)
     SafeAddVersion(stringId, 1)
 end
+
+
+

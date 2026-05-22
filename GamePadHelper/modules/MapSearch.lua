@@ -771,7 +771,7 @@ local function BuildKeybindDescriptor()
                         ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_NO_HOUSE_TRAVEL))
                         return
                     end
-                    ZO_Dialogs_ShowGamepadDialog("GPH_HOUSE_TRAVEL", { candidate = c })
+                    ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG", { GetReferenceId = function() return c.houseId end })
                     return
                 end
 
@@ -799,7 +799,12 @@ local function BuildKeybindDescriptor()
                 local atWayshrine = GetInteractionType() == INTERACTION_FAST_TRAVEL
                 local cost = (not atWayshrine) and GetRecallCost(nodeIndex) or 0
                 if cost > 0 then
-                    ZO_Dialogs_ShowGamepadDialog("GPH_TELEPORT_CONFIRM", { nodeIndex = nodeIndex, cost = cost })
+                    local sv = _G["GamePadHelper_SavedVars"]
+                    if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
+                        local poi = GamePadHelperSavedVars and GamePadHelperSavedVars.lastSelectedPOI
+                        postTeleportMsg = poi and zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, poi.name) or GetString(SI_GPH_MAPSEARCH_TELEPORTED)
+                    end
+                    ZO_Dialogs_ShowGamepadDialog("GPH_TELEPORT_CONFIRM", { nodeIndex = nodeIndex })
                 else
                     local sv = _G["GamePadHelper_SavedVars"]
                     if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
@@ -1013,66 +1018,61 @@ local function OnAddonLoaded(_, name)
 
     ZO_Dialogs_RegisterCustomDialog("GPH_TELEPORT_CONFIRM", {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        title       = { text = SI_GPH_MAPSEARCH_CONFIRM_TELEPORT },
+        title       = { text = SI_PROMPT_TITLE_FAST_TRAVEL_CONFIRM },
         mainText    = {
             text = function(dialog)
-                local cost = dialog.data and dialog.data.cost or 0
-                return zo_strformat(GetString(SI_GPH_MAPSEARCH_TELEPORT_COST), cost)
+                local nodeIndex = dialog.data and dialog.data.nodeIndex
+                if not nodeIndex then return "" end
+                local name = select(2, GetFastTravelNodeInfo(nodeIndex))
+                local cooldown = GetRecallCooldown()
+                if cooldown and cooldown > 0 then
+                    return zo_strformat(GetString(SI_GAMEPAD_FAST_TRAVEL_DIALOG_PREMIUM), name, ZO_FormatTimeMilliseconds(cooldown, TIME_FORMAT_STYLE_SHOW_LARGEST_TWO_UNITS, TIME_FORMAT_PRECISION_SECONDS))
+                else
+                    return zo_strformat(GetString(SI_GAMEPAD_FAST_TRAVEL_DIALOG_RECALL_MAIN_TEXT), name)
+                end
             end,
         },
+        setup = function(dialog)
+            local nodeIndex = dialog.data and dialog.data.nodeIndex
+            local cost = nodeIndex and GetRecallCost(nodeIndex) or 0
+            local currency = nodeIndex and GetRecallCurrency(nodeIndex) or CURT_MONEY
+            local headerData = {
+                data1 = {
+                    header = GetString(SI_GAMEPAD_SKILL_RESPEC_CONFIRM_DIALOG_BALANCE_HEADER),
+                    value = function(control)
+                        ZO_CurrencyControl_SetSimpleCurrency(control, currency, GetCurrencyAmount(currency, CURRENCY_LOCATION_CHARACTER), ZO_GAMEPAD_CURRENCY_OPTIONS)
+                        return true
+                    end,
+                },
+                data2 = {
+                    header = GetString(SI_GAMEPAD_BUY_BAG_SPACE_COST),
+                    value = function(control)
+                        ZO_CurrencyControl_SetSimpleCurrency(control, currency, cost, ZO_GAMEPAD_CURRENCY_OPTIONS)
+                        return true
+                    end,
+                },
+            }
+            dialog:setupFunc(headerData)
+        end,
         buttons = {
             {
-                keybind  = "DIALOG_PRIMARY",
-                text     = SI_YES,
+                text = SI_DIALOG_CONFIRM,
                 callback = function(dialog)
-                    if dialog.data and dialog.data.nodeIndex then
-                        local sv = _G["GamePadHelper_SavedVars"]
-                        if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
-                            local poi = GamePadHelperSavedVars and GamePadHelperSavedVars.lastSelectedPOI
-                            postTeleportMsg = poi and zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, poi.name) or GetString(SI_GPH_MAPSEARCH_TELEPORTED)
-                        end
-                        FastTravelToNode(dialog.data.nodeIndex)
-                        ZO_WorldMap_HideWorldMap()
+                    local nodeIndex = dialog.data and dialog.data.nodeIndex
+                    if nodeIndex then
+                        FastTravelToNode(nodeIndex)
+                        SCENE_MANAGER:ShowBaseScene()
                     end
                 end,
-            },
-            { keybind = "DIALOG_NEGATIVE", text = SI_NO },
-        },
-    })
-
-    ZO_Dialogs_RegisterCustomDialog("GPH_HOUSE_TRAVEL", {
-        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        title       = { text = SI_GPH_MAPSEARCH_TRAVEL_TO_HOUSE },
-        mainText    = {
-            text = function(dialog)
-                local name = dialog.data and dialog.data.candidate and dialog.data.candidate.name or GetString(SI_GPH_MAPSEARCH_THIS_HOUSE)
-                return zo_strformat(GetString(SI_GPH_MAPSEARCH_TRAVEL_HOUSE_PROMPT), name)
-            end,
-        },
-        buttons = {
-            {
-                keybind  = "DIALOG_PRIMARY",
-                text     = SI_GPH_MAPSEARCH_ENTER_HOUSE,
-                callback = function(dialog)
-                    local c = dialog.data and dialog.data.candidate
-                    if c and c.houseId then
-                        RequestJumpToHouse(c.houseId, false) -- false = TRAVEL_INSIDE
-                        ZO_WorldMap_HideWorldMap()
-                    end
+                visible = function(dialog)
+                    local nodeIndex = dialog.data and dialog.data.nodeIndex
+                    if not nodeIndex then return true end
+                    local cost = GetRecallCost(nodeIndex)
+                    local currency = GetRecallCurrency(nodeIndex)
+                    return cost <= GetCurrencyAmount(currency, CURRENCY_LOCATION_CHARACTER)
                 end,
             },
-            {
-                keybind  = "DIALOG_SECONDARY",
-                text     = SI_GPH_MAPSEARCH_TRAVEL_EXTERIOR,
-                callback = function(dialog)
-                    local c = dialog.data and dialog.data.candidate
-                    if c and c.houseId then
-                        RequestJumpToHouse(c.houseId, true) -- true = TRAVEL_OUTSIDE
-                        ZO_WorldMap_HideWorldMap()
-                    end
-                end,
-            },
-            { keybind = "DIALOG_NEGATIVE", text = SI_CANCEL },
+            { text = SI_DIALOG_CANCEL },
         },
     })
 
