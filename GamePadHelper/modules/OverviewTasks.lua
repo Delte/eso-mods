@@ -52,52 +52,51 @@ end
 
 local COMPANION_RAPPORT_RECOMMENDATIONS = {
   ["bastian"] = {
-    { id = "mages_daily", rapport = 125, questIds = { 5814, 5816, 5818, 5819, 5820, 5822, 5823, 5824, 5825, 5826, 5827, 5828, 5829, 5830, 5831 } },
+    { id = "mages_daily", questIds = { 5814, 5816, 5818, 5819, 5820, 5822, 5823, 5824, 5825, 5826, 5827, 5828, 5829, 5830, 5831 } },
   },
   ["mirri"] = {
-    { id = "fighters_daily", rapport = 125, questIds = { 5786, 5793, 5787, 5789, 5791, 5833, 5794, 5796, 5795, 5797, 5785, 5790, 5788, 5784, 5792 } },
-    { id = "ashlander_hunt_sorim_nakar", rapport = 125, displayQuestId = 5910, questIds = { 5907, 5908, 5909, 5910, 5911, 5912, 5913 } },
-    { id = "ashlander_relic_numani_rasi", rapport = 125, displayQuestId = 5926, questIds = { 5924, 5925, 5926, 5927, 5928, 5929, 5930 } },
+    { id = "fighters_daily", questIds = { 5786, 5793, 5787, 5789, 5791, 5833, 5794, 5796, 5795, 5797, 5785, 5790, 5788, 5784, 5792 } },
+    { id = "ashlander_hunt_sorim_nakar", questIds = { 5907, 5908, 5909, 5910, 5911, 5912, 5913 } },
+    { id = "ashlander_relic_numani_rasi", questIds = { 5924, 5925, 5926, 5927, 5928, 5929, 5930 } },
   },
   ["ember"] = {
-    { id = "mages_daily", rapport = 125, questIds = { 5814, 5816, 5818, 5819, 5820, 5822, 5823, 5824, 5825, 5826, 5827, 5828, 5829, 5830, 5831 } },
-    { id = "heist_daily", rapport = 125, questIds = { 5536, 5575, 5572, 5577, 5573 } },
-    { id = "highisle_delve", rapport = 125, questIds = { 6809, 6826, 6805, 6825, 6818, 6815 } },
+    { id = "mages_daily", questIds = { 5814, 5816, 5818, 5819, 5820, 5822, 5823, 5824, 5825, 5826, 5827, 5828, 5829, 5830, 5831 } },
+    { id = "heist_daily", questIds = { 5536, 5575, 5572, 5577, 5573 } },
+    { id = "highisle_delve", questIds = { 6809, 6826, 6805, 6825, 6818, 6815 } },
   },
   ["isobel"] = {
-    { id = "undaunted_daily", rapport = 125, questIds = { 5735, 5733, 5738, 5853, 5800, 5808, 5737, 5778, 5779, 5802, 5744, 5745, 5739, 5734, 5798 } },
-    { id = "highisle_worldboss", rapport = 125, questIds = { 6821, 6803, 6807, 6816, 6822, 6808 } },
+    { id = "undaunted_daily", questIds = { 5735, 5733, 5738, 5853, 5800, 5808, 5737, 5778, 5779, 5802, 5744, 5745, 5739, 5734, 5798 } },
+    { id = "highisle_worldboss", questIds = { 6821, 6803, 6807, 6816, 6822, 6808 } },
   },
   ["azandar"] = {
-    { id = "necrom_delve", rapport = 125, questIds = { 7035, 7037, 7036, 7034 } },
-    { id = "enchanter_writ", rapport = 125, questIds = { 5407 } },
+    { id = "necrom_delve", questIds = { 7035, 7037, 7036, 7034 } },
+    { id = "enchanter_writ", questIds = { 5400, 5406, 5407 } },
   },
   ["sharp-as-night"] = {
-    { id = "necrom_worldboss", rapport = 125, questIds = { 7042, 7041, 7043, 7039, 7040 } },
-    { id = "ashlander_hunt_sorim_nakar", rapport = 125, displayQuestId = 5910, questIds = { 5907, 5908, 5909, 5910, 5911, 5912, 5913 } },
-    { id = "ashlander_relic_numani_rasi", rapport = 125, displayQuestId = 5926, questIds = { 5924, 5925, 5926, 5927, 5928, 5929, 5930 } },
+    { id = "necrom_worldboss", questIds = { 7042, 7041, 7043, 7039, 7040 } },
+    { id = "ashlander_hunt_sorim_nakar", questIds = { 5907, 5908, 5909, 5910, 5911, 5912, 5913 } },
+    { id = "ashlander_relic_numani_rasi", questIds = { 5924, 5925, 5926, 5927, 5928, 5929, 5930 } },
   },
   ["tanlorin"] = {
-    { id = "fighters_daily", rapport = 125, questIds = { 5786, 5793, 5787, 5789, 5791, 5833, 5794, 5796, 5795, 5797, 5785, 5790, 5788, 5784, 5792 } },
-    { id = "alchemy_writ", rapport = 125, questIds = { 6105 } },
+    { id = "fighters_daily", questIds = { 5786, 5793, 5787, 5789, 5791, 5833, 5794, 5796, 5795, 5797, 5785, 5790, 5788, 5784, 5792 } },
+    { id = "alchemy_writ", questIds = { 5415, 5416, 5417, 5418, 6098, 6099, 6100, 6101, 6102, 6103, 6104, 6105 } },
   },
   ["zerith-var"] = {
-    { id = "northern_grahtwood_defence_force", rapport = 125, questIds = { 6318, 6341, 6342, 6345, 6347 } },
-    { id = "tales_of_tribute_daily", rapport = 125, questIds = { 6831, 6832 } },
+    { id = "northern_grahtwood_defence_force", questIds = { 6318, 6341, 6342, 6345, 6347 } },
+    { id = "tales_of_tribute_daily", questIds = { 6831, 6832 } },
   },
 }
 
+local function SafeGetSkillLineName(skillType, skillLineIndex)
+  local id = GetSkillLineId and GetSkillLineId(skillType, skillLineIndex)
+  return id and GetSkillLineNameById and GetSkillLineNameById(id)
+end
+
 local function GetLocalizedActivityLabel(activityId)
   if activityId == "fighters_daily" then
-    local fighters = GetSkillLineName and GetSkillLineName(5, 2)
-    if fighters and fighters ~= "" then
-      return zo_strformat("<<C:1>>", fighters)
-    end
+    return GetString(SI_GPH_OVERVIEW_COMPANION_ACTIVITY_FIGHTERS_DAILY)
   elseif activityId == "mages_daily" then
-    local mages = GetSkillLineName and GetSkillLineName(5, 3)
-    if mages and mages ~= "" then
-      return zo_strformat("<<C:1>>", mages)
-    end
+    return GetString(SI_GPH_OVERVIEW_COMPANION_ACTIVITY_MAGES_DAILY)
   elseif activityId == "undaunted_daily" then
     local undaunted = GetString(SI_QUESTTYPE15)
     if undaunted and undaunted ~= "" then
@@ -113,8 +112,6 @@ local function GetLocalizedActivityLabel(activityId)
     return GetString(SI_GPH_OVERVIEW_COMPANION_ACTIVITY_NECROM_WB)
   elseif activityId == "necrom_delve" then
     return GetString(SI_GPH_OVERVIEW_COMPANION_ACTIVITY_NECROM_DELVE)
-  elseif activityId == "ashlander_hunt" then
-    return GetString(SI_GPH_OVERVIEW_COMPANION_ACTIVITY_ASHLANDER_HUNT)
   elseif activityId == "ashlander_hunt_sorim_nakar" then
     return GetString(SI_GPH_OVERVIEW_COMPANION_ACTIVITY_ASHLANDER_HUNT)
   elseif activityId == "ashlander_relic_numani_rasi" then
@@ -317,14 +314,6 @@ local function GetDailyWritKeyForQuestId(questId)
     end
   end
   return nil
-end
-
-local function GetDailyWritGroupLabel(group)
-  local questName = GetQuestName and GetQuestName(group.displayQuestId) or nil
-  if questName and questName ~= "" then
-    return zo_strformat("<<C:1>>", questName)
-  end
-  return group.id
 end
 
 local function GetDailyWritStatusByKey()
@@ -594,8 +583,25 @@ function Tasks.ShowRightTooltip(rightTooltip)
     tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_HORSE_TRAINING) .. "|r " .. GetString(SI_GPH_OVERVIEW_AVAILABLE) .. "\n\n"
   end
 
-  local hasCrafting = false
   local treasureCount, totalSurveyCount, totalWritCount = CountAllInventoryItems()
+
+  if totalCount > 0 then
+    local totalTimeString = ""
+    if totalMinTime and not isUrgent then
+      totalTimeString = " (" .. FormatTimeRemaining(totalMinTime) .. ")"
+    end
+    tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LEADS) .. "|r |cFFFFFF" .. totalCount .. "|r " .. GetString(SI_GPH_OVERVIEW_SCRYABLE) .. totalTimeString .. "\n"
+  end
+
+  if treasureCount > 0 then
+    tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TREASURE) .. "|r |cFFFFFF" .. treasureCount .. "|r " .. GetString(SI_GPH_OVERVIEW_MAPS) .. "\n"
+  end
+
+  if totalCount > 0 or treasureCount > 0 then
+    tasksDescription = tasksDescription .. "\n\n"
+  end
+
+  local hasCrafting = false
 
   if totalSurveyCount > 0 or totalWritCount > 0 then
     local craftingCountersText = ""
@@ -629,12 +635,6 @@ function Tasks.ShowRightTooltip(rightTooltip)
       local hasSkill = false
       if craftingType == CRAFTING_TYPE_PROVISIONING or craftingType == CRAFTING_TYPE_ENCHANTING or craftingType == CRAFTING_TYPE_ALCHEMY then
         local targetSkillName = zo_strlower(zo_strformat("<<1>>", GetCraftingSkillName(craftingType) or ""))
-        -- GetSkillLineName is a PC-only alias; use GetSkillLineNameById on console.
-        local function SafeGetSkillLineName(skillType, skillLineIndex)
-          if GetSkillLineName then return GetSkillLineName(skillType, skillLineIndex) end
-          local id = GetSkillLineId and GetSkillLineId(skillType, skillLineIndex)
-          return id and GetSkillLineNameById and GetSkillLineNameById(id)
-        end
         for skillCategory = 1, GetNumSkillTypes() do
           for skillLine = 1, GetNumSkillLines(skillCategory) do
             local skillLineName = SafeGetSkillLineName(skillCategory, skillLine)
@@ -665,22 +665,6 @@ function Tasks.ShowRightTooltip(rightTooltip)
 
   if hasCrafting then
     tasksDescription = tasksDescription .. "\n"
-  end
-
-  if totalCount > 0 then
-    local totalTimeString = ""
-    if totalMinTime and not isUrgent then
-      totalTimeString = " (" .. FormatTimeRemaining(totalMinTime) .. ")"
-    end
-    tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LEADS) .. "|r |cFFFFFF" .. totalCount .. "|r " .. GetString(SI_GPH_OVERVIEW_SCRYABLE) .. totalTimeString .. "\n"
-  end
-
-  if treasureCount > 0 then
-    tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TREASURE) .. "|r |cFFFFFF" .. treasureCount .. "|r " .. GetString(SI_GPH_OVERVIEW_MAPS) .. "\n"
-  end
-
-  if totalCount > 0 or treasureCount > 0 then
-    tasksDescription = tasksDescription .. "\n\n"
   end
 
   local companionLines = GetBoolSetting("overviewCompanionEnabled", true) and GetActiveCompanionRapportOverviewLines() or nil

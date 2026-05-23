@@ -50,6 +50,12 @@ local function BuildCheckbox(text, tooltip, key)
 end
 
 local function BuildCheckboxCustom(text, tooltip, getFunc, setFunc, header, disabledFunc)
+    local function getTooltip()
+        if disabledFunc and disabledFunc() then
+            return tooltip .. "\n\n" .. GetString(SI_GPH_SETTING_DISABLED_NOTICE)
+        end
+        return tooltip
+    end
     return {
         panel = GPH_PANEL_ID,
         system = GPH_PANEL_ID,
@@ -59,9 +65,9 @@ local function BuildCheckboxCustom(text, tooltip, getFunc, setFunc, header, disa
         header = header,
         disabled = disabledFunc,
         gamepadIsEnabledCallback = disabledFunc and function() return not disabledFunc() end or nil,
-        tooltipText = tooltip,
+        tooltipText = getTooltip,
         gamepadCustomTooltipFunction = function(tooltipControl)
-            GAMEPAD_TOOLTIPS:LayoutTextBlockTooltip(tooltipControl, tooltip)
+            GAMEPAD_TOOLTIPS:LayoutTextBlockTooltip(tooltipControl, getTooltip())
         end,
         GetSettingOverride = function()
             return getFunc()
@@ -213,17 +219,38 @@ local function BuildSettingsData()
     add(BuildCheckbox(GetString(SI_GPH_SETTING_ANTIQUARIAN_EYE_NAME), GetString(SI_GPH_SETTING_ANTIQUARIAN_EYE_TOOLTIP), "antiquariansEyeEnabled"))
     add(BuildCheckbox(GetString(SI_GPH_SETTING_TELEPORTER_NAME), GetString(SI_GPH_SETTING_TELEPORTER_TOOLTIP), "teleporterEnabled"))
 
+    local function mapSearchDisabled() return not GetBoolSetting("mapSearchEnabled", true) end
+
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_ENABLED_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_ENABLED_TOOLTIP), function()
+        return GetBoolSetting("mapSearchEnabled", true)
+    end, function(v)
+        SetSetting("mapSearchEnabled", v)
+        if GAMEPAD_OPTIONS then GAMEPAD_OPTIONS:RefreshOptionsList() end
+    end, GetString(SI_GPH_SETTINGS_HEADER_MAP_SEARCH)))
+
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_MAP_PIN_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_MAP_PIN_TOOLTIP), function()
+        return GetBoolSetting("mapSearchMapPin", true)
+    end, function(v)
+        SetSetting("mapSearchMapPin", v)
+    end, nil, mapSearchDisabled))
+
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_GROUP_BY_LOCATION_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_GROUP_BY_LOCATION_TOOLTIP), function()
+        return GetBoolSetting("mapSearchGroupByLocation", false)
+    end, function(v)
+        SetSetting("mapSearchGroupByLocation", v)
+    end, nil, mapSearchDisabled))
+
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_SET_DESTINATION_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_SET_DESTINATION_TOOLTIP), function()
         return GetBoolSetting("mapSearchSetDestination", true)
     end, function(v)
         SetSetting("mapSearchSetDestination", v)
-    end, GetString(SI_GPH_SETTINGS_HEADER_MAP_SEARCH)))
+    end, nil, mapSearchDisabled))
 
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_ANNOUNCE_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_ANNOUNCE_TOOLTIP), function()
         return GetBoolSetting("mapSearchNarratePostTeleport", true)
     end, function(v)
         SetSetting("mapSearchNarratePostTeleport", v)
-    end))
+    end, nil, mapSearchDisabled))
 
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_DUNGEON_FINDER_NAME), GetString(SI_GPH_SETTING_DUNGEON_FINDER_TOOLTIP), function()
         return GetBoolSetting("dungeonFinderEnabled", false)

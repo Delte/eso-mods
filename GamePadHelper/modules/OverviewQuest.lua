@@ -38,12 +38,18 @@ local function AddBulletListSection(tooltip, lines, headerText, lineColor, listK
   bulletList:Clear()
 
   local r, g, b = GetInterfaceColor(INTERFACE_COLOR_TYPE_GAMEPAD_TOOLTIP, GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3)
+  local narrationLines = {}
   for _, line in ipairs(lines) do
     local text = lineColor and lineColor ~= "" and (lineColor .. line .. "|r") or line
     bulletList:AddLine(text)
     if (not lineColor or lineColor == "") and bulletList.lastLabel then
       bulletList.lastLabel:SetColor(r, g, b, 1)
     end
+    table.insert(narrationLines, line)
+  end
+
+  control.GetNarrationText = function()
+    return table.concat(narrationLines, ", ")
   end
 
   local width = tooltip:GetWidth()

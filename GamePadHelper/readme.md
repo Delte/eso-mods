@@ -1,10 +1,10 @@
 # GamePadHelper
 
-**Version:** 1.066 · **Authors:** olegbl, quelron · **API:** 101049
+**Version:** 1.068 · **Authors:** olegbl, quelron · **API:** 101049
 
-A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed for gamepad play but compatible with keyboard & mouse too. Every feature can be toggled individually from the in-game settings panel. 
+A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed only for gamepad and console UI. Every feature can be toggled individually from the in-game settings panel.
 
-Price data provided by **Tamriel Savings Co** when TSC sources are available.
+Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsavings.com/price-fetcher) when TSC sources are available.
 
 ---
 
@@ -26,6 +26,8 @@ Price data provided by **Tamriel Savings Co** when TSC sources are available.
   - [Inventory Trait](#inventory-trait)
   - [Loot Offset](#loot-offset)
   - [Overview Panel](#overview-panel)
+    - [Daily Crafting Writ Tracker](#daily-crafting-writ-tracker)
+    - [Companion Rapport Dailies](#companion-rapport-dailies)
   - [Tooltip Enchantment](#tooltip-enchantment)
   - [Tooltip Font](#tooltip-font)
   - [Tooltip Poison](#tooltip-poison)
@@ -51,8 +53,7 @@ Price data provided by **Tamriel Savings Co** when TSC sources are available.
 
 All features can be toggled without reloading the UI. Open the settings panel via:
 
-- **Keyboard / Mouse** — `ESC → Settings → AddOns → GamePadHelper`
-- **Gamepad** — `Menu → Options → Extensions → GamePadHelper`
+- **Gamepad** — `Options → GPH Settings`
 
 ---
 
@@ -165,6 +166,7 @@ Shows a magnifying glass icon next to items whose trait can be **researched by t
 | 🟢 Green | Only copy with this trait you have access to — safe to research |
 | 🟡 Yellow | Another copy with the same trait exists in your **inventory** |
 | 🔴 Red | Another copy with the same trait exists in your **bank** |
+| White | Equipped item uses ESO's default magnifying glass icon; details are shown in the tooltip |
 
 Numbers below the icon show exactly how many duplicate copies exist (yellow = inventory, red = bank). Locked items show an icon but are excluded from duplicate counting. Other account characters are not considered.
 
@@ -174,7 +176,7 @@ Numbers below the icon show exactly how many duplicate copies exist (yellow = in
 
 ![Loot Offset](screenshots/LootOffset.png)
 
-Shifts the **loot history panel** upward so it does not overlap the chat box for keyboard/mouse users. The offset amount is configurable (default: 350 px).
+Shifts the **loot history panel** upward so it does not overlap the chat box. The offset amount is configurable (default: 350 px).
 
 > Requires a UI reload after toggling.
 
@@ -188,6 +190,7 @@ Adds a rich overview panel at the root menu with two columns:
 
 **Left — Quest Details**
 - Quest background, active step, tasks, completed tasks, optional steps, and hints.
+- Full **screen narration** support — all sections (tasks, completed, optional, hints) are read aloud on gamepad, not just the quest header.
 
 **Right — Daily Reminders**
 - Horse training availability
@@ -195,6 +198,27 @@ Adds a rich overview panel at the root menu with two columns:
 - Surveys and writs counts
 - Antiquities scryable leads with expiration timers
 - Treasure map count
+
+**Daily Crafting Writ Tracker**
+
+Shows the completion status of each daily crafting writ (Done / In Progress / Not Done) directly in the overview. Covers all seven professions: Blacksmithing, Clothier, Woodworking, Enchanting, Provisioning, Alchemy, and Jewelry. Completed writs are hidden from the list to keep it clean. Status persists across sessions and resets automatically at the daily reset. Tracking works by listening for quest completion events and covers all quest ID variants for each profession, so the status updates correctly regardless of which writ variant the game assigned.
+
+**Companion Rapport Dailies**
+
+When a companion is active, the right panel shows the companion's name, current rapport value and rank, and the best rapport-gaining daily activities with their completion status (Done / In Progress / Not Done). Status resets at the daily reset. Supported companions and their tracked activities:
+
+| Companion | Tracked Activities |
+|---|---|
+| Bastian | Mages Guild Daily |
+| Mirri | Fighters Guild Daily, Ald'ruhn Hunt Daily, Ald'ruhn Relic Daily |
+| Ember | Mages Guild Daily, Thieves Guild Heist, High Isle Delve Daily |
+| Isobel | Undaunted Daily, High Isle World Boss Daily |
+| Azandar | Necrom Delve Daily, Enchanter Writ |
+| Sharp-as-Night | Necrom World Boss Daily, Ald'ruhn Hunt Daily, Ald'ruhn Relic Daily |
+| Tanlorin | Fighters Guild Daily, Alchemy Writ |
+| Zerith-var | Northern Grahtwood Defence Force Daily, Tales of Tribute Daily |
+
+Activity labels are hardcoded localized strings (available in EN, FR, DE, ES, RU, JP, ZH) so they display correctly on console where skill-line name APIs may be unavailable. Writ tracking (Alchemy Writ, Enchanter Writ) covers all quest ID variants so the status updates correctly regardless of which writ variant the player received.
 
 ---
 
@@ -210,7 +234,7 @@ Reformats the **enchantment information** in item tooltips for improved readabil
 
 ![Tooltip Font](screenshots/TooltipFont.png)
 
-Applies a cleaner font to **item tooltips**, optimized for readability on both gamepad (TV distance) and keyboard (monitor distance).
+Applies a cleaner font to **item tooltips**, optimized for readability on gamepad.
 
 ---
 
@@ -228,7 +252,7 @@ Reformats **applied poison information** in item tooltips for improved readabili
 
 Reformats the **price information** in item tooltips. When a supported market addon is installed (for example **TamrielTradeCentre** or console price providers), also shows market pricing data inline.
 
-Price data provided by **Tamriel Savings Co** when TSC sources are available.
+Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsavings.com/price-fetcher) when TSC sources are available.
 
 ---
 
@@ -261,9 +285,9 @@ These are not required to load the addon. Each one unlocks or enhances a specifi
 |---|---|
 | [BeamMeUp](https://www.esoui.com/downloads/info2143-BeamMeUp-TeleporterFastTravel.html) | Powers the **Teleporter** feature — the world map zone hotkey and the chat "Jump to Player" options both call BeamMeUp to perform the actual travel. Without it the Teleporter feature does nothing. |
 | [TamrielTradeCentre](https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html) | Optional market source for **Tooltip Price**. |
-| TSC Price Data API (`TSCPriceDataAPIXBNA`, `TSCPriceDataAPIPSNA`, `TSCPriceDataAPIXBEU`, `TSCPriceDataAPIPSEU`) | Optional console market data source for **Tooltip Price**. |
+| [Tamriel Savings Co Price Fetcher / TSC Price Data API](https://tamrielsavings.com/price-fetcher) (`TSCPriceDataAPIXBNA`, `TSCPriceDataAPIPSNA`, `TSCPriceDataAPIXBEU`, `TSCPriceDataAPIPSEU`) | Optional console market data source for **Tooltip Price**. |
 
-Attribution: Price data provided by **Tamriel Savings Co** when available.
+Attribution: Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsavings.com/price-fetcher) when available.
 
 ---
 

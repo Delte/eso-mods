@@ -46,8 +46,21 @@
                                 </EditBox>
                             </Controls>
                         </Control>
+                        <Control name="$(parent)RecallRow">
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)SearchBar" relativePoint="BOTTOMLEFT" offsetX="0" offsetY="10"/>
+                            <Anchor point="TOPRIGHT" relativeTo="$(parent)SearchBar" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="10"/>
+                            <Dimensions y="28"/>
+                            <Controls>
+                                <Label name="$(parent)RecallCostTitle" font="ZoFontGamepad42" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                                    <Anchor point="LEFT" offsetX="8"/>
+                                </Label>
+                                <Label name="$(parent)RecallCostValue" font="ZoFontGamepad42" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL">
+                                    <Anchor point="RIGHT" offsetX="-8"/>
+                                </Label>
+                            </Controls>
+                        </Control>
                         <Control name="$(parent)List" inherits="ZO_VerticalParametricScrollListTemplate">
-                            <Anchor point="TOPLEFT" relativeTo="$(parent)SearchBar" relativePoint="BOTTOMLEFT" offsetY="4"/>
+                            <Anchor point="TOPLEFT" relativeTo="$(parent)RecallRow" relativePoint="BOTTOMLEFT" offsetY="4"/>
                             <Anchor point="BOTTOMRIGHT"/>
                         </Control>
                     </Controls>

@@ -1,0 +1,81 @@
+GamePadHelper
+Version 1.068
+
+A modular collection of quality-of-life improvements for Elder Scrolls Online, built only for gamepad and console UI.
+
+Features can be enabled or disabled individually from:
+Options > GPH Settings
+
+Highlights
+
+- Gamepad and console UI focused
+- Multilanguage support for all 7 official ESO client languages: EN, DE, FR, ES, RU, JP, ZH
+- Modular settings, so each feature can be toggled individually
+- Market price support through TamrielTradeCentre when available
+- Console price data provided by Tamriel Savings Co Price Fetcher / TSC Price Data API packages when available
+
+Price Data Attribution
+
+PC market data can use TamrielTradeCentre when installed:
+https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html
+
+Console price data provided by Tamriel Savings Co Price Fetcher / TSC Price Data API packages when installed:
+https://tamrielsavings.com/price-fetcher
+
+Trait Icon Color Meaning
+
+🟢 |c2DC50EGreen|r: Only copy with this trait you have access to; safe to research.
+🟡 |cFFFF00Yellow|r: Another copy with the same trait exists in your inventory.
+🔴 |cFF4444Red|r: Another copy with the same trait exists in your bank.
+⚪ |cFFFFFFWhite|r: Equipped item uses ESO's default white magnifying glass icon; trait details are shown in the tooltip.
+
+Main Features
+
+- Tooltip Price [Default: ON]: Better item price display with supported market data when available.
+- Tooltip Enchantment [Default: ON]: Cleaner enchantment text.
+- Tooltip Poison [Default: ON]: Improved poison tooltip formatting.
+- Tooltip Trait [Default: ON]: Better trait visibility in tooltips.
+- Tooltip Font [Default: ON]: Cleaner item tooltip font for gamepad play.
+- Inventory Traits [Default: ON]: Research trait indicators in inventory.
+- Inventory Covetous Countess [Default: ON]: Highlights relevant Covetous Countess treasures.
+- Gear Comparison [Default: ON]: Shows item stat comparison panels side by side.
+- Provisioning Hide Low-Level Recipes [Default: OFF]: Adds a filter to hide recipes below CP160.
+- Fishing [Default: ON]: Controller vibration, on-screen reel alert, automatic bait selection, and alternative bait fallback.
+- Teleporter [Default: ON]: BeamMeUp integration for map and chat jump helpers.
+- Map Search [Default: ON]: Search wayshrines, zones, houses, and points of interest from the gamepad world map.
+- Dungeon Finder [Default: ON]: Shows pledge quest names in the Dungeon Finder list.
+- Overview Panel [Default: ON]: Root menu overview with quest details, daily reminders, daily writ tracking, companion rapport dailies, research, surveys, treasure maps, and antiquity leads.
+- Loot Offset [Default: ON]: Moves the loot history panel upward so it does not overlap chat. Requires a UI reload after toggling.
+- Auto Charge [Default: ON]: Recharges equipped weapons after combat. Charge threshold default: 25%.
+- Auto Repair [Default: ON]: Repairs equipped items at merchants when repair is available.
+- Auto Eye [Default: ON]: Automatically slots and activates Antiquarian's Eye when usable.
+
+What's New In 1.068
+
+- Daily Crafting Writ Tracker: Tracks all seven professions in the Overview panel.
+- Companion Rapport Dailies: Shows the best rapport-gaining daily activities for your active companion.
+- Persistent daily status: Writ and companion activity status persists across sessions and resets at the daily reset.
+- Quest ID variant support: Writ tracking covers all quest variants for each profession.
+- Improved Overview narration: Gamepad screen narration now reads quest tasks, completed tasks, optional steps, and hints.
+
+Required Libraries
+
+- LibCovetousCountess
+- LibItemLinkDecoder
+- LibTraitResearch
+- LibMultiIcon
+
+Optional Integrations
+
+- TamrielTradeCentre
+- BeamMeUp
+- LibPriceCache
+- TSCPriceDataAPIXBNA
+- TSCPriceDataAPIPSNA
+- TSCPriceDataAPIXBEU
+- TSCPriceDataAPIPSEU
+
+Notes
+
+Optional integrations enhance specific features but are not required for the addon to load.
+If supported market addons or price data packages are installed, Tooltip Price will show additional market information.

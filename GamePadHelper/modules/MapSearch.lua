@@ -21,7 +21,6 @@ local TYPE_LIFT          = 6
 
 local ICON_WAYSHRINE_KNOWN   = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
 local ICON_WAYSHRINE_UNKNOWN = "/esoui/art/icons/poi/poi_wayshrine_incomplete.dds"
-local ICON_LIFT              = "/esoui/art/icons/poi/poi_transit_complete.dds"
 local ICON_POI_GENERIC       = "/esoui/art/icons/poi/poi_landmark_complete.dds"
 
 local GPH_SEARCH_FRAGMENT     = nil
@@ -37,14 +36,21 @@ local currentTerm = ""
 local listObject        = nil
 local editControl       = nil
 local searchBarBG       = nil
+local recallCostLabel   = nil
 local keybindDescriptor = nil
+local RebuildList
 
 local lastSelectedIndex = 1
 local pendingNarration  = nil
 local postTeleportMsg   = nil
+local listCostLoopId = 0
 
 local function IsFragmentShowing()
     return GPH_SEARCH_FRAGMENT ~= nil and GPH_SEARCH_FRAGMENT:IsShowing()
+end
+
+local function GetSavedVars()
+    return _G["GamePadHelper_SavedVars"]
 end
 
 local function UpdateKeybinds()
@@ -53,10 +59,20 @@ local function UpdateKeybinds()
     end
 end
 
+
 -- bookmarks
 
 local function MakeBookmarkKey(c)
     return c.type .. ":" .. tostring(c.nodeIndex or c.zoneId or "") .. ":" .. c.name
+end
+
+local function GetBookmarkKey(c)
+    if not c then return "" end
+    if c.key and c.key ~= "" then return c.key end
+    if c.bookmarkKey and c.bookmarkKey ~= "" then return c.bookmarkKey end
+    local k = MakeBookmarkKey(c)
+    c.bookmarkKey = k
+    return k
 end
 
 local function GetBookmarksArray()
@@ -72,18 +88,18 @@ local function GetBookmarksArray()
 end
 
 local function IsBookmarked(c)
-    local key = MakeBookmarkKey(c)
+    local key = GetBookmarkKey(c)
     for _, bm in ipairs(GetBookmarksArray()) do
-        if bm.key == key then return true end
+        if GetBookmarkKey(bm) == key then return true end
     end
     return false
 end
 
 local function RemoveBookmark(c)
-    local key = MakeBookmarkKey(c)
+    local key = GetBookmarkKey(c)
     local arr = GetBookmarksArray()
     for i, bm in ipairs(arr) do
-        if bm.key == key then
+        if GetBookmarkKey(bm) == key then
             table.remove(arr, i)
             return
         end
@@ -93,7 +109,7 @@ end
 local function AddBookmark(c)
     local arr = GetBookmarksArray()
     arr[#arr + 1] = {
-        key        = MakeBookmarkKey(c),
+        key        = GetBookmarkKey(c),
         name       = c.name,
         searchName = c.name:lower(),
         type       = c.type,
@@ -144,12 +160,20 @@ local POI_TYPE_NAMES = {
     groupboss       = GetString(SI_GPH_MAPSEARCH_LABEL_WORLD_BOSS),
     groupdelve      = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
     groupinstance   = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
-    -- explicit group_ keys so poi_group_house doesn't collapse to "house"
-    group_boss      = GetString(SI_GPH_MAPSEARCH_LABEL_WORLD_BOSS),
-    group_delve     = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
-    group_instance  = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
-    group_dungeon   = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
-    group_house     = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_INSTANCE),   -- group housing content, not a player home
+    -- explicit group_ keys so poi_group_* icons resolve correctly
+    group_boss            = GetString(SI_GPH_MAPSEARCH_LABEL_WORLD_BOSS),
+    group_delve           = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
+    group_instance        = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
+    group_dungeon         = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
+    group_house           = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_INSTANCE),
+    group_keep            = GetString(SI_GPH_MAPSEARCH_LABEL_KEEP),
+    group_cave            = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
+    group_areaofinterest  = GetString(SI_GPH_MAPSEARCH_LABEL_AREA_OF_INTEREST),
+    group_cemetery        = GetString(SI_GPH_MAPSEARCH_LABEL_CEMETERY),
+    group_lighthouse      = GetString(SI_GPH_MAPSEARCH_LABEL_LIGHTHOUSE),
+    group_ruin            = GetString(SI_GPH_MAPSEARCH_LABEL_RUIN),
+    group_portal          = GetString(SI_GPH_MAPSEARCH_LABEL_DOLMEN),
+    group_estate          = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_TRIAL),
     keep            = GetString(SI_GPH_MAPSEARCH_LABEL_KEEP),
     lighthouse      = GetString(SI_GPH_MAPSEARCH_LABEL_LIGHTHOUSE),
     mine            = GetString(SI_GPH_MAPSEARCH_LABEL_MINE),
@@ -191,7 +215,22 @@ local POI_TYPE_NAMES = {
     unknown      = GetString(SI_GPH_MAPSEARCH_LABEL_UNKNOWN),
 }
 
-local function GetPOITypeLabel(icon)
+-- Direct label lookup by ESO's poiType enum (avoids icon parsing for unambiguous types).
+-- Type 2 is intentionally absent: it covers both Mundus Stones and Great Lifts,
+-- so icon parsing is required to tell them apart.
+local POI_TYPE_DIRECT = {
+    [3] = GetString(SI_GPH_MAPSEARCH_LABEL_DELVE),
+    [4] = GetString(SI_GPH_MAPSEARCH_LABEL_DOLMEN),
+    [5] = GetString(SI_GPH_MAPSEARCH_LABEL_PUBLIC_DUNGEON),
+    [6] = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
+    [7] = GetString(SI_GPH_MAPSEARCH_LABEL_HOUSE),
+}
+
+local function GetPOITypeLabel(icon, poiType)
+    if poiType and POI_TYPE_DIRECT[poiType] then
+        return POI_TYPE_DIRECT[poiType]
+    end
+    -- type 0 and type 2 (Standard / ambiguous) need icon parsing.
     if not icon or icon == "" then return nil end
     local name = (icon:match("([^/]+)%.dds$") or icon)
         :gsub("_complete$",   "")
@@ -200,12 +239,9 @@ local function GetPOITypeLabel(icon)
         :gsub("_unowned$",    "")
         :gsub("^u%d+_poi_",   "")
         :gsub("^u%d+_",       "")
-    -- Try with full poi_group_ prefix first so group_house/group_dungeon
-    -- don't collapse to "house"/"dungeon" via the generic poi_ strip.
-    local grouped = name:gsub("^poi_group_", "group_")
-    if POI_TYPE_NAMES[grouped] then return POI_TYPE_NAMES[grouped] end
-    local plain = name:gsub("^poi_", "")
-    return POI_TYPE_NAMES[plain]
+        :gsub("^poi_",        "")
+        :gsub("^u%d+_",       "")
+    return POI_TYPE_NAMES[name]
 end
 
 -- narration
@@ -261,33 +297,38 @@ local function PreScan()
     end
 
     for nodeIndex = 1, GetNumFastTravelNodes() do
-        local known, name, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
-        local isWayshrine = typePOI == POI_TYPE_WAYSHRINE
-        local isHouse     = typePOI == POI_TYPE_HOUSE
-        if name ~= "" and (isWayshrine or isHouse) then
-            local zoneIndex, poiIndex = GetFastTravelNodePOIIndicies(nodeIndex)
-            local zoneId = GetZoneId(zoneIndex)
-            local _, _, _, poiIcon = GetPOIMapInfo(zoneIndex, poiIndex)
-            local defaultIcon = known and ICON_WAYSHRINE_KNOWN or ICON_WAYSHRINE_UNKNOWN
-            local icon = (poiIcon and poiIcon ~= "") and poiIcon or defaultIcon
-            -- HasCompletedFastTravelNodePOI is how ESO itself determines house ownership.
-            local isOwnedHouse = isHouse and HasCompletedFastTravelNodePOI(nodeIndex)
-            local houseId = isHouse and GetFastTravelNodeHouseId(nodeIndex) or nil
-            data.wayshrines[#data.wayshrines + 1] = {
-                name         = CleanName(name),
-                icon         = icon,
-                nodeIndex    = nodeIndex,
-                zoneIndex    = zoneIndex,
-                zoneId       = zoneId,
-                poiIndex     = poiIndex,
-                mapIndex     = zoneToMap[zoneIndex],
-                zoneName     = CleanName(GetZoneNameById(zoneId)),
-                known        = known,
-                isLocked     = isLocked,
-                isHouse      = isHouse,
-                isOwnedHouse = isOwnedHouse,
-                houseId      = houseId,
-            }
+        local drawLevelOffset = GetFastTravelNodeDrawLevelOffset(nodeIndex)
+        if drawLevelOffset ~= 0 then
+            local known, name, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
+            local isWayshrine = typePOI == POI_TYPE_WAYSHRINE
+            local isHouse     = typePOI == POI_TYPE_HOUSE
+            if isWayshrine or isHouse then
+                local zoneIndex, poiIndex = GetFastTravelNodePOIIndicies(nodeIndex)
+                local zoneId = GetZoneId(zoneIndex)
+                local _, _, _, poiIcon = GetPOIMapInfo(zoneIndex, poiIndex)
+                local defaultIcon = known and ICON_WAYSHRINE_KNOWN or ICON_WAYSHRINE_UNKNOWN
+                local icon = (poiIcon and poiIcon ~= "") and poiIcon or defaultIcon
+                -- HasCompletedFastTravelNodePOI is how ESO itself determines house ownership.
+                local isOwnedHouse = isHouse and HasCompletedFastTravelNodePOI(nodeIndex)
+                local houseId      = isHouse and GetFastTravelNodeHouseId(nodeIndex) or nil
+                local mapPriority  = GetFastTravelNodeMapPriority(nodeIndex) or 0
+                data.wayshrines[#data.wayshrines + 1] = {
+                    name         = CleanName(name),
+                    icon         = icon,
+                    nodeIndex    = nodeIndex,
+                    zoneIndex    = zoneIndex,
+                    zoneId       = zoneId,
+                    poiIndex     = poiIndex,
+                    mapIndex     = zoneToMap[zoneIndex],
+                    zoneName     = CleanName(GetZoneNameById(zoneId)),
+                    known        = known,
+                    isLocked     = isLocked,
+                    isHouse      = isHouse,
+                    isOwnedHouse = isOwnedHouse,
+                    houseId      = houseId,
+                    mapPriority  = mapPriority,
+                }
+            end
         end
     end
 
@@ -323,21 +364,23 @@ local function PreScan()
                     seenPOI[uid] = true
                     local name = GetPOIInfo(zoneIndex, poiIndex)
                     if name and name ~= "" then
-                        local _, _, _, icon, _, linkedCollectibleIsLocked, known = GetPOIMapInfo(zoneIndex, poiIndex)
+                        local _, _, _, icon, _, collectibleLocked, isDiscovered = GetPOIMapInfo(zoneIndex, poiIndex)
+                        local poiType = GetPOIType(zoneIndex, poiIndex)
                         if not icon or not icon:find("wayshrine") then
                             local poiIcon  = (icon and icon ~= "") and icon or nil
-                            local isLocked = linkedCollectibleIsLocked or lockedZoneIndex[zoneIndex] or false
+                            local isLocked = collectibleLocked or lockedZoneIndex[zoneIndex] or false
                             data.pois[#data.pois + 1] = {
                                 name      = CleanName(name),
                                 icon      = poiIcon or ICON_POI_GENERIC,
                                 -- Only _owned suffix means you own it; _complete/_incomplete do not.
-                                isOwned = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
+                                isOwned   = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
+                                poiType   = poiType,
                                 zoneIndex = zoneIndex,
                                 zoneId    = zoneId,
                                 poiIndex  = poiIndex,
                                 mapIndex  = zoneToMap[zoneIndex],
                                 zoneName  = zoneName,
-                                known     = known,
+                                known     = isDiscovered,
                                 isLocked  = isLocked,
                             }
                         end
@@ -358,7 +401,7 @@ local function FindNearestWayshrineToPos(px, py, minDist, filterZoneIndex)
     local bestNode, bestDist = nil, math.huge
     for nodeIndex = 1, GetNumFastTravelNodes() do
         local known, _, wsNx, wsNy, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
-        if known and not isLocked and typePOI == 1 and wsNx and wsNy then
+        if known and not isLocked and typePOI == POI_TYPE_WAYSHRINE and wsNx and wsNy then
             local wsZoneIndex = filterZoneIndex and GetFastTravelNodePOIIndicies(nodeIndex)
             if not filterZoneIndex or wsZoneIndex == filterZoneIndex then
                 local dx, dy = wsNx - px, wsNy - py
@@ -373,28 +416,80 @@ local function FindNearestWayshrineToPos(px, py, minDist, filterZoneIndex)
     return bestNode
 end
 
+local function FindBestDiscoveredWayshrineFromScan(candidate)
+    -- scannedData is freed after BuildCandidates; search the candidates list instead.
+    local list = candidates
+    if not list then return nil end
+
+    local filterZoneId    = candidate and candidate.zoneId
+    local filterZoneIndex = candidate and candidate.zoneIndex
+    local filterZoneName  = candidate and candidate.name and candidate.name:lower() or nil
+
+    local function pickBest(matchFn)
+        local bestNode     = nil
+        local bestPriority = -math.huge
+        for _, c in ipairs(list) do
+            if c.type == TYPE_WAYSHRINE and c.nodeIndex and c.known and not c.isLocked and matchFn(c) then
+                local prio = c.mapPriority or 0
+                if prio > bestPriority then
+                    bestPriority = prio
+                    bestNode = c.nodeIndex
+                end
+            end
+        end
+        return bestNode
+    end
+
+    if filterZoneId then
+        local byZoneId = pickBest(function(c) return c.zoneId == filterZoneId end)
+        if byZoneId then return byZoneId end
+    end
+
+    if filterZoneIndex then
+        local byZoneIndex = pickBest(function(c) return c.zoneIndex == filterZoneIndex end)
+        if byZoneIndex then return byZoneIndex end
+    end
+
+    if filterZoneName and filterZoneName ~= "" then
+        local byZoneName = pickBest(function(c)
+            return c.zoneName and c.zoneName:lower() == filterZoneName
+        end)
+        if byZoneName then return byZoneName end
+    end
+
+    return nil
+end
+
 local function BuildCandidates()
     if not scannedData then PreScan() end
 
     local nameToZoneId = scannedData.nameToZoneId
     local list = {}
+    local ownedHouseByKey = {}
+    local ownedHouseByName = {}
 
     for _, ws in ipairs(scannedData.wayshrines) do
+        if ws.isHouse and ws.isOwnedHouse and ws.houseId and ws.name then
+            local key = (ws.name:lower()) .. "|" .. tostring(ws.zoneId or 0)
+            ownedHouseByKey[key] = ws
+            ownedHouseByName[ws.name:lower()] = ownedHouseByName[ws.name:lower()] or ws
+        end
         list[#list + 1] = {
-            name       = ws.name,
-            searchName = ws.name:lower(),
-            type       = ws.isHouse and (ws.isOwnedHouse and TYPE_HOUSE_OWNED or TYPE_HOUSE_UNOWNED)
-                      or TYPE_WAYSHRINE,
-            icon       = ws.icon,
-            nodeIndex  = ws.nodeIndex,
-            zoneId     = ws.zoneId,
-            zoneIndex  = ws.zoneIndex,
-            poiIndex   = ws.poiIndex,
-            mapIndex   = ws.mapIndex,
-            zoneName   = ws.zoneName,
-            known      = ws.known,
-            isLocked   = ws.isLocked,
-            houseId    = ws.houseId,
+            name        = ws.name,
+            searchName  = ws.name:lower(),
+            type        = ws.isHouse and (ws.isOwnedHouse and TYPE_HOUSE_OWNED or TYPE_HOUSE_UNOWNED)
+                       or TYPE_WAYSHRINE,
+            icon        = ws.icon,
+            nodeIndex   = ws.nodeIndex,
+            zoneId      = ws.zoneId,
+            zoneIndex   = ws.zoneIndex,
+            poiIndex    = ws.poiIndex,
+            mapIndex    = ws.mapIndex,
+            zoneName    = ws.zoneName,
+            known       = ws.known,
+            isLocked    = ws.isLocked,
+            houseId     = ws.houseId,
+            mapPriority = ws.mapPriority,
         }
     end
 
@@ -414,9 +509,14 @@ local function BuildCandidates()
     end
 
     for _, poi in ipairs(scannedData.pois) do
-        local poiTypeLabel = GetPOITypeLabel(poi.icon)
+        local poiTypeLabel = GetPOITypeLabel(poi.icon, poi.poiType)
         local isHousePOI   = poiTypeLabel == GetString(SI_GPH_MAPSEARCH_LABEL_HOUSE)
-        local entryType    = isHousePOI
+        local matchedOwnedHouse = nil
+        if isHousePOI and poi.isOwned and poi.name then
+            local key = (poi.name:lower()) .. "|" .. tostring(poi.zoneId or 0)
+            matchedOwnedHouse = ownedHouseByKey[key] or ownedHouseByName[poi.name:lower()]
+        end
+        local entryType = isHousePOI
             and (poi.isOwned and TYPE_HOUSE_OWNED or TYPE_HOUSE_UNOWNED)
             or TYPE_POI
 
@@ -431,6 +531,8 @@ local function BuildCandidates()
                 zoneId       = cityZoneId,
                 zoneIndex    = GetZoneIndex(cityZoneId),
                 mapIndex     = GetMapIndexByZoneId(cityZoneId),
+                nodeIndex    = matchedOwnedHouse and matchedOwnedHouse.nodeIndex or nil,
+                houseId      = matchedOwnedHouse and matchedOwnedHouse.houseId or nil,
                 isLocked     = poi.isLocked,
             }
         else
@@ -445,12 +547,15 @@ local function BuildCandidates()
                 poiIndex     = poi.poiIndex,
                 mapIndex     = poi.mapIndex,
                 zoneName     = poi.zoneName,
+                nodeIndex    = matchedOwnedHouse and matchedOwnedHouse.nodeIndex or nil,
+                houseId      = matchedOwnedHouse and matchedOwnedHouse.houseId or nil,
                 known        = poi.known,
                 isLocked     = poi.isLocked,
             }
         end
     end
 
+    scannedData = nil  -- free raw scan data; candidates table has everything needed
     return list
 end
 
@@ -506,6 +611,101 @@ end
 
 -- list
 
+local function GetCandidateSubText(c)
+    local parts = {}
+    if c.zoneName and c.zoneName ~= "" then
+        parts[#parts + 1] = c.zoneName
+    end
+    if c.type == TYPE_POI and c.poiTypeLabel then
+        parts[#parts + 1] = c.poiTypeLabel
+    elseif c.type == TYPE_WAYSHRINE then
+        local mp = c.mapPriority or 0
+        if mp >= 2 then
+            parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_WAYSHRINE_CAPITAL)
+        elseif mp == 1 then
+            parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_WAYSHRINE_MAJOR)
+        else
+            parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_WAYSHRINE)
+        end
+    elseif c.type == TYPE_HOUSE_OWNED or c.type == TYPE_HOUSE_UNOWNED then
+        parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_HOUSE)
+    elseif c.type == TYPE_LIFT then
+        parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_LIFT)
+    elseif c.type == TYPE_ZONE then
+        parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_ZONE)
+    end
+    return #parts > 0 and table.concat(parts, " - ") or nil
+end
+
+local function ResolveOwnedHouseId(candidate)
+    if not candidate then return nil end
+    if candidate.houseId and candidate.houseId ~= 0 then
+        return candidate.houseId
+    end
+    if candidate.nodeIndex then
+        local hid = GetFastTravelNodeHouseId(candidate.nodeIndex)
+        if hid and hid ~= 0 then return hid end
+    end
+    local targetName = candidate.name and candidate.name:lower()
+    if not targetName then return nil end
+    for nodeIndex = 1, GetNumFastTravelNodes() do
+        local known, name, _, _, _, _, typePOI, _, _ = GetFastTravelNodeInfo(nodeIndex)
+        if known and typePOI == POI_TYPE_HOUSE and name and name:lower() == targetName then
+            local hid = GetFastTravelNodeHouseId(nodeIndex)
+            if hid and hid ~= 0 and HasCompletedFastTravelNodePOI(nodeIndex) then
+                return hid
+            end
+        end
+    end
+    return nil
+end
+
+local function GetCandidateCostSubText(c)
+    -- Cost display moved to a dedicated top label below search box.
+    return nil
+end
+
+local function GetStableRecallCost()
+    if GetInteractionType and GetInteractionType() == INTERACTION_FAST_TRAVEL then
+        return 0
+    end
+    if not GetRecallCost then return 0 end
+    for nodeIndex = 1, GetNumFastTravelNodes() do
+        local known, _, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
+        if known and not isLocked and typePOI == POI_TYPE_WAYSHRINE then
+            return GetRecallCost(nodeIndex) or 0
+        end
+    end
+    return 0
+end
+
+local function FormatRecallCostAmount(cost)
+    local canAfford = cost == 0 or cost <= GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER)
+    local coloredNum = (canAfford and "|cFFFFFF" or "|cff4444") .. ZO_CommaDelimitNumber(cost) .. "|r"
+    return zo_strformat(SI_GPH_MAPSEARCH_RECALL_COST_AMOUNT, coloredNum)
+end
+
+local function UpdateRecallCostLabel()
+    if not recallCostLabel then return end
+    recallCostLabel:SetText(FormatRecallCostAmount(GetStableRecallCost()))
+end
+
+local function StopListCostLoop()
+    listCostLoopId = listCostLoopId + 1
+end
+
+local function StartListCostLoop()
+    StopListCostLoop()
+    local myId = listCostLoopId
+    local function loop()
+        if listCostLoopId ~= myId or not IsFragmentShowing() then return end
+        UpdateRecallCostLabel()
+        zo_callLater(loop, 1000)
+    end
+    zo_callLater(loop, 1000)
+end
+
+
 local CAT_NAMES = {
     [TYPE_WAYSHRINE]     = GetString(SI_GPH_MAPSEARCH_GROUP_WAYSHRINES),
     [TYPE_LIFT]          = GetString(SI_GPH_MAPSEARCH_GROUP_LIFTS),
@@ -515,20 +715,40 @@ local CAT_NAMES = {
     [TYPE_HOUSE_UNOWNED] = GetString(SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES),
 }
 
-local function RebuildList()
+local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmark)
+    local entryData = ZO_GamepadEntryData:New(displayName or c.name, c.icon)
+    entryData.candidate     = c
+    entryData.narrationText = BuildCandidateNarrationText(c, narrationBookmark == true)
+    entryData:SetIconTintOnSelection(true)
+    entryData:SetShowUnselectedSublabels(true)
+    if isBookmarked then
+        entryData.isBookmark = true
+    end
+    if c.isLocked then
+        entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds")
+    end
+    local sub = GetCandidateSubText(c)
+    if sub then entryData:AddSubLabel(sub) end
+    local costSub = GetCandidateCostSubText(c)
+    if costSub then entryData:AddSubLabel(costSub) end
+    return entryData
+end
+
+RebuildList = function()
     if not listObject then return end
+    local rowIndex = 0
     listObject:Clear()
 
     local bookmarks = GetBookmarksArray()
+    local bookmarkedByKey = {}
+    for _, bm in ipairs(bookmarks) do
+        bookmarkedByKey[GetBookmarkKey(bm)] = true
+    end
 
     if currentTerm == "" then
         for i, bm in ipairs(bookmarks) do
-            local entryData = ZO_GamepadEntryData:New(bm.name, bm.icon)
-            entryData.candidate     = bm
-            entryData.isBookmark    = true
-            entryData.narrationText = BuildCandidateNarrationText(bm, true)
-            entryData:SetIconTintOnSelection(true)
-            if bm.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
+            local entryData = BuildListEntryData(bm, bm.name, true, true)
+            rowIndex = rowIndex + 1
             if i == 1 then
                 entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_BOOKMARKS))
                 listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
@@ -540,14 +760,12 @@ local function RebuildList()
         -- Owned houses below bookmarks when no search term
         if candidates then
             local bookmarkKeys = {}
-            for _, bm in ipairs(bookmarks) do bookmarkKeys[MakeBookmarkKey(bm)] = true end
+            for _, bm in ipairs(bookmarks) do bookmarkKeys[GetBookmarkKey(bm)] = true end
             local firstHouse = true
             for _, c in ipairs(candidates) do
-                if c.type == TYPE_HOUSE_OWNED and not bookmarkKeys[MakeBookmarkKey(c)] then
-                    local entryData = ZO_GamepadEntryData:New(c.name, c.icon)
-                    entryData.candidate     = c
-                    entryData.narrationText = BuildCandidateNarrationText(c, false)
-                    entryData:SetIconTintOnSelection(true)
+                if c.type == TYPE_HOUSE_OWNED and not bookmarkKeys[GetBookmarkKey(c)] then
+                    local entryData = BuildListEntryData(c, c.name, false, false)
+                    rowIndex = rowIndex + 1
                     if firstHouse then
                         firstHouse = false
                         entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES))
@@ -559,22 +777,74 @@ local function RebuildList()
             end
         end
     elseif #results > 0 then
-        local lastType = nil
-        for _, c in ipairs(results) do
-            local displayName = IsBookmarked(c)
-                and zo_iconTextFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 24, 24, c.name)
-                or c.name
-            local entryData = ZO_GamepadEntryData:New(displayName, c.icon)
-            entryData.candidate     = c
-            entryData.narrationText = BuildCandidateNarrationText(c, IsBookmarked(c))
-            entryData:SetIconTintOnSelection(true)
-            if c.isLocked then entryData:AddIcon("EsoUI/Art/Miscellaneous/status_locked.dds") end
-            if c.type ~= lastType then
-                lastType = c.type
-                entryData:SetHeader(CAT_NAMES[c.type] or GetString(SI_GPH_MAPSEARCH_GROUP_OTHER))
-                listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
-            else
-                listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+        local sv = GetSavedVars()
+        local groupByLocation = sv and sv.mapSearchGroupByLocation == true
+
+        if groupByLocation then
+            local groupedByLocation = {}
+            local locationOrder = {}
+            for _, c in ipairs(results) do
+                local key = (c.zoneName and c.zoneName ~= "") and c.zoneName or GetString(SI_GPH_MAPSEARCH_GROUP_OTHER)
+                if not groupedByLocation[key] then
+                    groupedByLocation[key] = {}
+                    locationOrder[#locationOrder + 1] = key
+                end
+                groupedByLocation[key][#groupedByLocation[key] + 1] = c
+            end
+
+            for _, location in ipairs(locationOrder) do
+                local bucket = groupedByLocation[location]
+                local firstInLocation = true
+                for _, c in ipairs(bucket) do
+                    local isBookmarked = bookmarkedByKey[GetBookmarkKey(c)] == true
+                    local displayName = isBookmarked
+                        and zo_iconTextFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 24, 24, c.name)
+                        or c.name
+                    local entryData = BuildListEntryData(c, displayName, false, isBookmarked)
+                    rowIndex = rowIndex + 1
+                    if firstInLocation then
+                        firstInLocation = false
+                        entryData:SetHeader(location)
+                        listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                    else
+                        listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                    end
+                end
+            end
+        else
+            local grouped = {}
+            for _, c in ipairs(results) do
+                if not grouped[c.type] then grouped[c.type] = {} end
+                grouped[c.type][#grouped[c.type] + 1] = c
+            end
+            local typeOrder = {
+                TYPE_WAYSHRINE,
+                TYPE_LIFT,
+                TYPE_ZONE,
+                TYPE_POI,
+                TYPE_HOUSE_OWNED,
+                TYPE_HOUSE_UNOWNED,
+            }
+            for _, t in ipairs(typeOrder) do
+                local bucket = grouped[t]
+                if bucket and #bucket > 0 then
+                    local firstInType = true
+                    for _, c in ipairs(bucket) do
+                        local isBookmarked = bookmarkedByKey[GetBookmarkKey(c)] == true
+                        local displayName = isBookmarked
+                            and zo_iconTextFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 24, 24, c.name)
+                            or c.name
+                        local entryData = BuildListEntryData(c, displayName, false, isBookmarked)
+                        rowIndex = rowIndex + 1
+                        if firstInType then
+                            firstInType = false
+                            entryData:SetHeader(CAT_NAMES[c.type] or GetString(SI_GPH_MAPSEARCH_GROUP_OTHER))
+                            listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                        else
+                            listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                        end
+                    end
+                end
             end
         end
     end
@@ -592,14 +862,33 @@ end
 
 -- map interaction
 
-local function AddPing(x, y)
+local postTeleportDestination = nil
+
+local function AddMapPin(x, y)
+    local sv = GetSavedVars()
+    if sv ~= nil and sv.mapSearchMapPin == false then return end
     local pinMgr = ZO_WorldMap_GetPinManager and ZO_WorldMap_GetPinManager()
     if not pinMgr then return end
     pinMgr:RemovePins("pings")
     pinMgr:CreatePin(MAP_PIN_TYPE_AUTO_MAP_NAVIGATION_PING, "pings", x, y)
-    local sv = _G["GamePadHelper_SavedVars"]
-    if sv == nil or sv.mapSearchSetDestination ~= false then
-        PingMap(MAP_PIN_TYPE_PLAYER_WAYPOINT, MAP_TYPE_LOCATION_CENTERED, x, y)
+end
+
+
+local function StorePostTeleportDestination(c)
+    local sv = GetSavedVars()
+    if sv ~= nil and sv.mapSearchSetDestination == false then return end
+    if c.zoneIndex and c.poiIndex then
+        local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
+        if nx and nx > 0 then
+            postTeleportDestination = { x = nx, y = ny }
+            return
+        end
+    end
+    if c.nodeIndex then
+        local _, _, nx, ny = GetFastTravelNodeInfo(c.nodeIndex)
+        if nx and nx > 0 then
+            postTeleportDestination = { x = nx, y = ny }
+        end
     end
 end
 
@@ -619,11 +908,15 @@ local function CenterMapOnCandidate(c)
             local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
             if nx and nx > 0 then
                 ZO_WorldMap_PanToNormalizedPosition(nx, ny)
-                AddPing(nx, ny)
+                AddMapPin(nx, ny)
                 return
             end
         end
         if c.type == TYPE_WAYSHRINE and c.nodeIndex then
+            local _, _, nx, ny = GetFastTravelNodeInfo(c.nodeIndex)
+            if nx and nx > 0 then
+                AddMapPin(nx, ny)
+            end
             ZO_WorldMap_PanToWayshrine(c.nodeIndex)
         end
     end
@@ -744,7 +1037,8 @@ local function BuildKeybindDescriptor()
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
                     local c = td.candidate
-                    if c.isLocked then return false end
+                    -- Keep enabled for wayshrines locked by DLC/chapter so pressing opens the shop
+                    if c.isLocked and not c.nodeIndex then return false end
                 end
                 return true
             end,
@@ -762,12 +1056,27 @@ local function BuildKeybindDescriptor()
                 GamePadHelperSavedVars.lastSelectedPOI = c
 
                 if c.isLocked then
-                    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_ZONE_LOCKED))
+                    local collectibleData
+                    if c.nodeIndex then
+                        local collectibleId = GetFastTravelNodeLinkedCollectibleId(c.nodeIndex)
+                        collectibleData     = ZO_COLLECTIBLE_DATA_MANAGER:GetCollectibleDataById(collectibleId)
+                    end
+                    if collectibleData then
+                        ZO_Dialogs_ShowCollectibleRequirementFailedPlatformDialog(collectibleData, c.name, MARKET_OPEN_OPERATION_DLC_FAILURE_TELEPORT_TO_ZONE)
+                    else
+                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_ZONE_LOCKED))
+                    end
                     return
                 end
 
-                if c.type == TYPE_HOUSE_OWNED and c.houseId then
+                if c.type == TYPE_HOUSE_OWNED then
+                    local houseId = ResolveOwnedHouseId(c)
+                    if houseId then c.houseId = houseId end
                     if not CanJumpToHouseFromCurrentLocation() then
+                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_NO_HOUSE_TRAVEL))
+                        return
+                    end
+                    if not c.houseId then
                         ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_NO_HOUSE_TRAVEL))
                         return
                     end
@@ -778,6 +1087,9 @@ local function BuildKeybindDescriptor()
                 local nodeIndex, failReason = nil, nil
                 if c.type == TYPE_WAYSHRINE and c.known then
                     nodeIndex = c.nodeIndex
+                elseif c.type == TYPE_ZONE and c.zoneId then
+                    nodeIndex = FindBestDiscoveredWayshrineFromScan(c)
+                    if not nodeIndex then failReason = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
                 elseif c.zoneIndex and c.poiIndex then
                     local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
                     if nx and ny then
@@ -798,15 +1110,16 @@ local function BuildKeybindDescriptor()
 
                 local atWayshrine = GetInteractionType() == INTERACTION_FAST_TRAVEL
                 local cost = (not atWayshrine) and GetRecallCost(nodeIndex) or 0
+                StorePostTeleportDestination(c)
                 if cost > 0 then
-                    local sv = _G["GamePadHelper_SavedVars"]
-                    if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
-                        local poi = GamePadHelperSavedVars and GamePadHelperSavedVars.lastSelectedPOI
-                        postTeleportMsg = poi and zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, poi.name) or GetString(SI_GPH_MAPSEARCH_TELEPORTED)
-                    end
-                    ZO_Dialogs_ShowGamepadDialog("GPH_TELEPORT_CONFIRM", { nodeIndex = nodeIndex })
+                    ZO_Dialogs_ShowGamepadDialog("GPH_TELEPORT_CONFIRM", {
+                        nodeIndex = nodeIndex,
+                        candidate = c,
+                        name      = c.name,
+                        cost      = cost,
+                    })
                 else
-                    local sv = _G["GamePadHelper_SavedVars"]
+                    local sv = GetSavedVars()
                     if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
                         postTeleportMsg = zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, c.name)
                     end
@@ -840,6 +1153,7 @@ function GPH_MapSearch_OnShown(edit)
     end)
     RunSearch(currentTerm)
     RebuildList()
+    UpdateRecallCostLabel()
 end
 
 function GPH_MapSearch_OnTextChanged(text)
@@ -901,11 +1215,19 @@ local function InitList(control)
         if not (editControl and editControl:HasFocus()) then
             SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
         end
+        local td = listObject:GetTargetData()
+        local c = td and td.candidate
+        if c then
+        else
+            ZO_WorldMap_HideAllTooltips()
+        end
     end)
 end
 
 local function InsertMapSearchTab()
     if GPH_SEARCH_TAB_INSERTED then return end
+    local sv = GetSavedVars()
+    if sv ~= nil and sv.mapSearchEnabled == false then return end
 
     local mapInfo = GAMEPAD_WORLD_MAP_INFO
     if not mapInfo or not mapInfo.tabBarEntries or not mapInfo.header then return end
@@ -917,23 +1239,15 @@ local function InsertMapSearchTab()
 
     local searchBar = control:GetNamedChild("Main"):GetNamedChild("SearchBar")
     searchBarBG     = searchBar:GetNamedChild("BG")
+    local recallRow   = control:GetNamedChild("Main"):GetNamedChild("RecallRow")
+    local recallTitle = recallRow and recallRow:GetNamedChild("RecallCostTitle") or nil
+    if recallTitle then recallTitle:SetText(GetString(SI_GPH_MAPSEARCH_RECALL_COST)) end
+    recallCostLabel = recallRow and recallRow:GetNamedChild("RecallCostValue") or nil
+    UpdateRecallCostLabel()
 
     BuildKeybindDescriptor()
 
     GPH_SEARCH_FRAGMENT = ZO_SimpleSceneFragment:New(control)
-
-    SCREEN_NARRATION_MANAGER:RegisterCustomObject("GPH_MapSearch_PostTeleport", {
-        narrationType = NARRATION_TYPE_UI_INTERACTIONS,
-        canNarrate    = function() return pendingNarration ~= nil end,
-        selectedNarrationFunction = function()
-            local narrations = {}
-            if pendingNarration then
-                ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(pendingNarration))
-                pendingNarration = nil
-            end
-            return narrations
-        end,
-    })
 
     SCREEN_NARRATION_MANAGER:RegisterCustomObject("GPH_MapSearch_Narration", {
         narrationType = NARRATION_TYPE_UI_INTERACTIONS,
@@ -959,6 +1273,8 @@ local function InsertMapSearchTab()
         if newState == SCENE_SHOWING then
             RunSearch(currentTerm)
             RebuildList()
+            UpdateRecallCostLabel()
+            StartListCostLoop()
             if listObject then
                 listObject:Activate()
                 local numItems = listObject:GetNumItems()
@@ -979,6 +1295,7 @@ local function InsertMapSearchTab()
             KEYBIND_STRIP:RemoveKeybindButtonGroup(keybindDescriptor)
             if editControl then editControl:LoseFocus() end
             pendingNarration = nil
+            StopListCostLoop()
         end
     end)
 
@@ -1004,6 +1321,11 @@ local function OnAddonLoaded(_, name)
     if name ~= "GamePadHelper" then return end
     EVENT_MANAGER:UnregisterForEvent("MapSearch", EVENT_ADD_ON_LOADED)
 
+    EVENT_MANAGER:RegisterForEvent("MapSearch_PreScan", EVENT_PLAYER_ACTIVATED, function()
+        EVENT_MANAGER:UnregisterForEvent("MapSearch_PreScan", EVENT_PLAYER_ACTIVATED)
+        if not scannedData then PreScan() end
+    end)
+
     EVENT_MANAGER:RegisterForEvent("MapSearch_Teleport", EVENT_PLAYER_ACTIVATED, function()
         if postTeleportMsg then
             local msg = postTeleportMsg
@@ -1014,67 +1336,14 @@ local function OnAddonLoaded(_, name)
                 CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
             end, 500)
         end
+        if postTeleportDestination then
+            local dest = postTeleportDestination
+            postTeleportDestination = nil
+            zo_callLater(function()
+                PingMap(MAP_PIN_TYPE_PLAYER_WAYPOINT, MAP_TYPE_LOCATION_CENTERED, dest.x, dest.y)
+            end, 500)
+        end
     end)
-
-    ZO_Dialogs_RegisterCustomDialog("GPH_TELEPORT_CONFIRM", {
-        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        title       = { text = SI_PROMPT_TITLE_FAST_TRAVEL_CONFIRM },
-        mainText    = {
-            text = function(dialog)
-                local nodeIndex = dialog.data and dialog.data.nodeIndex
-                if not nodeIndex then return "" end
-                local name = select(2, GetFastTravelNodeInfo(nodeIndex))
-                local cooldown = GetRecallCooldown()
-                if cooldown and cooldown > 0 then
-                    return zo_strformat(GetString(SI_GAMEPAD_FAST_TRAVEL_DIALOG_PREMIUM), name, ZO_FormatTimeMilliseconds(cooldown, TIME_FORMAT_STYLE_SHOW_LARGEST_TWO_UNITS, TIME_FORMAT_PRECISION_SECONDS))
-                else
-                    return zo_strformat(GetString(SI_GAMEPAD_FAST_TRAVEL_DIALOG_RECALL_MAIN_TEXT), name)
-                end
-            end,
-        },
-        setup = function(dialog)
-            local nodeIndex = dialog.data and dialog.data.nodeIndex
-            local cost = nodeIndex and GetRecallCost(nodeIndex) or 0
-            local currency = nodeIndex and GetRecallCurrency(nodeIndex) or CURT_MONEY
-            local headerData = {
-                data1 = {
-                    header = GetString(SI_GAMEPAD_SKILL_RESPEC_CONFIRM_DIALOG_BALANCE_HEADER),
-                    value = function(control)
-                        ZO_CurrencyControl_SetSimpleCurrency(control, currency, GetCurrencyAmount(currency, CURRENCY_LOCATION_CHARACTER), ZO_GAMEPAD_CURRENCY_OPTIONS)
-                        return true
-                    end,
-                },
-                data2 = {
-                    header = GetString(SI_GAMEPAD_BUY_BAG_SPACE_COST),
-                    value = function(control)
-                        ZO_CurrencyControl_SetSimpleCurrency(control, currency, cost, ZO_GAMEPAD_CURRENCY_OPTIONS)
-                        return true
-                    end,
-                },
-            }
-            dialog:setupFunc(headerData)
-        end,
-        buttons = {
-            {
-                text = SI_DIALOG_CONFIRM,
-                callback = function(dialog)
-                    local nodeIndex = dialog.data and dialog.data.nodeIndex
-                    if nodeIndex then
-                        FastTravelToNode(nodeIndex)
-                        SCENE_MANAGER:ShowBaseScene()
-                    end
-                end,
-                visible = function(dialog)
-                    local nodeIndex = dialog.data and dialog.data.nodeIndex
-                    if not nodeIndex then return true end
-                    local cost = GetRecallCost(nodeIndex)
-                    local currency = GetRecallCurrency(nodeIndex)
-                    return cost <= GetCurrencyAmount(currency, CURRENCY_LOCATION_CHARACTER)
-                end,
-            },
-            { text = SI_DIALOG_CANCEL },
-        },
-    })
 
     ZO_Dialogs_RegisterCustomDialog("GPH_UNBOOKMARK_CONFIRM", {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
@@ -1105,6 +1374,80 @@ local function OnAddonLoaded(_, name)
             },
             { keybind = "DIALOG_NEGATIVE", text = SI_NO },
         },
+    })
+
+    ZO_Dialogs_RegisterCustomDialog("GPH_TELEPORT_CONFIRM", {
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
+        canQueue    = true,
+        title = {
+            text = SI_PROMPT_TITLE_FAST_TRAVEL_CONFIRM,
+        },
+        mainText = {
+            text = function(dialog)
+                if not dialog.data then return "" end
+                local destination   = dialog.data.nodeIndex
+                local wayshrineName = dialog.data.name
+                local cost          = GetRecallCost(destination)
+                local currency      = GetRecallCurrency(destination)
+                local canAfford     = cost <= GetCurrencyAmount(currency, CURRENCY_LOCATION_CHARACTER)
+                local cooldown      = GetRecallCooldown()
+                local cooldownStr   = ZO_FormatTimeMilliseconds(cooldown, TIME_FORMAT_STYLE_SHOW_LARGEST_TWO_UNITS, TIME_FORMAT_PRECISION_SECONDS)
+
+                local baseId
+                if cost == 0 then
+                    baseId = SI_GAMEPAD_FAST_TRAVEL_DIALOG_MAIN_TEXT
+                elseif cooldown == 0 then
+                    baseId = canAfford and SI_GAMEPAD_FAST_TRAVEL_DIALOG_RECALL_MAIN_TEXT
+                                       or SI_GAMEPAD_FAST_TRAVEL_DIALOG_CANT_AFFORD
+                else
+                    baseId = canAfford and SI_GAMEPAD_FAST_TRAVEL_DIALOG_PREMIUM
+                                       or SI_GAMEPAD_FAST_TRAVEL_DIALOG_CANT_AFFORD_PREMIUM
+                end
+
+                local text = zo_strformat(baseId, wayshrineName, cooldownStr)
+
+                if cost > 0 then
+                    text = text
+                        .. "\n\n" .. GetString(SI_GPH_MAPSEARCH_RECALL_COST)
+                        .. "\n"   .. FormatRecallCostAmount(cost)
+                end
+                return text
+            end,
+        },
+        buttons = {
+            {
+                text     = SI_DIALOG_CONFIRM,
+                callback = function(dialog)
+                    if not dialog.data then return end
+                    local d  = dialog.data
+                    local sv = GetSavedVars()
+                    if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
+                        postTeleportMsg = zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, d.name)
+                    end
+                    FastTravelToNode(d.nodeIndex)
+                    SCENE_MANAGER:ShowBaseScene()
+                end,
+                visible = function(dialog)
+                    if not dialog.data then return false end
+                    local destination = dialog.data.nodeIndex
+                    local currency    = GetRecallCurrency(destination)
+                    return GetRecallCost(destination) <= GetCurrencyAmount(currency, CURRENCY_LOCATION_CHARACTER)
+                end,
+            },
+            {
+                text = SI_DIALOG_CANCEL,
+            },
+        },
+        updateFn = function(dialog)
+            if not dialog.data then return end
+            local remainingTime = GetRecallCooldown()
+            local onCooldown    = remainingTime > 0
+            if onCooldown or dialog.onCooldown ~= onCooldown then
+                ZO_Dialogs_UpdateDialogMainText(dialog)
+                dialog.onCooldown = onCooldown
+            end
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        end,
     })
 
     GAMEPAD_WORLD_MAP_SCENE:RegisterCallback("StateChange", function(_, newState)
