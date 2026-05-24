@@ -80,6 +80,13 @@ end
 
 local function GetBookmarksArray()
     if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
+    local sv = GetSavedVars()
+    if sv and sv.mapSearchBookmarksAccountWide == true then
+        if not GamePadHelperSavedVars.mapSearchBookmarksAccountWide then
+            GamePadHelperSavedVars.mapSearchBookmarksAccountWide = {}
+        end
+        return GamePadHelperSavedVars.mapSearchBookmarksAccountWide
+    end
     local charName = GetUnitName("player")
     if not GamePadHelperSavedVars.mapSearchBookmarks then
         GamePadHelperSavedVars.mapSearchBookmarks = {}
@@ -88,6 +95,44 @@ local function GetBookmarksArray()
         GamePadHelperSavedVars.mapSearchBookmarks[charName] = {}
     end
     return GamePadHelperSavedVars.mapSearchBookmarks[charName]
+end
+
+local function GetRecentArray()
+    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
+    if not GamePadHelperSavedVars.mapSearchRecent then
+        GamePadHelperSavedVars.mapSearchRecent = {}
+    end
+    return GamePadHelperSavedVars.mapSearchRecent
+end
+
+local function AddRecent(c)
+    if not c then return end
+    local key = GetBookmarkKey(c)
+    local recents = GetRecentArray()
+    for i = #recents, 1, -1 do
+        if GetBookmarkKey(recents[i]) == key then
+            table.remove(recents, i)
+        end
+    end
+    table.insert(recents, 1, {
+        key        = key,
+        name       = c.name,
+        searchName = c.searchName,
+        type       = c.type,
+        icon       = c.icon,
+        nodeIndex  = c.nodeIndex,
+        zoneId     = c.zoneId,
+        zoneIndex  = c.zoneIndex,
+        mapIndex   = c.mapIndex,
+        poiIndex   = c.poiIndex,
+        zoneName   = c.zoneName,
+        isLocked   = c.isLocked,
+        known      = c.known,
+        houseId    = c.houseId,
+    })
+    while #recents > 8 do
+        table.remove(recents)
+    end
 end
 
 local function IsBookmarked(c)
@@ -775,6 +820,22 @@ RebuildList = function()
             end
         end
 
+        local recents = GetRecentArray()
+        local firstRecent = true
+        for _, recent in ipairs(recents) do
+            if not bookmarkedByKey[GetBookmarkKey(recent)] then
+                local entryData = BuildListEntryData(recent, recent.name, false, false)
+                rowIndex = rowIndex + 1
+                if firstRecent then
+                    firstRecent = false
+                    entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_RECENT))
+                    listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                else
+                    listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
+                end
+            end
+        end
+
         -- Owned houses below bookmarks when no search term
         if candidates then
             local bookmarkKeys = {}
@@ -970,6 +1031,7 @@ local function BuildKeybindDescriptor()
                 end
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
+                    AddRecent(td.candidate)
                     if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
                     GamePadHelperSavedVars.lastSelectedPOI = td.candidate
                     CenterMapOnCandidate(td.candidate)
@@ -1070,6 +1132,7 @@ local function BuildKeybindDescriptor()
                 if not td or not td.candidate then return end
                 local c = td.candidate
 
+                AddRecent(c)
                 if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
                 GamePadHelperSavedVars.lastSelectedPOI = c
 

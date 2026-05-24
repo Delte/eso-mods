@@ -29,6 +29,9 @@ local GPH_COMPANION_TRACKER_KEY = "overviewCompanionTracker"
 local GPH_DAILY_WRIT_TRACKER_KEY = "overviewDailyWritTracker"
 local TASKS_CACHE_TTL_MS = 30000
 local DAILY_RESET_REFRESH_NAMESPACE = "GPH_OverviewTasks_DailyResetRefresh"
+local SECONDS_IN_DAY = 86400
+local NA_RESET_ANCHOR_TIME = 1735639200
+local EU_RESET_OFFSET_SECONDS = 25200
 local tasksCacheText = nil
 local tasksCacheTimeMs = 0
 local tasksCacheDirty = true
@@ -74,19 +77,19 @@ function Tasks.InvalidateCache()
 end
 
 local function GetFallbackSecondsUntilDailyReset()
-  if not GetTimeStamp then return 86400 end
+  if not GetTimeStamp then return SECONDS_IN_DAY end
 
   local now = GetTimeStamp()
-  local worldName = GetWorldName and zo_strlower(GetWorldName() or "") or ""
-  local resetHourUtc = worldName:find("eu", 1, true) and 3 or 10
+  local anchorTime = GetTimedActivityTypeResetTimeS and TIMED_ACTIVITY_TYPE_WEEKLY and GetTimedActivityTypeResetTimeS(TIMED_ACTIVITY_TYPE_WEEKLY) or 0
+  local worldName = GetWorldName and GetWorldName() or ""
+  local isEuServer = worldName == "EU Megaserver" or worldName == "XB1live-eu" or worldName == "PS4live-eu"
 
-  local dayStart = now - (now % 86400)
-  local resetAt = dayStart + (resetHourUtc * 3600)
-  if resetAt <= now then
-    resetAt = resetAt + 86400
+  if not anchorTime or anchorTime <= 0 then
+    anchorTime = isEuServer and (NA_RESET_ANCHOR_TIME - EU_RESET_OFFSET_SECONDS) or NA_RESET_ANCHOR_TIME
   end
 
-  return resetAt - now
+  local previousReset = anchorTime + zo_floor((now - anchorTime) / SECONDS_IN_DAY) * SECONDS_IN_DAY
+  return previousReset + SECONDS_IN_DAY - now
 end
 
 local function GetSecondsUntilDailyResetSafe()
@@ -626,29 +629,17 @@ local function CountAllInventoryItems()
   local treasureCount = 0
   local totalSurveyCount = 0
   local totalWritCount = 0
-  local treasureKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_TREASURE) or "")
-  local mapKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_MAP) or "")
-  local surveyKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_SURVEY) or "")
-  local writKeyword = zo_strlower(GetString(SI_GPH_OVERVIEW_KEYWORD_WRIT) or "")
-
-  local function NameContains(name, keyword)
-    return keyword ~= "" and name:find(keyword, 1, true) ~= nil
-  end
 
   for bagId = BAG_BACKPACK, BAG_SUBSCRIBER_BANK do
     for slotIndex = 0, GetBagSize(bagId) - 1 do
       if GetItemId(bagId, slotIndex) > 0 then
-        local itemName = GetItemName(bagId, slotIndex)
-        if itemName then
-          local itemNameLower = zo_strlower(itemName)
-
-          if NameContains(itemNameLower, treasureKeyword) and NameContains(itemNameLower, mapKeyword) then
-            treasureCount = treasureCount + GetSlotStackSize(bagId, slotIndex)
-          elseif NameContains(itemNameLower, surveyKeyword) then
-            totalSurveyCount = totalSurveyCount + GetSlotStackSize(bagId, slotIndex)
-          elseif NameContains(itemNameLower, writKeyword) then
-            totalWritCount = totalWritCount + GetSlotStackSize(bagId, slotIndex)
-          end
+        local itemType, specializedItemType = GetItemType(bagId, slotIndex)
+        if specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP then
+          treasureCount = treasureCount + GetSlotStackSize(bagId, slotIndex)
+        elseif specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT then
+          totalSurveyCount = totalSurveyCount + GetSlotStackSize(bagId, slotIndex)
+        elseif itemType == ITEMTYPE_MASTER_WRIT or specializedItemType == SPECIALIZED_ITEMTYPE_MASTER_WRIT then
+          totalWritCount = totalWritCount + GetSlotStackSize(bagId, slotIndex)
         end
       end
     end
@@ -683,8 +674,22 @@ local function GetScryableAntiquitiesInfo()
   return totalLeads, totalMinTimeRemaining, urgentZoneName
 end
 
+local function GetLocalClockText()
+  if not os or not os.date then return nil end
+  local ok, localTime = pcall(os.date, "%H:%M")
+  if ok and localTime and localTime ~= "" then
+    return localTime
+  end
+  return nil
+end
+
 local function BuildRightTooltipDescription()
   local tasksDescription = ""
+
+  local localTime = GetLocalClockText()
+  if localTime then
+    tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LOCAL_TIME) .. "|r |cFFFFFF" .. localTime .. "|r\n\n"
+  end
 
   local totalCount, totalMinTime, urgentZoneName = GetScryableAntiquitiesInfo()
   local isUrgent = totalMinTime and (totalMinTime / 86400) <= 3

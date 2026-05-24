@@ -11,7 +11,8 @@ Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsav
 ## What's New in 1.06.10
 
 - **Menu performance improvements** - reduced repeated scanning in Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing.
-- **Overview optimization** - task summaries now cache expensive inventory, antiquity, crafting, writ, and companion checks and refresh when relevant game data changes.
+- **Overview optimization** - task summaries now cache expensive inventory, antiquity, crafting, writ, and companion checks, refresh when relevant game data changes, and schedule an update at the daily reset.
+- **No-quest overview fix** - the Tasks panel now still appears when a character has no active quest, while the Quest panel stays hidden.
 - **Map Search teleport fix** - Map Search owns its teleport keybind while the GPH Search tab is open, so the separate world-map teleporter no longer intercepts it.
 - **Tooltip Price optimization** - repeated price lookups are cached briefly and external price-line filtering is lighter.
 - **Map Search responsiveness** - duplicate searches and recall-cost scans are reduced.

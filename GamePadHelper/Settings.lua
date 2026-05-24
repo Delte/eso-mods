@@ -240,6 +240,12 @@ local function BuildSettingsData()
         SetSetting("mapSearchGroupByLocation", v)
     end, nil, mapSearchDisabled))
 
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_ACCOUNT_BOOKMARKS_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_ACCOUNT_BOOKMARKS_TOOLTIP), function()
+        return GetBoolSetting("mapSearchBookmarksAccountWide", false)
+    end, function(v)
+        SetSetting("mapSearchBookmarksAccountWide", v)
+    end, nil, mapSearchDisabled))
+
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_SET_DESTINATION_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_SET_DESTINATION_TOOLTIP), function()
         return GetBoolSetting("mapSearchSetDestination", true)
     end, function(v)
