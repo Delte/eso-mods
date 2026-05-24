@@ -32,6 +32,7 @@ local scannedData = nil
 local candidates  = nil
 local results     = {}
 local currentTerm = ""
+local lastSearchTerm = nil
 
 local listObject        = nil
 local editControl       = nil
@@ -48,6 +49,8 @@ local listCostLoopId = 0
 local function IsFragmentShowing()
     return GPH_SEARCH_FRAGMENT ~= nil and GPH_SEARCH_FRAGMENT:IsShowing()
 end
+
+_G["GamePadHelper_MapSearch_IsShowing"] = IsFragmentShowing
 
 local function GetSavedVars()
     return _G["GamePadHelper_SavedVars"]
@@ -392,6 +395,7 @@ local function PreScan()
 
     scannedData = data
     candidates  = nil
+    lastSearchTerm = nil
 end
 
 -- candidates
@@ -588,6 +592,10 @@ end
 local function RunSearch(term)
     if not candidates then candidates = BuildCandidates() end
 
+    term = term or ""
+    if term == lastSearchTerm then return end
+    lastSearchTerm = term
+
     local termLower = term:lower()
     local scored    = {}
 
@@ -665,18 +673,28 @@ local function GetCandidateCostSubText(c)
     return nil
 end
 
+local cachedRecallNode = nil
+
+local function FindRecallNode()
+    if not GetRecallCost then return nil end
+    for nodeIndex = 1, GetNumFastTravelNodes() do
+        local known, _, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
+        if known and not isLocked and typePOI == POI_TYPE_WAYSHRINE then
+            return nodeIndex
+        end
+    end
+    return nil
+end
+
 local function GetStableRecallCost()
     if GetInteractionType and GetInteractionType() == INTERACTION_FAST_TRAVEL then
         return 0
     end
     if not GetRecallCost then return 0 end
-    for nodeIndex = 1, GetNumFastTravelNodes() do
-        local known, _, _, _, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
-        if known and not isLocked and typePOI == POI_TYPE_WAYSHRINE then
-            return GetRecallCost(nodeIndex) or 0
-        end
+    if not cachedRecallNode then
+        cachedRecallNode = FindRecallNode()
     end
-    return 0
+    return cachedRecallNode and (GetRecallCost(cachedRecallNode) or 0) or 0
 end
 
 local function FormatRecallCostAmount(cost)
@@ -1271,6 +1289,9 @@ local function InsertMapSearchTab()
 
     GPH_SEARCH_FRAGMENT:RegisterCallback("StateChange", function(_, newState)
         if newState == SCENE_SHOWING then
+            if _G["GamePadHelper_MapTeleporter_SetSuppressed"] then
+                _G["GamePadHelper_MapTeleporter_SetSuppressed"](true)
+            end
             RunSearch(currentTerm)
             RebuildList()
             UpdateRecallCostLabel()
@@ -1296,6 +1317,9 @@ local function InsertMapSearchTab()
             if editControl then editControl:LoseFocus() end
             pendingNarration = nil
             StopListCostLoop()
+            if _G["GamePadHelper_MapTeleporter_SetSuppressed"] then
+                _G["GamePadHelper_MapTeleporter_SetSuppressed"](false)
+            end
         end
     end)
 
@@ -1324,6 +1348,13 @@ local function OnAddonLoaded(_, name)
     EVENT_MANAGER:RegisterForEvent("MapSearch_PreScan", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent("MapSearch_PreScan", EVENT_PLAYER_ACTIVATED)
         if not scannedData then PreScan() end
+    end)
+
+    EVENT_MANAGER:RegisterForEvent("MapSearch_RecallNodeReset", EVENT_PLAYER_ACTIVATED, function()
+        cachedRecallNode = nil
+    end)
+    EVENT_MANAGER:RegisterForEvent("MapSearch_POIUpdated", EVENT_POI_UPDATED, function()
+        cachedRecallNode = nil
     end)
 
     EVENT_MANAGER:RegisterForEvent("MapSearch_Teleport", EVENT_PLAYER_ACTIVATED, function()

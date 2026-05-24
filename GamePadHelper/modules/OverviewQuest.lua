@@ -131,6 +131,17 @@ function Quest.GetValidQuestIndices()
   return indices
 end
 
+local function GetValidQuestCount()
+  local count = 0
+  for i = 1, MAX_JOURNAL_QUESTS do
+    if IsValidQuestIndex(i) then
+      count = count + 1
+      if count > 1 then return count end
+    end
+  end
+  return count
+end
+
 local function GetOverviewQuestIndex(state)
   if state.questIndexOverride and IsValidQuestIndex and IsValidQuestIndex(state.questIndexOverride) then
     return state.questIndexOverride
@@ -235,7 +246,7 @@ function Quest.ShouldShowKeybinds(state)
     return false
   end
 
-  if #Quest.GetValidQuestIndices() <= 1 then
+  if GetValidQuestCount() <= 1 then
     return false
   end
 

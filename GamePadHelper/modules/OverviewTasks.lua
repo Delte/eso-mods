@@ -27,6 +27,10 @@ local CRAFTING_TYPE_TO_WRIT_KEY = {
 
 local GPH_COMPANION_TRACKER_KEY = "overviewCompanionTracker"
 local GPH_DAILY_WRIT_TRACKER_KEY = "overviewDailyWritTracker"
+local TASKS_CACHE_TTL_MS = 30000
+local tasksCacheText = nil
+local tasksCacheTimeMs = 0
+local tasksCacheDirty = true
 
 local DAILY_WRIT_GROUPS = {
   { id = "blacksmith", displayQuestId = 5377, questIds = { 5368, 5377, 5392 } },
@@ -44,6 +48,23 @@ local function GetBoolSetting(key, default)
   local v = sv[key]
   if v == nil then return default end
   return v
+end
+
+local function GetNowMs()
+  if GetGameTimeMilliseconds then
+    return GetGameTimeMilliseconds()
+  end
+  if GetFrameTimeMilliseconds then
+    return GetFrameTimeMilliseconds()
+  end
+  if GetTimeStamp then
+    return GetTimeStamp() * 1000
+  end
+  return 0
+end
+
+function Tasks.InvalidateCache()
+  tasksCacheDirty = true
 end
 
 local function GPH_NormalizeLowerText(text)
@@ -386,6 +407,7 @@ end
 function Tasks.OnQuestRemoved(...)
   Tasks.OnQuestRemovedForCompanionTracker(...)
   OnQuestRemovedForDailyWritTracker(...)
+  Tasks.InvalidateCache()
 end
 
 local function FormatTimeRemaining(seconds)
@@ -567,7 +589,7 @@ local function GetScryableAntiquitiesInfo()
   return totalLeads, totalMinTimeRemaining, urgentZoneName
 end
 
-function Tasks.ShowRightTooltip(rightTooltip)
+local function BuildRightTooltipDescription()
   local tasksDescription = ""
 
   local totalCount, totalMinTime, urgentZoneName = GetScryableAntiquitiesInfo()
@@ -679,5 +701,38 @@ function Tasks.ShowRightTooltip(rightTooltip)
     tasksDescription = GetString(SI_GPH_OVERVIEW_TASKS_AVAILABLE)
   end
 
+  return tasksDescription
+end
+
+function Tasks.ShowRightTooltip(rightTooltip)
+  local nowMs = GetNowMs()
+  local tasksDescription = tasksCacheText
+
+  if tasksCacheDirty or not tasksDescription or (nowMs - tasksCacheTimeMs) >= TASKS_CACHE_TTL_MS then
+    tasksDescription = BuildRightTooltipDescription()
+    tasksCacheText = tasksDescription
+    tasksCacheTimeMs = nowMs
+    tasksCacheDirty = false
+  end
+
   GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(rightTooltip, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS) .. "|r", tasksDescription)
 end
+
+local function RegisterCacheInvalidationEvent(namespace, eventCode)
+  if eventCode then
+    EVENT_MANAGER:RegisterForEvent(namespace, eventCode, Tasks.InvalidateCache)
+  end
+end
+
+EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_Cache", EVENT_ADD_ON_LOADED, function(_, name)
+  if name ~= "GamePadHelper" then return end
+  EVENT_MANAGER:UnregisterForEvent("GPH_OverviewTasks_Cache", EVENT_ADD_ON_LOADED)
+
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_InventoryCache", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestAddedCache", EVENT_QUEST_ADDED)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestRemovedCache", EVENT_QUEST_REMOVED)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestAdvancedCache", EVENT_QUEST_ADVANCED)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_ResearchCompletedCache", EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_ResearchStartedCache", EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_StableCache", EVENT_MOUNT_INFO_UPDATED)
+end)
