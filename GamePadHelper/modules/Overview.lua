@@ -26,12 +26,7 @@ local function ShowTooltips()
   GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
   GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
   GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
-  State.ownsLeftPanel = true
-
-  if not Quest.ShowLeftTooltip(State) then
-    return
-  end
-
+  State.ownsLeftPanel = Quest.ShowLeftTooltip(State)
   Tasks.ShowRightTooltip(GetRightTooltip())
 end
 
@@ -154,10 +149,6 @@ function Overview:Initialize()
     if assisted then
       Quest.OnNativeQuestSelectionChanged(State, RefreshOverviewIfVisible)
     end
-  end)
-
-  EVENT_MANAGER:RegisterForEvent("GPH_Overview_CompanionRapportTracker", EVENT_QUEST_REMOVED, function(...)
-    Tasks.OnQuestRemoved(...)
   end)
 
   if FOCUSED_QUEST_TRACKER and FOCUSED_QUEST_TRACKER.ForceAssist then

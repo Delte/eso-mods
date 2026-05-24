@@ -65,6 +65,8 @@ end
 
 function Tasks.InvalidateCache()
   tasksCacheDirty = true
+  tasksCacheText = nil
+  tasksCacheTimeMs = 0
 end
 
 local function GPH_NormalizeLowerText(text)
@@ -341,6 +343,31 @@ local function GetDailyWritStatusByKey()
   local tracker = EnsureDailyWritTrackerState()
   if not tracker then return nil end
 
+  Tasks.RefreshDailyWritTrackerState(tracker)
+
+  local dailyWritLabel = GetString(SI_GPH_OVERVIEW_DAILY_WRIT)
+  local statusByKey = {}
+  for _, group in ipairs(DAILY_WRIT_GROUPS) do
+    local status
+    local isDone = false
+    if tracker.activeByWritKey[group.id] then
+      status = "|cFFFF66" .. GetString(SI_GPH_OVERVIEW_COMPANION_STATUS_IN_PROGRESS) .. "|r"
+    elseif tracker.doneByWritKey[group.id] then
+      status = "|c66FF66" .. GetString(SI_GPH_OVERVIEW_COMPANION_STATUS_DONE) .. "|r"
+      isDone = true
+    else
+      status = "|cAAAAAA" .. GetString(SI_GPH_OVERVIEW_COMPANION_STATUS_NOT_DONE) .. "|r"
+    end
+    statusByKey[group.id] = { label = dailyWritLabel, status = status, isDone = isDone }
+  end
+
+  return statusByKey
+end
+
+function Tasks.RefreshDailyWritTrackerState(tracker)
+  tracker = tracker or EnsureDailyWritTrackerState()
+  if not tracker then return end
+
   local activeByQuestId = {}
   local activeByWritKey = {}
 
@@ -362,24 +389,6 @@ local function GetDailyWritStatusByKey()
 
   tracker.activeByQuestId = activeByQuestId
   tracker.activeByWritKey = activeByWritKey
-
-  local dailyWritLabel = GetString(SI_GPH_OVERVIEW_DAILY_WRIT)
-  local statusByKey = {}
-  for _, group in ipairs(DAILY_WRIT_GROUPS) do
-    local status
-    local isDone = false
-    if activeByWritKey[group.id] then
-      status = "|cFFFF66" .. GetString(SI_GPH_OVERVIEW_COMPANION_STATUS_IN_PROGRESS) .. "|r"
-    elseif tracker.doneByWritKey[group.id] then
-      status = "|c66FF66" .. GetString(SI_GPH_OVERVIEW_COMPANION_STATUS_DONE) .. "|r"
-      isDone = true
-    else
-      status = "|cAAAAAA" .. GetString(SI_GPH_OVERVIEW_COMPANION_STATUS_NOT_DONE) .. "|r"
-    end
-    statusByKey[group.id] = { label = dailyWritLabel, status = status, isDone = isDone }
-  end
-
-  return statusByKey
 end
 
 local function OnQuestRemovedForDailyWritTracker(_, completed, questIndex, questName, zoneIndex, poiIndex, questId)
@@ -404,10 +413,15 @@ local function OnQuestRemovedForDailyWritTracker(_, completed, questIndex, quest
   end
 end
 
+function Tasks.OnQuestStateChanged()
+  Tasks.RefreshDailyWritTrackerState()
+  Tasks.InvalidateCache()
+end
+
 function Tasks.OnQuestRemoved(...)
   Tasks.OnQuestRemovedForCompanionTracker(...)
   OnQuestRemovedForDailyWritTracker(...)
-  Tasks.InvalidateCache()
+  Tasks.OnQuestStateChanged()
 end
 
 local function FormatTimeRemaining(seconds)
@@ -729,10 +743,19 @@ EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_Cache", EVENT_ADD_ON_LOADED, f
   EVENT_MANAGER:UnregisterForEvent("GPH_OverviewTasks_Cache", EVENT_ADD_ON_LOADED)
 
   RegisterCacheInvalidationEvent("GPH_OverviewTasks_InventoryCache", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
-  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestAddedCache", EVENT_QUEST_ADDED)
-  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestRemovedCache", EVENT_QUEST_REMOVED)
-  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestAdvancedCache", EVENT_QUEST_ADVANCED)
   RegisterCacheInvalidationEvent("GPH_OverviewTasks_ResearchCompletedCache", EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED)
   RegisterCacheInvalidationEvent("GPH_OverviewTasks_ResearchStartedCache", EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
   RegisterCacheInvalidationEvent("GPH_OverviewTasks_StableCache", EVENT_MOUNT_INFO_UPDATED)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestAddedCache", EVENT_QUEST_ADDED)
+  RegisterCacheInvalidationEvent("GPH_OverviewTasks_QuestAdvancedCache", EVENT_QUEST_ADVANCED)
+
+  if EVENT_QUEST_ADDED then
+    EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_DailyWritQuestAdded", EVENT_QUEST_ADDED, Tasks.OnQuestStateChanged)
+  end
+  if EVENT_QUEST_ADVANCED then
+    EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_DailyWritQuestAdvanced", EVENT_QUEST_ADVANCED, Tasks.OnQuestStateChanged)
+  end
+  if EVENT_QUEST_REMOVED then
+    EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_QuestRemoved", EVENT_QUEST_REMOVED, Tasks.OnQuestRemoved)
+  end
 end)

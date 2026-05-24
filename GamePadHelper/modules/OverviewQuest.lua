@@ -184,11 +184,6 @@ end
 function Quest.ShowLeftTooltip(state)
   local questIndex = Quest.GetBestQuestIndex(state)
   if not questIndex then
-    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(
-      GAMEPAD_LEFT_TOOLTIP,
-      "|c57A64E" .. GetString(SI_GPH_OVERVIEW_QUEST) .. "|r",
-      GetString(SI_GPH_OVERVIEW_TASKS_AVAILABLE)
-    )
     return false
   end
 
