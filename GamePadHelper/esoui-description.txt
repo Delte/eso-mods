@@ -20,7 +20,7 @@ Built only for gamepad and console UI.[/CENTER]
 [*][B]Overview optimization[/B] - the task summary now caches expensive inventory, antiquity, crafting, writ, and companion checks, refreshes when relevant game data changes, and schedules an update at the daily reset.
 [*][B]No-quest overview fix[/B] - the Tasks panel now still appears when a character has no active quest, while the Quest panel stays hidden.
 [*][B]Map Search tabs[/B] - the GPH Search panel now separates Search, Bookmarks, Recent, Houses, and Zones into controller-friendly tabs.
-[*][B]Map Search details[/B] - zone rows can show survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
+[*][B]Map Search details[/B] - zone rows can show quest, survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
 [*][B]Map Search teleport fix[/B] - Map Search now owns its teleport keybind while the GPH Search tab is open, preventing the separate world-map teleporter from intercepting the action.
 [*][B]Tooltip Price optimization[/B] - repeated price lookups are cached briefly and external price-line filtering is lighter.
 [*][B]Map Search responsiveness[/B] - duplicate searches and recall-cost scans are reduced while preserving search and teleport behavior.
@@ -70,7 +70,7 @@ Built only for gamepad and console UI.[/CENTER]
 [*]Adds a GPH Search tab to the gamepad world map info panel.
 [*]Search wayshrines, zones, houses, and named points of interest.
 [*]Separate tabs for Search, Bookmarks, Recent destinations, Houses, and Zones.
-[*]Zones can show survey report, treasure map, and antiquity lead counts when detected.
+[*]Zones can show quest, survey report, treasure map, and antiquity lead counts when detected.
 [*]Wayshrines can show nearby guild trader counts.
 [*]Includes fuzzy ranked results, per-character or account-wide bookmarks, map panning, ping markers, and nearest-wayshrine travel.
 [*]Supports gamepad screen narration for result name, category, ownership, and discovery or lock status.
@@ -164,3 +164,19 @@ These must be installed for GamePadHelper to load:
 This addon is provided as-is, without warranty or support of any kind. Bug reports and contributions are welcome on GitHub:
 
 [URL="https://github.com/olegbl/eso-mods/tree/main/GamePadHelper"]GamePadHelper GitHub Repository[/URL]
+
+[SIZE="4"][COLOR="#3399FF"][B]Update Shortage[/B][/COLOR][/SIZE]
+
+1.06.10
+[LIST]
+[*][GamePadHelper] [MapSearch] Added Search, Bookmarks, Recent, Houses, and Zones tabs.
+[*][GamePadHelper] [MapSearch] Added zone quest, survey, treasure map, and antiquity lead counts.
+[*][GamePadHelper] [MapSearch] Added wayshrine guild trader hints.
+[*][GamePadHelper] [MapSearch] Improved recall price caching and reduced duplicate searches.
+[*][GamePadHelper] [MapTeleporter] Fixed keybind conflict with Map Search.
+[*][GamePadHelper] [OverviewTasks] Added cache for inventory, quest, writ, antiquity, and companion scans.
+[*][GamePadHelper] [OverviewTasks] Added daily reset refresh handling.
+[*][GamePadHelper] [OverviewQuest] Improved no-active-quest behavior and quest switch logic.
+[*][GamePadHelper] [Fishing] Improved bait scan logic.
+[*][GamePadHelper] [DungeonFinder] Improved quest and dungeon list scan logic.
+[/LIST]

@@ -97,6 +97,8 @@ local strings = {
     SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS = "cartes au trésor",
     SI_GPH_MAPSEARCH_ZONE_LEAD = "indice",
     SI_GPH_MAPSEARCH_ZONE_LEADS = "indices",
+    SI_GPH_MAPSEARCH_ZONE_QUEST = "quête",
+    SI_GPH_MAPSEARCH_ZONE_QUESTS = "quêtes",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADER = "marchand de guilde",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS = "marchands de guilde",
     SI_GPH_MAPSEARCH_NO_DISCOVERED_WAYSHRINE = "Aucun sanctuaire découvert dans cette zone",
@@ -264,7 +266,7 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(pile de <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> piles)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nSignification de la couleur du trait :\n|c2DC50EVert|r : Seule la copie avec ce trait à laquelle vous avez accès\n|cFFFF00Jaune|r : Une autre copie avec le même trait existe dans votre inventaire\n|cFF4444Rouge|r : Une autre copie avec le même trait existe dans votre banque\n|cFFFFFFBlanc|r : l'objet équipé utilise l'icône de loupe par défaut de ESO ; les détails sont affichés dans l'info-bulle",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 est prêt :\n\n• |cFFFF00Onglets de recherche de carte|r — le panneau GPH Recherche dispose maintenant d'onglets séparés pour Recherche, Favoris, Récent, Maisons et Zones. La recherche reste vide jusqu'à la saisie.\n\n• |cFFFF00Détails de recherche de carte|r — les zones peuvent afficher les nombres de repérages, cartes au trésor et pistes d'antiquités ; les oratoires peuvent afficher les marchands de guilde proches.\n\n• |cFFFF00Cache de l'aperçu et reset quotidien|r — le panneau des tâches met en cache les vérifications coûteuses d'inventaire, d'antiquités, d'artisanat, de commandes et de compagnons, les actualise quand les données changent et programme une actualisation au reset quotidien.\n\n• |cFFFF00Aperçu sans quête|r — le panneau des tâches apparaît maintenant même si le personnage n'a aucune quête active, tandis que le panneau de quête reste masqué.\n\n• |cFFFF00Performance des menus|r — réduction des scans répétés dans l'aperçu, Tooltip Price, la recherche de carte, la recherche de donjon et la pêche.",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 est prêt :\n\n• |cFFFF00Onglets de recherche de carte|r — le panneau GPH Recherche dispose maintenant d'onglets séparés pour Recherche, Favoris, Récent, Maisons et Zones. La recherche reste vide jusqu'à la saisie.\n\n• |cFFFF00Détails de recherche de carte|r — les zones peuvent afficher les nombres de quêtes, repérages, cartes au trésor et pistes d'antiquités ; les oratoires peuvent afficher les marchands de guilde proches.\n\n• |cFFFF00Cache de l'aperçu et reset quotidien|r — le panneau des tâches met en cache les vérifications coûteuses d'inventaire, d'antiquités, d'artisanat, de commandes et de compagnons, les actualise quand les données changent et programme une actualisation au reset quotidien.\n\n• |cFFFF00Aperçu sans quête|r — le panneau des tâches apparaît maintenant même si le personnage n'a aucune quête active, tandis que le panneau de quête reste masqué.\n\n• |cFFFF00Performance des menus|r — réduction des scans répétés dans l'aperçu, Tooltip Price, la recherche de carte, la recherche de donjon et la pêche.",
     SI_GPH_WHATS_NEW_CONFIRM = "Compris",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — Nouveautés",
 }

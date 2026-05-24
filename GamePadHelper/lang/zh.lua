@@ -97,6 +97,8 @@ local strings = {
     SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS = "藏宝图",
     SI_GPH_MAPSEARCH_ZONE_LEAD = "线索",
     SI_GPH_MAPSEARCH_ZONE_LEADS = "线索",
+    SI_GPH_MAPSEARCH_ZONE_QUEST = "任务",
+    SI_GPH_MAPSEARCH_ZONE_QUESTS = "任务",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADER = "公会商人",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS = "公会商人",
     SI_GPH_MAPSEARCH_NO_DISCOVERED_WAYSHRINE = "该区域未发现任何引路圣地",
@@ -264,7 +266,7 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "（堆叠<<1>>）",
     SI_GPH_TOOLTIPPRICE_STACKS = "（<<1>>堆叠）",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\n特质颜色含义：\n|c2DC50E绿色|r：只能复制具有此特质的副本\n|cFFFF00黄色|r：您的库存中存在具有相同特质的另一个副本\n|cFF4444红色|r：具有相同特质的另一个副本在您的银行中存在\n|cFFFFFF白色|r：装备的物品使用ESO的默认放大镜图标；详细信息显示在工具提示中",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 已准备就绪：\n\n• |cFFFF00地图搜索标签页|r — GPH 搜索面板现在有独立的搜索、书签、最近、住宅和区域标签页。搜索标签页会保持为空，直到你输入文字。\n\n• |cFFFF00地图搜索详情|r — 区域条目可显示调查报告、藏宝图和古物线索数量，路点神龛可显示附近公会商人数量。\n\n• |cFFFF00概览缓存和每日重置|r — 任务面板现在会缓存耗时的背包、古物、制作、委托和伙伴检查，在相关数据变化时刷新，并在每日重置时安排刷新。\n\n• |cFFFF00无任务概览修复|r — 当角色没有激活任务时，任务面板现在仍会显示，而任务面板左侧的任务详情会保持隐藏。\n\n• |cFFFF00菜单性能|r — 减少了概览、Tooltip Price、地图搜索、地下城查找器和钓鱼中的重复扫描。",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 已准备就绪：\n\n• |cFFFF00地图搜索标签页|r — GPH 搜索面板现在有独立的搜索、书签、最近、住宅和区域标签页。搜索标签页会保持为空，直到你输入文字。\n\n• |cFFFF00地图搜索详情|r — 区域条目可显示任务、调查报告、藏宝图和古物线索数量，路点神龛可显示附近公会商人数量。\n\n• |cFFFF00概览缓存和每日重置|r — 任务面板现在会缓存耗时的背包、古物、制作、委托和伙伴检查，在相关数据变化时刷新，并在每日重置时安排刷新。\n\n• |cFFFF00无任务概览修复|r — 当角色没有激活任务时，任务面板现在仍会显示，而任务面板左侧的任务详情会保持隐藏。\n\n• |cFFFF00菜单性能|r — 减少了概览、Tooltip Price、地图搜索、地下城查找器和钓鱼中的重复扫描。",
     SI_GPH_WHATS_NEW_CONFIRM = "知道了",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — 新功能",
 }

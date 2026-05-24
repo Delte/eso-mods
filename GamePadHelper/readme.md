@@ -14,7 +14,7 @@ Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsav
 - **Overview optimization** - task summaries now cache expensive inventory, antiquity, crafting, writ, and companion checks, refresh when relevant game data changes, and schedule an update at the daily reset.
 - **No-quest overview fix** - the Tasks panel now still appears when a character has no active quest, while the Quest panel stays hidden.
 - **Map Search tabs** - Search, Bookmarks, Recent, Houses, and Zones are now split into controller-friendly tabs.
-- **Map Search details** - zone rows can show survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
+- **Map Search details** - zone rows can show quest, survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
 - **Map Search teleport fix** - Map Search owns its teleport keybind while the GPH Search tab is open, so the separate world-map teleporter no longer intercepts it.
 - **Tooltip Price optimization** - repeated price lookups are cached briefly and external price-line filtering is lighter.
 - **Map Search responsiveness** - duplicate searches and recall-cost scans are reduced.
@@ -134,7 +134,7 @@ Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search a
 - Controller-friendly tabs for **Search**, **Bookmarks**, **Recent**, **Houses**, and **Zones**.
 - The Search tab starts empty until you type; saved and recent destinations live in their own tabs.
 - **Recent destinations** keeps the latest map targets available from its own tab.
-- **Zone details** can show survey report, treasure map, and antiquity lead counts.
+- **Zone details** can show quest, survey report, treasure map, and antiquity lead counts.
 - **Wayshrine details** can show nearby guild trader counts.
 
 - Fuzzy search with ranked results — exact prefix matches score highest.

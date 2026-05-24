@@ -641,7 +641,7 @@ local function CountAllInventoryItems()
     for slotIndex = 0, GetBagSize(bagId) - 1 do
       if GetItemId(bagId, slotIndex) > 0 then
         local itemType, specializedItemType = GetItemType(bagId, slotIndex)
-        if specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP then
+        if specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not IsItemLinkUnique(GetItemLink(bagId, slotIndex)) then
           treasureCount = treasureCount + GetSlotStackSize(bagId, slotIndex)
         elseif specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT then
           totalSurveyCount = totalSurveyCount + GetSlotStackSize(bagId, slotIndex)
@@ -715,7 +715,7 @@ local function BuildRightTooltipDescription()
 
   if totalCount > 0 then
     local totalTimeString = ""
-    if totalMinTime and not isUrgent then
+    if totalMinTime and not isUrgent and totalMinTime < (30 * 86400) then
       totalTimeString = " (" .. FormatTimeRemaining(totalMinTime) .. ")"
     end
     tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LEADS) .. "|r |cFFFFFF" .. totalCount .. "|r " .. GetString(SI_GPH_OVERVIEW_SCRYABLE) .. totalTimeString .. "\n"

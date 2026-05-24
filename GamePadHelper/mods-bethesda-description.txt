@@ -32,7 +32,7 @@ Open settings from:
 - **Provisioning Filter:** hides low-level recipes below CP160.
 - **Fishing:** controller vibration, reel alert, automatic bait selection, and fallback bait.
 - **Teleporter:** BeamMeUp integration for map and chat jump helpers.
-- **Map Search:** search wayshrines, zones, houses, and points of interest from the gamepad world map, with separate Search, Bookmarks, Recent, Houses, and Zones tabs plus zone map/lead counts and wayshrine guild trader hints.
+- **Map Search:** search wayshrines, zones, houses, and points of interest from the gamepad world map, with separate Search, Bookmarks, Recent, Houses, and Zones tabs plus zone quest/map/lead counts and wayshrine guild trader hints.
 - **Dungeon Finder:** shows pledge quest names in the Dungeon Finder list.
 - **Overview Panel:** root menu overview with quest details, daily reminders, daily writ tracking, companion rapport dailies, research, surveys, treasure maps, and antiquity leads. Task status refreshes when relevant data changes and at the daily reset.
 - **Loot Offset:** moves the loot history panel upward so it does not overlap chat. Requires UI reload after toggling.

@@ -96,6 +96,8 @@
     SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS = "treasure maps",
     SI_GPH_MAPSEARCH_ZONE_LEAD = "lead",
     SI_GPH_MAPSEARCH_ZONE_LEADS = "leads",
+    SI_GPH_MAPSEARCH_ZONE_QUEST = "quest",
+    SI_GPH_MAPSEARCH_ZONE_QUESTS = "quests",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADER = "guild trader",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS = "guild traders",
     SI_GPH_MAPSEARCH_NO_DISCOVERED_WAYSHRINE = "No discovered wayshrine in this zone",
@@ -264,7 +266,7 @@
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(stack of <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> stacks)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n|cFFFF00Yellow|r: Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank\n|cFFFFFFWhite|r: Equipped item uses ESO's default magnifying glass icon; details are shown in the tooltip",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 is ready:\n\n• |cFFFF00Map Search Tabs|r — the GPH Search panel now has separate Search, Bookmarks, Recent, Houses, and Zones tabs. Search starts empty until you type, while saved and recent destinations live in their own tabs.\n\n• |cFFFF00Map Search Details|r — zone rows can show survey, treasure map, and antiquity lead counts, while wayshrines can show nearby guild trader counts.\n\n• |cFFFF00Overview Cache & Daily Reset|r — the Tasks panel caches expensive inventory, antiquity, crafting, writ, and companion checks, refreshes when relevant data changes, and schedules a refresh at daily reset.\n\n• |cFFFF00No-Quest Overview Fix|r — the Tasks panel still appears when a character has no active quest, while the Quest panel stays hidden.\n\n• |cFFFF00Menu Performance|r — reduced repeated scanning in Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing.",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 is ready:\n\n• |cFFFF00Map Search Tabs|r — the GPH Search panel now has separate Search, Bookmarks, Recent, Houses, and Zones tabs. Search starts empty until you type, while saved and recent destinations live in their own tabs.\n\n• |cFFFF00Map Search Details|r — zone rows can show quest, survey, treasure map, and antiquity lead counts, while wayshrines can show nearby guild trader counts.\n\n• |cFFFF00Overview Cache & Daily Reset|r — the Tasks panel caches expensive inventory, antiquity, crafting, writ, and companion checks, refreshes when relevant data changes, and schedules a refresh at daily reset.\n\n• |cFFFF00No-Quest Overview Fix|r — the Tasks panel still appears when a character has no active quest, while the Quest panel stays hidden.\n\n• |cFFFF00Menu Performance|r — reduced repeated scanning in Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing.",
     SI_GPH_WHATS_NEW_CONFIRM = "Got It",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — What's New",
 }

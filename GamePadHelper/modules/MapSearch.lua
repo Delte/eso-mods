@@ -56,8 +56,9 @@ local currentTab = TAB_SEARCH
 local pendingNarration  = nil
 local postTeleportMsg   = nil
 local listCostLoopId = 0
-local zoneMapCounts  = nil
-local zoneLeadCounts = nil
+local zoneMapCounts   = nil
+local zoneLeadCounts  = nil
+local zoneQuestCounts = nil
 
 -- Trader counts per wayshrine nodeIndex (sourced from Navigator / Faster Travel)
 local WAYSHRINE_TRADER_COUNTS = {
@@ -897,7 +898,7 @@ local function BuildZoneMapCounts()
             if GetItemId(bagId, slotIndex) > 0 then
                 local _, specializedItemType = GetItemType(bagId, slotIndex)
                 local isSurvey   = specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT
-                local isTreasure = specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP
+                local isTreasure = specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP and not IsItemLinkUnique(GetItemLink(bagId, slotIndex))
                 if isSurvey or isTreasure then
                     local itemName = GetItemName(bagId, slotIndex)
                     local itemLower = itemName and itemName:lower()
@@ -941,6 +942,33 @@ local function GetZoneMapCountText(searchName)
     if entry.surveys   > 0 then parts[#parts + 1] = entry.surveys   .. " " .. GetString(entry.surveys   == 1 and SI_GPH_MAPSEARCH_ZONE_SURVEY      or SI_GPH_MAPSEARCH_ZONE_SURVEYS)      end
     if entry.treasures > 0 then parts[#parts + 1] = entry.treasures .. " " .. GetString(entry.treasures == 1 and SI_GPH_MAPSEARCH_ZONE_TREASURE_MAP or SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS) end
     return #parts > 0 and table.concat(parts, " · ") or nil
+end
+
+-- zone quest counts
+
+local zoneQuestCounts = nil
+
+local function BuildZoneQuestCounts()
+    local counts = {}
+    for i = 1, MAX_JOURNAL_QUESTS do
+        if IsValidQuestIndex(i) then
+            local _, _, zoneIndex = GetJournalQuestLocationInfo(i)
+            if zoneIndex and zoneIndex > 0 and zoneIndex < 100000 then
+                local zoneId = GetZoneId(zoneIndex)
+                if zoneId and zoneId > 0 then
+                    counts[zoneId] = (counts[zoneId] or 0) + 1
+                end
+            end
+        end
+    end
+    zoneQuestCounts = counts
+end
+
+local function GetZoneQuestCountText(zoneId)
+    if not zoneQuestCounts or not zoneId then return nil end
+    local n = zoneQuestCounts[zoneId]
+    if not n or n <= 0 then return nil end
+    return n .. " " .. GetString(n == 1 and SI_GPH_MAPSEARCH_ZONE_QUEST or SI_GPH_MAPSEARCH_ZONE_QUESTS)
 end
 
 -- zone lead counts (antiquity leads)
@@ -1085,10 +1113,12 @@ local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmar
     entryData.candidate     = c
     local narrationBase = BuildCandidateNarrationText(c, narrationBookmark == true)
     if c.type == TYPE_ZONE then
-        local mapText  = GetZoneMapCountText(c.searchName)
-        local leadText = GetZoneLeadCountText(c.zoneId)
-        if mapText  then narrationBase = narrationBase .. ", " .. mapText  end
-        if leadText then narrationBase = narrationBase .. ", " .. leadText end
+        local mapText   = GetZoneMapCountText(c.searchName)
+        local leadText  = GetZoneLeadCountText(c.zoneId)
+        local questText = GetZoneQuestCountText(c.zoneId)
+        if mapText   then narrationBase = narrationBase .. ", " .. mapText   end
+        if leadText  then narrationBase = narrationBase .. ", " .. leadText  end
+        if questText then narrationBase = narrationBase .. ", " .. questText end
     end
     local traderCount = c.type == TYPE_WAYSHRINE and c.nodeIndex and WAYSHRINE_TRADER_COUNTS[c.nodeIndex]
     if traderCount then
@@ -1111,6 +1141,8 @@ local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmar
         if mapText then entryData:AddSubLabel("|cFFD700" .. mapText .. "|r") end
         local leadText = GetZoneLeadCountText(c.zoneId)
         if leadText then entryData:AddSubLabel("|cFFD700" .. leadText .. "|r") end
+        local questText = GetZoneQuestCountText(c.zoneId)
+        if questText then entryData:AddSubLabel("|cFFD700" .. questText .. "|r") end
     end
     if traderCount then
         local traderText = traderCount .. " " .. GetString(traderCount == 1 and SI_GPH_MAPSEARCH_WAYSHRINE_TRADER or SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS)
@@ -1681,8 +1713,9 @@ local function InsertMapSearchTab()
                 _G["GamePadHelper_MapTeleporter_SetSuppressed"](true)
             end
             RunSearch(currentTerm)
-            if not zoneMapCounts  then BuildZoneMapCounts()  end
-            if not zoneLeadCounts then BuildZoneLeadCounts() end
+            if not zoneMapCounts   then BuildZoneMapCounts()   end
+            if not zoneLeadCounts  then BuildZoneLeadCounts()  end
+            if not zoneQuestCounts then BuildZoneQuestCounts() end
             RebuildList()
             UpdateRecallCostLabel()
             StartListCostLoop()
@@ -1748,6 +1781,12 @@ local function OnAddonLoaded(_, name)
     end)
     EVENT_MANAGER:RegisterForEvent("MapSearch_AntiquityUpdated", EVENT_ANTIQUITY_UPDATED, function()
         zoneLeadCounts = nil
+    end)
+    EVENT_MANAGER:RegisterForEvent("MapSearch_QuestUpdated", EVENT_QUEST_ADDED, function()
+        zoneQuestCounts = nil
+    end)
+    EVENT_MANAGER:RegisterForEvent("MapSearch_QuestRemoved", EVENT_QUEST_REMOVED, function()
+        zoneQuestCounts = nil
     end)
     EVENT_MANAGER:RegisterForEvent("MapSearch_POIUpdated", EVENT_POI_UPDATED, function()
         cachedRecallNode = nil

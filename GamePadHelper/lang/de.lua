@@ -97,6 +97,8 @@ local strings = {
     SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS = "Schatzkarten",
     SI_GPH_MAPSEARCH_ZONE_LEAD = "Hinweis",
     SI_GPH_MAPSEARCH_ZONE_LEADS = "Hinweise",
+    SI_GPH_MAPSEARCH_ZONE_QUEST = "Quest",
+    SI_GPH_MAPSEARCH_ZONE_QUESTS = "Quests",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADER = "Gildhändler",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS = "Gildhändler",
     SI_GPH_MAPSEARCH_NO_DISCOVERED_WAYSHRINE = "In dieser Zone wurde kein Wegschrein entdeckt",
@@ -264,7 +266,7 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(Stapel von <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> Stapel)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nBedeutung der Eigenschaftsfarbe:\n|c2DC50EGrün|r: Einzige verfügbare Kopie mit dieser Eigenschaft\n|cFFFF00Gelb|r: Eine weitere Kopie mit derselben Eigenschaft befindet sich im Inventar\n|cFF4444Rot|r: Eine weitere Kopie mit derselben Eigenschaft befindet sich in der Bank\n|cFFFFFFWeiß|r: Ausgerüstete Gegenstände verwenden das ESO-Standard-Lupensymbol; Details werden in der Kurzinfo angezeigt",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 ist bereit:\n\n• |cFFFF00Kartensuche-Tabs|r — das GPH-Suche-Fenster hat jetzt getrennte Tabs für Suche, Lesezeichen, Zuletzt, Häuser und Zonen. Die Suche bleibt leer, bis Sie Text eingeben.\n\n• |cFFFF00Kartensuche-Details|r — Zonen können Zählungen für Fundberichte, Schatzkarten und Antiquitäten-Spuren anzeigen; Wegschreine können nahe Gildenhändler anzeigen.\n\n• |cFFFF00Übersichts-Cache & täglicher Reset|r — das Aufgabenfenster speichert aufwendige Inventar-, Antiquitäten-, Handwerks-, Schrieb- und Gefährtenprüfungen zwischen, aktualisiert sie bei relevanten Änderungen und plant eine Aktualisierung zum täglichen Reset.\n\n• |cFFFF00Übersicht ohne Quest|r — das Aufgabenfenster erscheint jetzt auch, wenn ein Charakter keine aktive Quest hat, während das Questfenster verborgen bleibt.\n\n• |cFFFF00Menüleistung|r — wiederholte Scans in Übersicht, Tooltip Price, Kartensuche, Dungeonfinder und Angeln wurden reduziert.",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 ist bereit:\n\n• |cFFFF00Kartensuche-Tabs|r — das GPH-Suche-Fenster hat jetzt getrennte Tabs für Suche, Lesezeichen, Zuletzt, Häuser und Zonen. Die Suche bleibt leer, bis Sie Text eingeben.\n\n• |cFFFF00Kartensuche-Details|r — Zonen können Zählungen für Quests, Fundberichte, Schatzkarten und Antiquitäten-Spuren anzeigen; Wegschreine können nahe Gildenhändler anzeigen.\n\n• |cFFFF00Übersichts-Cache & täglicher Reset|r — das Aufgabenfenster speichert aufwendige Inventar-, Antiquitäten-, Handwerks-, Schrieb- und Gefährtenprüfungen zwischen, aktualisiert sie bei relevanten Änderungen und plant eine Aktualisierung zum täglichen Reset.\n\n• |cFFFF00Übersicht ohne Quest|r — das Aufgabenfenster erscheint jetzt auch, wenn ein Charakter keine aktive Quest hat, während das Questfenster verborgen bleibt.\n\n• |cFFFF00Menüleistung|r — wiederholte Scans in Übersicht, Tooltip Price, Kartensuche, Dungeonfinder und Angeln wurden reduziert.",
     SI_GPH_WHATS_NEW_CONFIRM = "Verstanden",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — Neuigkeiten",
 }

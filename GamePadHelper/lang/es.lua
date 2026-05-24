@@ -97,6 +97,8 @@ local strings = {
     SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS = "mapas del tesoro",
     SI_GPH_MAPSEARCH_ZONE_LEAD = "pista",
     SI_GPH_MAPSEARCH_ZONE_LEADS = "pistas",
+    SI_GPH_MAPSEARCH_ZONE_QUEST = "misión",
+    SI_GPH_MAPSEARCH_ZONE_QUESTS = "misiones",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADER = "comerciante de hermandad",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS = "comerciantes de hermandad",
     SI_GPH_MAPSEARCH_NO_DISCOVERED_WAYSHRINE = "No se ha descubierto ningún santuario en esta zona.",
@@ -264,7 +266,7 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(pila de <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> pilas)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nSignificado del color del rasgo:\n|c2DC50EVerde|r: Solo tiene acceso a la copia con este rasgo\n|cFFFF00Amarillo|r: Existe otra copia con el mismo rasgo en su inventario\n|cFF4444Rojo|r: Existe otra copia con el mismo rasgo en tu banco\n|cFFFFFFBlanco|r: el artículo equipado usa el ícono de lupa predeterminado de ESO; Los detalles se muestran en la información sobre herramientas.",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 está listo:\n\n• |cFFFF00Pestañas de búsqueda en mapa|r — el panel GPH Búsqueda ahora tiene pestañas separadas para Buscar, Marcadores, Recientes, Casas y Zonas. La búsqueda empieza vacía hasta que escribes.\n\n• |cFFFF00Detalles de búsqueda en mapa|r — las zonas pueden mostrar recuentos de informes de prospección, mapas del tesoro y pistas de antigüedades; los santuarios pueden mostrar comerciantes de gremio cercanos.\n\n• |cFFFF00Caché del resumen y reinicio diario|r — el panel de tareas guarda en caché las comprobaciones costosas de inventario, antigüedades, artesanía, encargos y compañeros, se actualiza cuando cambian datos relevantes y programa una actualización en el reinicio diario.\n\n• |cFFFF00Resumen sin misión|r — el panel de tareas ahora aparece aunque el personaje no tenga una misión activa, mientras que el panel de misión permanece oculto.\n\n• |cFFFF00Rendimiento de menús|r — se redujeron los escaneos repetidos en Resumen, Tooltip Price, Búsqueda en mapa, Buscador de mazmorras y Pesca.",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 está listo:\n\n• |cFFFF00Pestañas de búsqueda en mapa|r — el panel GPH Búsqueda ahora tiene pestañas separadas para Buscar, Marcadores, Recientes, Casas y Zonas. La búsqueda empieza vacía hasta que escribes.\n\n• |cFFFF00Detalles de búsqueda en mapa|r — las zonas pueden mostrar recuentos de misiones, informes de prospección, mapas del tesoro y pistas de antigüedades; los santuarios pueden mostrar comerciantes de gremio cercanos.\n\n• |cFFFF00Caché del resumen y reinicio diario|r — el panel de tareas guarda en caché las comprobaciones costosas de inventario, antigüedades, artesanía, encargos y compañeros, se actualiza cuando cambian datos relevantes y programa una actualización en el reinicio diario.\n\n• |cFFFF00Resumen sin misión|r — el panel de tareas ahora aparece aunque el personaje no tenga una misión activa, mientras que el panel de misión permanece oculto.\n\n• |cFFFF00Rendimiento de menús|r — se redujeron los escaneos repetidos en Resumen, Tooltip Price, Búsqueda en mapa, Buscador de mazmorras y Pesca.",
     SI_GPH_WHATS_NEW_CONFIRM = "Entendido",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — Novedades",
 }

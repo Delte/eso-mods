@@ -470,9 +470,6 @@ local function InitializeGamepadSettings()
         end
     end
 
-    SLASH_COMMANDS["/gph"] = function()
-        OpenSettings()
-    end
 end
 
 EVENT_MANAGER:RegisterForEvent("Settings_Init", EVENT_PLAYER_ACTIVATED, function()

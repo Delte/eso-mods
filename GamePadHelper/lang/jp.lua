@@ -97,6 +97,8 @@ local strings = {
     SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS = "宝の地図",
     SI_GPH_MAPSEARCH_ZONE_LEAD = "手掛かり",
     SI_GPH_MAPSEARCH_ZONE_LEADS = "手掛かり",
+    SI_GPH_MAPSEARCH_ZONE_QUEST = "クエスト",
+    SI_GPH_MAPSEARCH_ZONE_QUESTS = "クエスト",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADER = "ギルド商人",
     SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS = "ギルド商人",
     SI_GPH_MAPSEARCH_NO_DISCOVERED_WAYSHRINE = "このゾーンには発見された道の祠はありません",
@@ -264,7 +266,7 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(<<1>>のスタック)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> スタック)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\n特性色の意味:\n|c2DC50E緑|r: アクセスできるこの特性を持つコピーのみ\n|cFFFF00黄色|r: 同じ特性を持つ別のコピーがインベントリに存在します\n|cFF4444赤|r: 同じ特性を持つ別のコピーがあなたの銀行に存在します\n|cFFFFFF白|r: 装備アイテムはESOのデフォルトの虫眼鏡アイコンを使用します。詳細はツールチップに表示されます",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 が利用可能です:\n\n• |cFFFF00マップ検索タブ|r — GPH 検索パネルに、検索、ブックマーク、最近、家、ゾーンの個別タブを追加しました。検索タブは入力するまで空のままです。\n\n• |cFFFF00マップ検索の詳細|r — ゾーン行に調査報告、宝の地図、古遺物の手掛かり数を表示でき、祠には近くのギルド商人数を表示できます。\n\n• |cFFFF00概要キャッシュとデイリーリセット|r — タスクパネルは、インベントリ、古遺物、クラフト、依頼、コンパニオンの重いチェックをキャッシュし、関連データの変更時とデイリーリセット時に更新するようになりました。\n\n• |cFFFF00クエストなしの概要修正|r — キャラクターにアクティブなクエストがない場合でもタスクパネルが表示され、クエストパネルは非表示のままになります。\n\n• |cFFFF00メニュー性能|r — 概要、Tooltip Price、マップ検索、ダンジョン検索、釣りで繰り返し行われるスキャンを減らしました。",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.10 が利用可能です:\n\n• |cFFFF00マップ検索タブ|r — GPH 検索パネルに、検索、ブックマーク、最近、家、ゾーンの個別タブを追加しました。検索タブは入力するまで空のままです。\n\n• |cFFFF00マップ検索の詳細|r — ゾーン行にクエスト、調査報告、宝の地図、古遺物の手掛かり数を表示でき、祠には近くのギルド商人数を表示できます。\n\n• |cFFFF00概要キャッシュとデイリーリセット|r — タスクパネルは、インベントリ、古遺物、クラフト、依頼、コンパニオンの重いチェックをキャッシュし、関連データの変更時とデイリーリセット時に更新するようになりました。\n\n• |cFFFF00クエストなしの概要修正|r — キャラクターにアクティブなクエストがない場合でもタスクパネルが表示され、クエストパネルは非表示のままになります。\n\n• |cFFFF00メニュー性能|r — 概要、Tooltip Price、マップ検索、ダンジョン検索、釣りで繰り返し行われるスキャンを減らしました。",
     SI_GPH_WHATS_NEW_CONFIRM = "了解",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — 新機能",
 }
