@@ -48,10 +48,6 @@ local function AddBulletListSection(tooltip, lines, headerText, lineColor, listK
     table.insert(narrationLines, line)
   end
 
-  control.GetNarrationText = function()
-    return table.concat(narrationLines, ", ")
-  end
-
   local width = tooltip:GetWidth()
   if not width or width <= 0 then width = 420 end
   control:SetWidth(width - 40)
@@ -76,6 +72,7 @@ local function AddBulletListSection(tooltip, lines, headerText, lineColor, listK
   table.insert(activeBulletControls, control)
 
   local section = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+  section.nextNarrationText = table.concat(narrationLines, ", ")
   section:AddControl(control, control:GetHeight() + 12, control:GetWidth())
   tooltip:AddSection(section)
 end

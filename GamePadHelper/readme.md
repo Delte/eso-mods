@@ -13,6 +13,8 @@ Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsav
 - **Menu performance improvements** - reduced repeated scanning in Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing.
 - **Overview optimization** - task summaries now cache expensive inventory, antiquity, crafting, writ, and companion checks, refresh when relevant game data changes, and schedule an update at the daily reset.
 - **No-quest overview fix** - the Tasks panel now still appears when a character has no active quest, while the Quest panel stays hidden.
+- **Map Search tabs** - Search, Bookmarks, Recent, Houses, and Zones are now split into controller-friendly tabs.
+- **Map Search details** - zone rows can show survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
 - **Map Search teleport fix** - Map Search owns its teleport keybind while the GPH Search tab is open, so the separate world-map teleporter no longer intercepts it.
 - **Tooltip Price optimization** - repeated price lookups are cached briefly and external price-line filtering is lighter.
 - **Map Search responsiveness** - duplicate searches and recall-cost scans are reduced.
@@ -125,13 +127,20 @@ Replaces dungeon names in the Dungeon Finder list with their corresponding **ple
 
 ### Map Search
 
-Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search across all wayshrines, zones, and points of interest by name and instantly pan the map to the result.
+Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search across wayshrines, zones, houses, and points of interest by name and instantly pan the map to the result.
 
 **Features:**
+
+- Controller-friendly tabs for **Search**, **Bookmarks**, **Recent**, **Houses**, and **Zones**.
+- The Search tab starts empty until you type; saved and recent destinations live in their own tabs.
+- **Recent destinations** keeps the latest map targets available from its own tab.
+- **Zone details** can show survey report, treasure map, and antiquity lead counts.
+- **Wayshrine details** can show nearby guild trader counts.
 
 - Fuzzy search with ranked results — exact prefix matches score highest.
 - Results grouped by category: **Wayshrines**, **Zones**, **Owned Houses**, **Unowned Houses**, and named POI types (Delve, Dungeon, World Boss, Crafting Station, Mundus Stone, etc.).
 - **Bookmark** any location (per character) for quick access — bookmarks appear when the search bar is empty.
+- **Bookmarks tab** keeps saved destinations separate from the Search tab.
 - **Show on Map** pans the world map to the selected result and places a ping marker.
 - **Teleport to Nearest Wayshrine** fast-travels to the closest discovered wayshrine in the same zone as the selected result (or directly to the wayshrine/house if it is one).
 - **Tab memory** — reopening the map returns you to the GPH Search tab if that was the last tab you had open.

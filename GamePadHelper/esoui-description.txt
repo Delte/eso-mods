@@ -19,6 +19,8 @@ Built only for gamepad and console UI.[/CENTER]
 [*][B]Menu performance improvements[/B] - reduced repeated scanning in the gamepad Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing modules.
 [*][B]Overview optimization[/B] - the task summary now caches expensive inventory, antiquity, crafting, writ, and companion checks, refreshes when relevant game data changes, and schedules an update at the daily reset.
 [*][B]No-quest overview fix[/B] - the Tasks panel now still appears when a character has no active quest, while the Quest panel stays hidden.
+[*][B]Map Search tabs[/B] - the GPH Search panel now separates Search, Bookmarks, Recent, Houses, and Zones into controller-friendly tabs.
+[*][B]Map Search details[/B] - zone rows can show survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
 [*][B]Map Search teleport fix[/B] - Map Search now owns its teleport keybind while the GPH Search tab is open, preventing the separate world-map teleporter from intercepting the action.
 [*][B]Tooltip Price optimization[/B] - repeated price lookups are cached briefly and external price-line filtering is lighter.
 [*][B]Map Search responsiveness[/B] - duplicate searches and recall-cost scans are reduced while preserving search and teleport behavior.
@@ -67,7 +69,10 @@ Built only for gamepad and console UI.[/CENTER]
 [LIST]
 [*]Adds a GPH Search tab to the gamepad world map info panel.
 [*]Search wayshrines, zones, houses, and named points of interest.
-[*]Includes fuzzy ranked results, per-character bookmarks, map panning, ping markers, and nearest-wayshrine travel.
+[*]Separate tabs for Search, Bookmarks, Recent destinations, Houses, and Zones.
+[*]Zones can show survey report, treasure map, and antiquity lead counts when detected.
+[*]Wayshrines can show nearby guild trader counts.
+[*]Includes fuzzy ranked results, per-character or account-wide bookmarks, map panning, ping markers, and nearest-wayshrine travel.
 [*]Supports gamepad screen narration for result name, category, ownership, and discovery or lock status.
 [*]Map pin: [B]Default ON[/B].
 [*]Set destination: [B]Default ON[/B].

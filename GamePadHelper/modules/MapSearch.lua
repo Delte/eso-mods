@@ -16,8 +16,11 @@ local TYPE_HOUSE_OWNED   = 4
 local TYPE_HOUSE_UNOWNED = 5
 local TYPE_LIFT          = 6
 
--- Use ESO's named constants - never hardcode poiType numbers.
--- POI_TYPE_WAYSHRINE / POI_TYPE_HOUSE / POI_TYPE_GROUP_DUNGEON etc. are defined by the game client.
+local TAB_SEARCH    = 1
+local TAB_BOOKMARKS = 2
+local TAB_RECENT    = 3
+local TAB_HOUSES    = 4
+local TAB_LOCATIONS = 5
 
 local ICON_WAYSHRINE_KNOWN   = "/esoui/art/icons/poi/poi_wayshrine_complete.dds"
 local ICON_WAYSHRINE_UNKNOWN = "/esoui/art/icons/poi/poi_wayshrine_incomplete.dds"
@@ -36,15 +39,107 @@ local lastSearchTerm = nil
 
 local listObject        = nil
 local editControl       = nil
+local tabsControl       = nil
+local searchBarControl  = nil
+local recallRowControl  = nil
+local tabTitleControl   = nil
 local searchBarBG       = nil
 local recallCostLabel   = nil
+local tabControls       = {}
 local keybindDescriptor = nil
+local GetBookmarkKey
+local RunSearch
 local RebuildList
 
 local lastSelectedIndex = 1
+local currentTab = TAB_SEARCH
 local pendingNarration  = nil
 local postTeleportMsg   = nil
 local listCostLoopId = 0
+local zoneMapCounts  = nil
+local zoneLeadCounts = nil
+
+-- Trader counts per wayshrine nodeIndex (sourced from Navigator / Faster Travel)
+local WAYSHRINE_TRADER_COUNTS = {
+    [  1] = 1,  -- Wyrd Tree Wayshrine
+    [  6] = 1,  -- Lion Guard Redoubt Wayshrine
+    [  9] = 1,  -- Oldgate Wayshrine
+    [ 14] = 1,  -- Koeglin Village Wayshrine
+    [ 16] = 1,  -- Firebrand Keep Wayshrine
+    [ 25] = 1,  -- Muth Gnaar Hills Wayshrine
+    [ 28] = 7,  -- Mournhold Wayshrine
+    [ 29] = 1,  -- Tal'Deic Grounds Wayshrine
+    [ 33] = 5,  -- Evermore Wayshrine
+    [ 36] = 1,  -- Bangkorai Pass Wayshrine
+    [ 38] = 1,  -- Hallin's Stand Wayshrine
+    [ 42] = 1,  -- Morwha's Bounty Wayshrine
+    [ 43] = 5,  -- Sentinel Wayshrine
+    [ 44] = 1,  -- Bergama Wayshrine
+    [ 48] = 5,  -- Stormhold Wayshrine
+    [ 52] = 1,  -- Hissmir Wayshrine
+    [ 55] = 5,  -- Shornhelm Wayshrine
+    [ 56] = 7,  -- Wayrest Wayshrine
+    [ 62] = 5,  -- Daggerfall Wayshrine
+    [ 65] = 1,  -- Davon's Watch Wayshrine
+    [ 67] = 5,  -- Ebonheart Wayshrine
+    [ 76] = 1,  -- Kragenmoor Wayshrine
+    [ 78] = 1,  -- Venomous Fens Wayshrine
+    [ 84] = 1,  -- Hoarfrost Downs Wayshrine
+    [ 87] = 5,  -- Windhelm Wayshrine
+    [ 90] = 1,  -- Voljar Meadery Wayshrine
+    [ 92] = 1,  -- Fort Amol Wayshrine
+    [101] = 1,  -- Dra'bul Wayshrine
+    [106] = 5,  -- Baandari Post Wayshrine
+    [107] = 1,  -- Valeguard Wayshrine
+    [110] = 5,  -- Skald's Retreat Wayshrine
+    [114] = 1,  -- Fallowstone Hall Wayshrine
+    [118] = 1,  -- Nimalten Wayshrine
+    [121] = 5,  -- Skywatch Wayshrine
+    [131] = 4,  -- Hollow City Wayshrine
+    [135] = 1,  -- Haj Uxith Wayshrine
+    [138] = 1,  -- Port Hunding Wayshrine
+    [142] = 2,  -- Mistral Wayshrine
+    [143] = 5,  -- Marbruk Wayshrine
+    [144] = 1,  -- Vinedusk Wayshrine
+    [146] = 1,  -- Court of Contempt Wayshrine
+    [147] = 1,  -- Greenheart Wayshrine
+    [151] = 1,  -- Verrant Morass Wayshrine
+    [159] = 1,  -- Dune Wayshrine
+    [162] = 5,  -- Rawl'kha Wayshrine
+    [167] = 1,  -- Southpoint Wayshrine
+    [168] = 1,  -- Cormount Wayshrine
+    [172] = 1,  -- Bleakrock Wayshrine
+    [173] = 1,  -- Dhalmora Wayshrine
+    [175] = 1,  -- Firsthold Wayshrine
+    [177] = 1,  -- Vulkhel Guard Wayshrine
+    [181] = 1,  -- Stonetooth Wayshrine
+    [214] = 7,  -- Elden Root Wayshrine
+    [220] = 7,  -- Belkarth Wayshrine
+    [240] = 4,  -- Morkul Plain Wayshrine
+    [244] = 6,  -- Orsinium Wayshrine
+    [251] = 3,  -- Anvil Wayshrine
+    [252] = 3,  -- Kvatch Wayshrine
+    [255] = 7,  -- Abah's Landing Wayshrine
+    [275] = 3,  -- Balmora Wayshrine
+    [281] = 3,  -- Sadrith Mora Wayshrine
+    [284] = 6,  -- Vivec City Wayshrine
+    [337] = 6,  -- Brass Fortress Wayshrine
+    [350] = 3,  -- Shimmerene Wayshrine
+    [355] = 6,  -- Alinor Wayshrine
+    [356] = 3,  -- Lillandril Wayshrine
+    [374] = 6,  -- Lilmoth Wayshrine
+    [382] = 6,  -- Rimmen Wayshrine
+    [402] = 6,  -- Senchal Wayshrine
+    [421] = 6,  -- Solitude Wayshrine
+    [449] = 6,  -- Markarth Wayshrine
+    [458] = 6,  -- Leyawiin Wayshrine
+    [493] = 6,  -- Fargrave Wayshrine
+    [513] = 6,  -- Gonfalon Square Wayshrine
+    [529] = 6,  -- Vastyr Wayshrine
+    [536] = 6,  -- Necrom Wayshrine
+    [558] = 6,  -- Skingrad City Wayshrine
+    [598] = 6,  -- Sunport Wayshrine
+}
 
 local function IsFragmentShowing()
     return GPH_SEARCH_FRAGMENT ~= nil and GPH_SEARCH_FRAGMENT:IsShowing()
@@ -62,6 +157,86 @@ local function UpdateKeybinds()
     end
 end
 
+local MAP_SEARCH_TABS = {
+    { label = SI_GPH_MAPSEARCH_TAB_SEARCH },
+    { label = SI_GPH_MAPSEARCH_TAB_BOOKMARKS },
+    { label = SI_GPH_MAPSEARCH_TAB_RECENT },
+    { label = SI_GPH_MAPSEARCH_TAB_HOUSES },
+    { label = SI_GPH_MAPSEARCH_TAB_ZONES },
+}
+
+local function UpdateTabLabels()
+    if not tabControls.selected then return end
+
+    local previousIndex = currentTab - 1
+    if previousIndex < 1 then previousIndex = #MAP_SEARCH_TABS end
+
+    local nextIndex = currentTab + 1
+    if nextIndex > #MAP_SEARCH_TABS then nextIndex = 1 end
+
+    local ltIcon = ZO_Keybindings_GetHighestPriorityBindingStringFromAction("UI_SHORTCUT_LEFT_TRIGGER",  KEYBIND_TEXT_OPTIONS_FULL_NAME, KEYBIND_TEXTURE_OPTIONS_EMBED_MARKUP, true, false, 120) or "<"
+    local rtIcon = ZO_Keybindings_GetHighestPriorityBindingStringFromAction("UI_SHORTCUT_RIGHT_TRIGGER", KEYBIND_TEXT_OPTIONS_FULL_NAME, KEYBIND_TEXTURE_OPTIONS_EMBED_MARKUP, true, false, 120) or ">"
+
+    if tabControls.previous then
+        tabControls.previous:SetText(ltIcon .. " " .. GetString(MAP_SEARCH_TABS[previousIndex].label))
+    end
+    tabControls.selected:SetText(GetString(MAP_SEARCH_TABS[currentTab].label))
+    if tabControls.next then
+        tabControls.next:SetText(GetString(MAP_SEARCH_TABS[nextIndex].label) .. " " .. rtIcon)
+    end
+    if tabTitleControl then
+        tabTitleControl:SetText(GetString(MAP_SEARCH_TABS[currentTab].label))
+    end
+end
+
+local function UpdateSearchBarVisibility()
+    if not searchBarControl then return end
+
+    local showSearch = currentTab == TAB_SEARCH
+    searchBarControl:SetHidden(not showSearch)
+    if not showSearch and editControl and editControl:HasFocus() then
+        editControl:LoseFocus()
+    end
+
+    local listCtrl = listObject and listObject.control
+    if listCtrl and tabTitleControl then
+        local anchorTarget = showSearch and searchBarControl or tabTitleControl
+        local offsetY = showSearch and 6 or 20
+        listCtrl:ClearAnchors()
+        listCtrl:SetAnchor(TOPLEFT,     anchorTarget, BOTTOMLEFT,  0, offsetY)
+        listCtrl:SetAnchor(BOTTOMRIGHT, nil,          BOTTOMRIGHT, 0, 0)
+    end
+end
+
+local function IsCandidateInCurrentTab(c, bookmarkedByKey)
+    if currentTab == TAB_SEARCH then
+        return true
+    elseif currentTab == TAB_BOOKMARKS then
+        return bookmarkedByKey and bookmarkedByKey[GetBookmarkKey(c)] == true
+    elseif currentTab == TAB_RECENT then
+        return true
+    elseif currentTab == TAB_HOUSES then
+        return c.type == TYPE_HOUSE_OWNED
+    elseif currentTab == TAB_LOCATIONS then
+        return c.type == TYPE_ZONE
+    end
+    return true
+end
+
+local function SwitchTab(delta)
+    currentTab = currentTab + delta
+    if currentTab < 1 then currentTab = #MAP_SEARCH_TABS end
+    if currentTab > #MAP_SEARCH_TABS then currentTab = 1 end
+    lastSelectedIndex = 1
+    lastSearchTerm = nil
+    UpdateSearchBarVisibility()
+    RunSearch(currentTerm)
+    UpdateTabLabels()
+    RebuildList()
+    pendingNarration = GetString(MAP_SEARCH_TABS[currentTab].label)
+    SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+end
+
 
 -- bookmarks
 
@@ -69,7 +244,7 @@ local function MakeBookmarkKey(c)
     return c.type .. ":" .. tostring(c.nodeIndex or c.zoneId or "") .. ":" .. c.name
 end
 
-local function GetBookmarkKey(c)
+GetBookmarkKey = function(c)
     if not c then return "" end
     if c.key and c.key ~= "" then return c.key end
     if c.bookmarkKey and c.bookmarkKey ~= "" then return c.bookmarkKey end
@@ -130,7 +305,7 @@ local function AddRecent(c)
         known      = c.known,
         houseId    = c.houseId,
     })
-    while #recents > 8 do
+    while #recents > 20 do
         table.remove(recents)
     end
 end
@@ -311,6 +486,12 @@ local function BuildCandidateNarrationText(c, isBookmark)
         if not c.known     then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED)
         elseif c.isLocked  then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED) end
         parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_LIFT)
+    elseif c.type == TYPE_WAYSHRINE then
+        if c.isLocked      then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED)
+        elseif not c.known then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
+        local mp = c.mapPriority or 0
+        if mp >= 2 then     parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_WAYSHRINE_CAPITAL)
+        elseif mp == 1 then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_WAYSHRINE_MAJOR) end
     else
         if c.isLocked      then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED)
         elseif not c.known then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
@@ -547,7 +728,7 @@ local function BuildCandidates()
             name       = z.name,
             searchName = z.name:lower(),
             type       = TYPE_ZONE,
-            icon       = "/esoui/art/worldmap/map_indexicon_locations_up.dds",
+            icon       = "EsoUI/Art/Icons/mapKey/mapKey_zoneStory.dds",
             zoneId     = z.zoneId,
             zoneIndex  = z.zoneIndex,
             mapIndex   = z.mapIndex,
@@ -634,32 +815,158 @@ local function ScoreMatch(nameLower, termLower)
     return score
 end
 
-local function RunSearch(term)
+RunSearch = function(term)
     if not candidates then candidates = BuildCandidates() end
 
-    term = term or ""
-    if term == lastSearchTerm then return end
-    lastSearchTerm = term
+    term = currentTab == TAB_SEARCH and (term or "") or ""
+    local searchKey = currentTab .. ":" .. term
+    if searchKey == lastSearchTerm then return end
+    lastSearchTerm = searchKey
 
     local termLower = term:lower()
     local scored    = {}
+    local bookmarks = GetBookmarksArray()
+    local bookmarkedByKey = {}
+    for _, bm in ipairs(bookmarks) do
+        bookmarkedByKey[GetBookmarkKey(bm)] = true
+    end
 
-    for i = 1, #candidates do
-        local c = candidates[i]
-        local s = ScoreMatch(c.searchName, termLower)
-        if s > 0 then scored[#scored + 1] = { score = s, c = c } end
+    local source = candidates
+    if currentTab == TAB_BOOKMARKS then
+        source = bookmarks
+    elseif currentTab == TAB_RECENT then
+        source = GetRecentArray()
+    end
+
+    if termLower == "" and currentTab == TAB_SEARCH then
+        results = {}
+        return
+    end
+
+    if termLower == "" and currentTab ~= TAB_SEARCH then
+        results = {}
+        local cap = (currentTab == TAB_RECENT) and 20 or nil
+        for i = 1, cap and math.min(#source, cap) or #source do
+            local c = source[i]
+            if IsCandidateInCurrentTab(c, bookmarkedByKey) then
+                results[#results + 1] = c
+            end
+        end
+        return
+    end
+
+    for i = 1, #source do
+        local c = source[i]
+        if IsCandidateInCurrentTab(c, bookmarkedByKey) then
+            local searchName = c.searchName or (c.name and c.name:lower()) or ""
+            local s = ScoreMatch(searchName, termLower)
+            if s > 0 then scored[#scored + 1] = { score = s, c = c } end
+        end
     end
 
     table.sort(scored, function(a, b)
         if a.score ~= b.score   then return a.score > b.score end
         if a.c.type ~= b.c.type then return a.c.type < b.c.type end
-        return a.c.searchName < b.c.searchName
+        return (a.c.searchName or a.c.name or "") < (b.c.searchName or b.c.name or "")
     end)
 
     results = {}
-    for i = 1, math.min(#scored, 60) do
+    for i = 1, #scored do
         results[#results + 1] = scored[i].c
     end
+end
+
+-- zone map counts (surveys / treasure maps in inventory)
+
+local function BuildZoneMapCounts()
+    if not candidates then candidates = BuildCandidates() end
+
+    -- Build a sorted list of zone searchNames (longest first) for greedy matching
+    local zoneKeys = {}
+    for _, c in ipairs(candidates) do
+        if c.type == TYPE_ZONE and c.searchName and #c.searchName > 2 then
+            zoneKeys[#zoneKeys + 1] = c.searchName
+        end
+    end
+    table.sort(zoneKeys, function(a, b) return #a > #b end)
+
+    local counts = {}
+    local bags = { BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK, BAG_VIRTUAL }
+    for _, bagId in ipairs(bags) do
+        for slotIndex = 0, GetBagSize(bagId) - 1 do
+            if GetItemId(bagId, slotIndex) > 0 then
+                local _, specializedItemType = GetItemType(bagId, slotIndex)
+                local isSurvey   = specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_SURVEY_REPORT
+                local isTreasure = specializedItemType == SPECIALIZED_ITEMTYPE_TROPHY_TREASURE_MAP
+                if isSurvey or isTreasure then
+                    local itemName = GetItemName(bagId, slotIndex)
+                    local itemLower = itemName and itemName:lower()
+                    if itemLower then
+                        -- Match against known zone names (language-agnostic)
+                        local zoneKey = nil
+                        for _, key in ipairs(zoneKeys) do
+                            if itemLower:find(key, 1, true) then
+                                zoneKey = key
+                                break
+                            end
+                        end
+                        if zoneKey then
+                            if not counts[zoneKey] then counts[zoneKey] = { surveys = 0, treasures = 0 } end
+                            local qty = GetSlotStackSize(bagId, slotIndex)
+                            if isSurvey   then counts[zoneKey].surveys   = counts[zoneKey].surveys   + qty end
+                            if isTreasure then counts[zoneKey].treasures = counts[zoneKey].treasures + qty end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    zoneMapCounts = counts
+end
+
+local function GetZoneMapCountText(searchName)
+    if not zoneMapCounts or not searchName then return nil end
+    local entry = zoneMapCounts[searchName]
+    if not entry then
+        -- fallback: check if any key is contained within the zone name or vice versa
+        for k, v in pairs(zoneMapCounts) do
+            if searchName:find(k, 1, true) or k:find(searchName, 1, true) then
+                entry = v
+                break
+            end
+        end
+    end
+    if not entry then return nil end
+    local parts = {}
+    if entry.surveys   > 0 then parts[#parts + 1] = entry.surveys   .. " " .. GetString(entry.surveys   == 1 and SI_GPH_MAPSEARCH_ZONE_SURVEY      or SI_GPH_MAPSEARCH_ZONE_SURVEYS)      end
+    if entry.treasures > 0 then parts[#parts + 1] = entry.treasures .. " " .. GetString(entry.treasures == 1 and SI_GPH_MAPSEARCH_ZONE_TREASURE_MAP or SI_GPH_MAPSEARCH_ZONE_TREASURE_MAPS) end
+    return #parts > 0 and table.concat(parts, " · ") or nil
+end
+
+-- zone lead counts (antiquity leads)
+
+local function BuildZoneLeadCounts()
+    if not ANTIQUITY_DATA_MANAGER then zoneLeadCounts = {} return end
+    local counts = {}
+    local antiquityId = GetNextAntiquityId()
+    while antiquityId do
+        local data = ANTIQUITY_DATA_MANAGER:GetAntiquityData(antiquityId)
+        if data and data:HasLead() and data:MeetsScryingSkillRequirements() and not data:HasAchievedAllGoals() then
+            local zoneId = data:GetZoneId()
+            if zoneId and zoneId > 0 then
+                counts[zoneId] = (counts[zoneId] or 0) + 1
+            end
+        end
+        antiquityId = GetNextAntiquityId(antiquityId)
+    end
+    zoneLeadCounts = counts
+end
+
+local function GetZoneLeadCountText(zoneId)
+    if not zoneLeadCounts or not zoneId then return nil end
+    local n = zoneLeadCounts[zoneId]
+    if not n or n <= 0 then return nil end
+    return n .. " " .. GetString(n == 1 and SI_GPH_MAPSEARCH_ZONE_LEAD or SI_GPH_MAPSEARCH_ZONE_LEADS)
 end
 
 -- list
@@ -710,11 +1017,6 @@ local function ResolveOwnedHouseId(candidate)
             end
         end
     end
-    return nil
-end
-
-local function GetCandidateCostSubText(c)
-    -- Cost display moved to a dedicated top label below search box.
     return nil
 end
 
@@ -781,7 +1083,19 @@ local CAT_NAMES = {
 local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmark)
     local entryData = ZO_GamepadEntryData:New(displayName or c.name, c.icon)
     entryData.candidate     = c
-    entryData.narrationText = BuildCandidateNarrationText(c, narrationBookmark == true)
+    local narrationBase = BuildCandidateNarrationText(c, narrationBookmark == true)
+    if c.type == TYPE_ZONE then
+        local mapText  = GetZoneMapCountText(c.searchName)
+        local leadText = GetZoneLeadCountText(c.zoneId)
+        if mapText  then narrationBase = narrationBase .. ", " .. mapText  end
+        if leadText then narrationBase = narrationBase .. ", " .. leadText end
+    end
+    local traderCount = c.type == TYPE_WAYSHRINE and c.nodeIndex and WAYSHRINE_TRADER_COUNTS[c.nodeIndex]
+    if traderCount then
+        local traderText = traderCount .. " " .. GetString(traderCount == 1 and SI_GPH_MAPSEARCH_WAYSHRINE_TRADER or SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS)
+        narrationBase = narrationBase .. ", " .. traderText
+    end
+    entryData.narrationText = narrationBase
     entryData:SetIconTintOnSelection(true)
     entryData:SetShowUnselectedSublabels(true)
     if isBookmarked then
@@ -792,14 +1106,21 @@ local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmar
     end
     local sub = GetCandidateSubText(c)
     if sub then entryData:AddSubLabel(sub) end
-    local costSub = GetCandidateCostSubText(c)
-    if costSub then entryData:AddSubLabel(costSub) end
+    if c.type == TYPE_ZONE then
+        local mapText = GetZoneMapCountText(c.searchName)
+        if mapText then entryData:AddSubLabel("|cFFD700" .. mapText .. "|r") end
+        local leadText = GetZoneLeadCountText(c.zoneId)
+        if leadText then entryData:AddSubLabel("|cFFD700" .. leadText .. "|r") end
+    end
+    if traderCount then
+        local traderText = traderCount .. " " .. GetString(traderCount == 1 and SI_GPH_MAPSEARCH_WAYSHRINE_TRADER or SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS)
+        entryData:AddSubLabel("|cFFD700" .. traderText .. "|r")
+    end
     return entryData
 end
 
 RebuildList = function()
     if not listObject then return end
-    local rowIndex = 0
     listObject:Clear()
 
     local bookmarks = GetBookmarksArray()
@@ -808,58 +1129,27 @@ RebuildList = function()
         bookmarkedByKey[GetBookmarkKey(bm)] = true
     end
 
-    if currentTerm == "" then
-        for i, bm in ipairs(bookmarks) do
-            local entryData = BuildListEntryData(bm, bm.name, true, true)
-            rowIndex = rowIndex + 1
-            if i == 1 then
-                entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_BOOKMARKS))
-                listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
-            else
-                listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
-            end
-        end
+    if #results > 0 then
+        local sv = GetSavedVars()
+        local groupByLocation = sv and sv.mapSearchGroupByLocation == true
 
-        local recents = GetRecentArray()
-        local firstRecent = true
-        for _, recent in ipairs(recents) do
-            if not bookmarkedByKey[GetBookmarkKey(recent)] then
-                local entryData = BuildListEntryData(recent, recent.name, false, false)
-                rowIndex = rowIndex + 1
-                if firstRecent then
-                    firstRecent = false
-                    entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_RECENT))
+        if currentTab == TAB_BOOKMARKS or currentTab == TAB_RECENT then
+            local headerText = GetString(MAP_SEARCH_TABS[currentTab].label)
+            for i, c in ipairs(results) do
+                local isBookmarked = bookmarkedByKey[GetBookmarkKey(c)] == true
+                local displayName = isBookmarked and currentTab ~= TAB_BOOKMARKS
+                    and zo_iconTextFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 24, 24, c.name)
+                    or c.name
+                local entryData = BuildListEntryData(c, displayName, currentTab == TAB_BOOKMARKS, isBookmarked)
+                if i == 1 then
+                    entryData:SetHeader(headerText)
                     listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
                 else
                     listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
                 end
             end
-        end
+        elseif groupByLocation then
 
-        -- Owned houses below bookmarks when no search term
-        if candidates then
-            local bookmarkKeys = {}
-            for _, bm in ipairs(bookmarks) do bookmarkKeys[GetBookmarkKey(bm)] = true end
-            local firstHouse = true
-            for _, c in ipairs(candidates) do
-                if c.type == TYPE_HOUSE_OWNED and not bookmarkKeys[GetBookmarkKey(c)] then
-                    local entryData = BuildListEntryData(c, c.name, false, false)
-                    rowIndex = rowIndex + 1
-                    if firstHouse then
-                        firstHouse = false
-                        entryData:SetHeader(GetString(SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES))
-                        listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
-                    else
-                        listObject:AddEntry("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
-                    end
-                end
-            end
-        end
-    elseif #results > 0 then
-        local sv = GetSavedVars()
-        local groupByLocation = sv and sv.mapSearchGroupByLocation == true
-
-        if groupByLocation then
             local groupedByLocation = {}
             local locationOrder = {}
             for _, c in ipairs(results) do
@@ -880,7 +1170,6 @@ RebuildList = function()
                         and zo_iconTextFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 24, 24, c.name)
                         or c.name
                     local entryData = BuildListEntryData(c, displayName, false, isBookmarked)
-                    rowIndex = rowIndex + 1
                     if firstInLocation then
                         firstInLocation = false
                         entryData:SetHeader(location)
@@ -914,8 +1203,7 @@ RebuildList = function()
                             and zo_iconTextFormat("EsoUI/Art/Collections/Favorite_StarOnly.dds", 24, 24, c.name)
                             or c.name
                         local entryData = BuildListEntryData(c, displayName, false, isBookmarked)
-                        rowIndex = rowIndex + 1
-                        if firstInType then
+                            if firstInType then
                             firstInType = false
                             entryData:SetHeader(CAT_NAMES[c.type] or GetString(SI_GPH_MAPSEARCH_GROUP_OTHER))
                             listObject:AddEntryWithHeader("ZO_GamepadMenuEntryTemplateLowercase34", entryData)
@@ -1047,6 +1335,32 @@ local function BuildKeybindDescriptor()
             end,
         },
         {
+            keybind  = "UI_SHORTCUT_LEFT_TRIGGER",
+            name     = function()
+                local i = currentTab - 1
+                if i < 1 then i = #MAP_SEARCH_TABS end
+                return GetString(MAP_SEARCH_TABS[i].label)
+            end,
+            callback = function()
+                if editControl and editControl:HasFocus() then editControl:LoseFocus() end
+                SwitchTab(-1)
+            end,
+            visible  = function() return IsFragmentShowing() end,
+        },
+        {
+            keybind  = "UI_SHORTCUT_RIGHT_TRIGGER",
+            name     = function()
+                local i = currentTab + 1
+                if i > #MAP_SEARCH_TABS then i = 1 end
+                return GetString(MAP_SEARCH_TABS[i].label)
+            end,
+            callback = function()
+                if editControl and editControl:HasFocus() then editControl:LoseFocus() end
+                SwitchTab(1)
+            end,
+            visible  = function() return IsFragmentShowing() end,
+        },
+        {
             -- In text mode: X = Clear (clears text, stays in search box)
             -- In list mode: X = Search (opens text mode)
             keybind  = "UI_SHORTCUT_SECONDARY",
@@ -1054,10 +1368,12 @@ local function BuildKeybindDescriptor()
                 return (editControl and editControl:HasFocus()) and GetString(SI_GPH_MAPSEARCH_CLEAR) or GetString(SI_SCREEN_NARRATION_EDIT_BOX_SEARCH_NAME)
             end,
             callback = function()
+                if currentTab ~= TAB_SEARCH then return end
                 if editControl and editControl:HasFocus() then
                     currentTerm = ""
                     editControl:SetText("")
-                    results = {}
+                    lastSearchTerm = nil
+                    RunSearch(currentTerm)
                     RebuildList()
                     pendingNarration = GetString(SI_GPH_MAPSEARCH_SEARCH_CLEARED)
                     SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
@@ -1065,7 +1381,7 @@ local function BuildKeybindDescriptor()
                     if editControl then editControl:TakeFocus() end
                 end
             end,
-            visible  = function() return IsFragmentShowing() end,
+            visible  = function() return IsFragmentShowing() and currentTab == TAB_SEARCH end,
         },
         {
             keybind  = "UI_SHORTCUT_QUATERNARY",
@@ -1219,7 +1535,6 @@ local function BuildKeybindDescriptor()
         end
     end)
 
-    ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindDescriptor, listObject)
 end
 
 -- XML callbacks
@@ -1227,24 +1542,24 @@ end
 function GPH_MapSearch_OnShown(edit)
     editControl = edit
     edit:SetDefaultText(GetString(SI_GPH_MAPSEARCH_SEARCH_HINT))
-    edit:SetHandler("OnKeyDown", function(_, key)
-        if key == KEY_GAMEPAD_DPAD_LEFT then
-            edit:LoseFocus()
-        end
-    end)
+    UpdateSearchBarVisibility()
     RunSearch(currentTerm)
     RebuildList()
     UpdateRecallCostLabel()
 end
 
 function GPH_MapSearch_OnTextChanged(text)
-    if not IsFragmentShowing() then return end
+    if not IsFragmentShowing() or currentTab ~= TAB_SEARCH then return end
     currentTerm = text or ""
-    if currentTerm ~= "" then RunSearch(currentTerm) else results = {} end
+    RunSearch(currentTerm)
     RebuildList()
 end
 
 function GPH_MapSearch_OnSearchFocused(focused)
+    if currentTab ~= TAB_SEARCH then
+        if editControl and editControl:HasFocus() then editControl:LoseFocus() end
+        return
+    end
     if searchBarBG then searchBarBG:SetHidden(not focused) end
     if listObject then
         if focused then
@@ -1296,10 +1611,7 @@ local function InitList(control)
         if not (editControl and editControl:HasFocus()) then
             SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
         end
-        local td = listObject:GetTargetData()
-        local c = td and td.candidate
-        if c then
-        else
+        if not (listObject:GetTargetData() and listObject:GetTargetData().candidate) then
             ZO_WorldMap_HideAllTooltips()
         end
     end)
@@ -1318,12 +1630,20 @@ local function InsertMapSearchTab()
 
     InitList(control)
 
-    local searchBar = control:GetNamedChild("Main"):GetNamedChild("SearchBar")
-    searchBarBG     = searchBar:GetNamedChild("BG")
-    local recallRow   = control:GetNamedChild("Main"):GetNamedChild("RecallRow")
-    local recallTitle = recallRow and recallRow:GetNamedChild("RecallCostTitle") or nil
+    local mainControl = control:GetNamedChild("Main")
+    searchBarControl  = mainControl:GetNamedChild("SearchBar")
+    searchBarBG       = searchBarControl:GetNamedChild("BG")
+    tabsControl       = mainControl:GetNamedChild("Tabs")
+    tabTitleControl   = mainControl:GetNamedChild("TabTitle")
+    tabControls.previous = tabsControl and tabsControl:GetNamedChild("Previous") or nil
+    tabControls.selected = tabsControl and tabsControl:GetNamedChild("Selected") or nil
+    tabControls.next     = tabsControl and tabsControl:GetNamedChild("Next") or nil
+    UpdateTabLabels()
+    recallRowControl = mainControl:GetNamedChild("RecallRow")
+    UpdateSearchBarVisibility()
+    local recallTitle = recallRowControl and recallRowControl:GetNamedChild("RecallCostTitle") or nil
     if recallTitle then recallTitle:SetText(GetString(SI_GPH_MAPSEARCH_RECALL_COST)) end
-    recallCostLabel = recallRow and recallRow:GetNamedChild("RecallCostValue") or nil
+    recallCostLabel = recallRowControl and recallRowControl:GetNamedChild("RecallCostValue") or nil
     UpdateRecallCostLabel()
 
     BuildKeybindDescriptor()
@@ -1338,6 +1658,11 @@ local function InsertMapSearchTab()
             if pendingNarration then
                 ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(pendingNarration))
                 pendingNarration = nil
+                local td = listObject and listObject:GetTargetData()
+                local entryText = td and (td.narrationText or (td.candidate and BuildCandidateNarrationText(td.candidate, td.isBookmark)))
+                if entryText then
+                    ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(entryText))
+                end
                 return narrations
             end
             local td = listObject and listObject:GetTargetData()
@@ -1356,6 +1681,8 @@ local function InsertMapSearchTab()
                 _G["GamePadHelper_MapTeleporter_SetSuppressed"](true)
             end
             RunSearch(currentTerm)
+            if not zoneMapCounts  then BuildZoneMapCounts()  end
+            if not zoneLeadCounts then BuildZoneLeadCounts() end
             RebuildList()
             UpdateRecallCostLabel()
             StartListCostLoop()
@@ -1415,6 +1742,12 @@ local function OnAddonLoaded(_, name)
 
     EVENT_MANAGER:RegisterForEvent("MapSearch_RecallNodeReset", EVENT_PLAYER_ACTIVATED, function()
         cachedRecallNode = nil
+    end)
+    EVENT_MANAGER:RegisterForEvent("MapSearch_InventoryChanged", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, function()
+        zoneMapCounts = nil
+    end)
+    EVENT_MANAGER:RegisterForEvent("MapSearch_AntiquityUpdated", EVENT_ANTIQUITY_UPDATED, function()
+        zoneLeadCounts = nil
     end)
     EVENT_MANAGER:RegisterForEvent("MapSearch_POIUpdated", EVENT_POI_UPDATED, function()
         cachedRecallNode = nil

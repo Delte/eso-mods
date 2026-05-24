@@ -580,13 +580,20 @@ local function GetResearchInfo(craftingType)
     end
   end
 
+  local function IsUsableForResearch(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+    return CanItemBeSmithingTraitResearched(bagId, slotIndex, craftingType, researchLineIndex, traitIndex)
+      and not IsItemPlayerLocked(bagId, slotIndex)
+      and GetItemTraitInformation(bagId, slotIndex) ~= ITEM_TRAIT_INFORMATION_RETRAITED
+      and GetItemTraitInformation(bagId, slotIndex) ~= ITEM_TRAIT_INFORMATION_RECONSTRUCTED
+  end
+
   if #researchableTraitList > 0 then
     for _, traitInfo in ipairs(researchableTraitList) do
       local hasItem = false
 
       for slotIndex = 0, GetBagSize(BAG_BACKPACK) - 1 do
         if GetItemId(BAG_BACKPACK, slotIndex) > 0 then
-          if CanItemBeSmithingTraitResearched(BAG_BACKPACK, slotIndex, craftingType, traitInfo.researchLineIndex, traitInfo.traitIndex) then
+          if IsUsableForResearch(BAG_BACKPACK, slotIndex, craftingType, traitInfo.researchLineIndex, traitInfo.traitIndex) then
             hasItem = true
             break
           end
@@ -596,7 +603,7 @@ local function GetResearchInfo(craftingType)
       if not hasItem then
         for slotIndex = 0, GetBagSize(BAG_BANK) - 1 do
           if GetItemId(BAG_BANK, slotIndex) > 0 then
-            if CanItemBeSmithingTraitResearched(BAG_BANK, slotIndex, craftingType, traitInfo.researchLineIndex, traitInfo.traitIndex) then
+            if IsUsableForResearch(BAG_BANK, slotIndex, craftingType, traitInfo.researchLineIndex, traitInfo.traitIndex) then
               hasItem = true
               break
             end
@@ -607,7 +614,7 @@ local function GetResearchInfo(craftingType)
       if not hasItem then
         for slotIndex = 0, GetBagSize(BAG_SUBSCRIBER_BANK) - 1 do
           if GetItemId(BAG_SUBSCRIBER_BANK, slotIndex) > 0 then
-            if CanItemBeSmithingTraitResearched(BAG_SUBSCRIBER_BANK, slotIndex, craftingType, traitInfo.researchLineIndex, traitInfo.traitIndex) then
+            if IsUsableForResearch(BAG_SUBSCRIBER_BANK, slotIndex, craftingType, traitInfo.researchLineIndex, traitInfo.traitIndex) then
               hasItem = true
               break
             end
