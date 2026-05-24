@@ -1,5 +1,4 @@
 GamePadHelper
-Version 1.068
 
 A modular collection of quality-of-life improvements for Elder Scrolls Online, built only for gamepad and console UI.
 
@@ -49,14 +48,6 @@ Main Features
 - Auto Charge [Default: ON]: Recharges equipped weapons after combat. Charge threshold default: 25%.
 - Auto Repair [Default: ON]: Repairs equipped items at merchants when repair is available.
 - Auto Eye [Default: ON]: Automatically slots and activates Antiquarian's Eye when usable.
-
-What's New In 1.068
-
-- Daily Crafting Writ Tracker: Tracks all seven professions in the Overview panel.
-- Companion Rapport Dailies: Shows the best rapport-gaining daily activities for your active companion.
-- Persistent daily status: Writ and companion activity status persists across sessions and resets at the daily reset.
-- Quest ID variant support: Writ tracking covers all quest variants for each profession.
-- Improved Overview narration: Gamepad screen narration now reads quest tasks, completed tasks, optional steps, and hints.
 
 Required Libraries
 

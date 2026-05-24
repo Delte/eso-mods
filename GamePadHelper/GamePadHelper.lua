@@ -1,5 +1,5 @@
 local ADDON_NAME = "GamePadHelper"
-local ADDON_VERSION = 1.068
+local ADDON_VERSION = 1.069
 local ANNOUNCE_VERSION = 10608
 
 -- Make ADDON_NAME globally accessible for submodules

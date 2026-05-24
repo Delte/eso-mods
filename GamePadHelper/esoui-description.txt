@@ -1,5 +1,5 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
-[B]Version 1.068[/B] | API 101049 | by olegbl, quelron[/CENTER]
+[B]Version 1.069[/B] | API 101049 | by olegbl, quelron[/CENTER]
 
 [CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
 Built only for gamepad and console UI.[/CENTER]
@@ -13,14 +13,14 @@ Built only for gamepad and console UI.[/CENTER]
 [*][B]Market prices[/B] - price data is shown when supported sources are installed, including [URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL]. Console price data provided by [URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher[/URL] / TSC Price Data API packages.
 [/LIST]
 
-[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.068[/B][/COLOR][/SIZE]
+[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.069[/B][/COLOR][/SIZE]
 
 [LIST]
-[*][B]Daily Crafting Writ Tracker[/B] - the Overview panel now tracks all seven daily crafting writs: Blacksmithing, Clothier, Woodworking, Enchanting, Provisioning, Alchemy, and Jewelry.
-[*][B]Companion Rapport Dailies[/B] - when a companion is active, the Overview panel shows the best rapport-gaining daily activities and their status.
-[*][B]Persistent daily status[/B] - writ and companion activity status persists across sessions and resets automatically at the daily reset.
-[*][B]Quest ID variant support[/B] - writ tracking covers all quest variants for each profession, so status updates correctly regardless of which writ variant the game assigns.
-[*][B]Improved Overview narration[/B] - gamepad screen narration now reads quest tasks, completed tasks, optional steps, and hints.
+[*][B]Menu performance improvements[/B] - reduced repeated scanning in the gamepad Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing modules.
+[*][B]Overview optimization[/B] - the task summary now caches expensive inventory, antiquity, crafting, writ, and companion checks and refreshes when relevant game data changes.
+[*][B]Map Search teleport fix[/B] - Map Search now owns its teleport keybind while the GPH Search tab is open, preventing the separate world-map teleporter from intercepting the action.
+[*][B]Tooltip Price optimization[/B] - repeated price lookups are cached briefly and external price-line filtering is lighter.
+[*][B]Map Search responsiveness[/B] - duplicate searches and recall-cost scans are reduced while preserving search and teleport behavior.
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]Features[/B][/COLOR][/SIZE]
