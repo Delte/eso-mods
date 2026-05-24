@@ -28,9 +28,13 @@ local CRAFTING_TYPE_TO_WRIT_KEY = {
 local GPH_COMPANION_TRACKER_KEY = "overviewCompanionTracker"
 local GPH_DAILY_WRIT_TRACKER_KEY = "overviewDailyWritTracker"
 local TASKS_CACHE_TTL_MS = 30000
+local DAILY_RESET_REFRESH_NAMESPACE = "GPH_OverviewTasks_DailyResetRefresh"
 local tasksCacheText = nil
 local tasksCacheTimeMs = 0
 local tasksCacheDirty = true
+local dailyResetRefreshScheduledAt = 0
+local EnsureCompanionTrackerState
+local EnsureDailyWritTrackerState
 
 local DAILY_WRIT_GROUPS = {
   { id = "blacksmith", displayQuestId = 5377, questIds = { 5368, 5377, 5392 } },
@@ -67,6 +71,76 @@ function Tasks.InvalidateCache()
   tasksCacheDirty = true
   tasksCacheText = nil
   tasksCacheTimeMs = 0
+end
+
+local function GetFallbackSecondsUntilDailyReset()
+  if not GetTimeStamp then return 86400 end
+
+  local now = GetTimeStamp()
+  local worldName = GetWorldName and zo_strlower(GetWorldName() or "") or ""
+  local resetHourUtc = worldName:find("eu", 1, true) and 3 or 10
+
+  local dayStart = now - (now % 86400)
+  local resetAt = dayStart + (resetHourUtc * 3600)
+  if resetAt <= now then
+    resetAt = resetAt + 86400
+  end
+
+  return resetAt - now
+end
+
+local function GetSecondsUntilDailyResetSafe()
+  local candidates = {}
+
+  if GetSecondsUntilDailyReset then
+    candidates[#candidates + 1] = GetSecondsUntilDailyReset()
+  end
+  if GetTimeUntilNextDailyLoginRewardClaimS then
+    candidates[#candidates + 1] = GetTimeUntilNextDailyLoginRewardClaimS()
+  end
+  if GetTimedActivityTypeResetTimeS and TIMED_ACTIVITY_TYPE_DAILY then
+    candidates[#candidates + 1] = GetTimedActivityTypeResetTimeS(TIMED_ACTIVITY_TYPE_DAILY)
+  end
+
+  for _, seconds in ipairs(candidates) do
+    seconds = tonumber(seconds)
+    if seconds and seconds > 0 and seconds <= 172800 then
+      return seconds
+    end
+  end
+
+  return GetFallbackSecondsUntilDailyReset()
+end
+
+local function RefreshTasksTooltipIfVisible()
+  local sv = _G["GamePadHelper_SavedVars"]
+  if not (sv and sv.overviewEnabled and SCENE_MANAGER and SCENE_MANAGER:IsShowing("mainMenuGamepad")) then
+    return
+  end
+
+  local state = _G["GPH_Overview"]
+  local rightTooltip = (state and state.isChatFaded) and GAMEPAD_RIGHT_TOOLTIP or GAMEPAD_QUAD3_TOOLTIP
+  GAMEPAD_TOOLTIPS:ClearTooltip(rightTooltip)
+  Tasks.ShowRightTooltip(rightTooltip)
+end
+
+local function ScheduleDailyResetRefresh(secondsUntilReset)
+  if not EVENT_MANAGER or not secondsUntilReset then return end
+
+  local now = GetTimeStamp and GetTimeStamp() or 0
+  local targetResetAt = now + secondsUntilReset
+  if dailyResetRefreshScheduledAt == targetResetAt then return end
+
+  dailyResetRefreshScheduledAt = targetResetAt
+  EVENT_MANAGER:UnregisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE)
+  EVENT_MANAGER:RegisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE, zo_max(60, secondsUntilReset + 2) * 1000, function()
+    EVENT_MANAGER:UnregisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE)
+    dailyResetRefreshScheduledAt = 0
+    Tasks.InvalidateCache()
+    EnsureCompanionTrackerState()
+    EnsureDailyWritTrackerState()
+    RefreshTasksTooltipIfVisible()
+  end)
 end
 
 local function GPH_NormalizeLowerText(text)
@@ -186,7 +260,7 @@ local function GetCompanionProfileKey(companionId, companionName)
   return nil
 end
 
-local function EnsureCompanionTrackerState()
+function EnsureCompanionTrackerState()
   local sv = _G["GamePadHelper_SavedVars"]
   if not sv then return nil end
 
@@ -198,14 +272,17 @@ local function EnsureCompanionTrackerState()
   local now = GetTimeStamp and GetTimeStamp() or 0
   if now >= tracker.nextResetAt then
     tracker.doneByActivity = {}
-    local untilReset = GetSecondsUntilDailyReset and GetSecondsUntilDailyReset() or 86400
+    local untilReset = GetSecondsUntilDailyResetSafe()
     tracker.nextResetAt = now + zo_max(untilReset, 60)
+    ScheduleDailyResetRefresh(untilReset)
+  elseif tracker.nextResetAt > now then
+    ScheduleDailyResetRefresh(tracker.nextResetAt - now)
   end
 
   return tracker
 end
 
-local function EnsureDailyWritTrackerState()
+function EnsureDailyWritTrackerState()
   local sv = _G["GamePadHelper_SavedVars"]
   if not sv then return nil end
 
@@ -223,8 +300,11 @@ local function EnsureDailyWritTrackerState()
     tracker.doneByWritKey = {}
     tracker.activeByQuestId = {}
     tracker.activeByWritKey = {}
-    local untilReset = GetSecondsUntilDailyReset and GetSecondsUntilDailyReset() or 86400
+    local untilReset = GetSecondsUntilDailyResetSafe()
     tracker.nextResetAt = now + zo_max(untilReset, 60)
+    ScheduleDailyResetRefresh(untilReset)
+  elseif tracker.nextResetAt > now then
+    ScheduleDailyResetRefresh(tracker.nextResetAt - now)
   end
 
   return tracker

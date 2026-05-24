@@ -1,5 +1,5 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
-[B]Version 1.069[/B] | API 101049 | by olegbl, quelron[/CENTER]
+[B]Version 1.06.10[/B] | API 101049 | by olegbl, quelron[/CENTER]
 
 [CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
 Built only for gamepad and console UI.[/CENTER]
@@ -13,7 +13,7 @@ Built only for gamepad and console UI.[/CENTER]
 [*][B]Market prices[/B] - price data is shown when supported sources are installed, including [URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL]. Console price data provided by [URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher[/URL] / TSC Price Data API packages.
 [/LIST]
 
-[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.069[/B][/COLOR][/SIZE]
+[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.10[/B][/COLOR][/SIZE]
 
 [LIST]
 [*][B]Menu performance improvements[/B] - reduced repeated scanning in the gamepad Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing modules.

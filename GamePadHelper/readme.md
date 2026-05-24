@@ -1,6 +1,6 @@
 # GamePadHelper
 
-**Version:** 1.069 · **Authors:** olegbl, quelron · **API:** 101049
+**Version:** 1.06.10 · **Authors:** olegbl, quelron · **API:** 101049
 
 A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed only for gamepad and console UI. Every feature can be toggled individually from the in-game settings panel.
 
@@ -8,7 +8,7 @@ Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsav
 
 ---
 
-## What's New in 1.069
+## What's New in 1.06.10
 
 - **Menu performance improvements** - reduced repeated scanning in Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing.
 - **Overview optimization** - task summaries now cache expensive inventory, antiquity, crafting, writ, and companion checks and refresh when relevant game data changes.
@@ -21,7 +21,7 @@ Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsav
 ## Table of Contents
 
 - [Installation](#installation)
-- [What's New in 1.069](#whats-new-in-1069)
+- [What's New in 1.06.10](#whats-new-in-10610)
 - [Settings](#settings)
 - [Features](#features)
   - [Fishing](#fishing)

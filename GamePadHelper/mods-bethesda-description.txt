@@ -1,72 +1,75 @@
-GamePadHelper
+[B]GamePadHelper[/B]
+Version 1.06.10 | API 101049
 
-A modular collection of quality-of-life improvements for Elder Scrolls Online, built only for gamepad and console UI.
+A modular collection of quality-of-life improvements for Elder Scrolls Online, built for gamepad and console UI.
 
-Features can be enabled or disabled individually from:
-Options > GPH Settings
+Open settings from:
+[B]Options > GPH Settings[/B]
 
-Highlights
+[B]Required Libraries[/B]
+[LIST]
+[*]LibCovetousCountess
+[*]LibItemLinkDecoder
+[*]LibTraitResearch
+[*]LibMultiIcon
+[/LIST]
 
-- Gamepad and console UI focused
-- Multilanguage support for all 7 official ESO client languages: EN, DE, FR, ES, RU, JP, ZH
-- Modular settings, so each feature can be toggled individually
-- Market price support through TamrielTradeCentre when available
-- Console price data provided by Tamriel Savings Co Price Fetcher / TSC Price Data API packages when available
+[B]Highlights[/B]
+[LIST]
+[*]Gamepad and console UI focused.
+[*]Each feature can be enabled or disabled individually.
+[*]Supports all 7 official ESO client languages: EN, DE, FR, ES, RU, JP, ZH.
+[*]Supports market price data when compatible price addons or data packages are installed.
+[/LIST]
 
-Price Data Attribution
+[B]Main Features[/B]
+[LIST]
+[*]Tooltip Price: cleaner item price display with supported market data.
+[*]Tooltip Enchantment: cleaner enchantment text.
+[*]Tooltip Poison: improved poison tooltip formatting.
+[*]Tooltip Trait: better trait visibility in tooltips.
+[*]Tooltip Font: cleaner item tooltip font for gamepad play.
+[*]Inventory Traits: research trait indicators in inventory.
+[*]Inventory Covetous Countess: highlights relevant Covetous Countess treasures.
+[*]Gear Comparison: side-by-side item stat comparison panels.
+[*]Provisioning Filter: hides low-level recipes below CP160.
+[*]Fishing: controller vibration, reel alert, automatic bait selection, and fallback bait.
+[*]Teleporter: BeamMeUp integration for map and chat jump helpers.
+[*]Map Search: search wayshrines, zones, houses, and points of interest from the gamepad world map.
+[*]Dungeon Finder: shows pledge quest names in the Dungeon Finder list.
+[*]Overview Panel: root menu overview with quest details, daily reminders, daily writ tracking, companion rapport dailies, research, surveys, treasure maps, and antiquity leads.
+[*]Loot Offset: moves the loot history panel upward so it does not overlap chat. Requires UI reload after toggling.
+[*]Auto Charge: recharges equipped weapons after combat. Default threshold: 25%.
+[*]Auto Repair: repairs equipped items at merchants when repair is available.
+[*]Auto Eye: automatically slots and activates Antiquarian's Eye when usable.
+[/LIST]
 
+[B]Trait Icon Color Meaning[/B]
+[LIST]
+[*][COLOR="#00FF00"]Green[/COLOR]: Only accessible copy with this trait; safe to research.
+[*][COLOR="#FFFF00"]Yellow[/COLOR]: Another copy with the same trait exists in your inventory.
+[*][COLOR="#FF4444"]Red[/COLOR]: Another copy with the same trait exists in your bank.
+[*][COLOR="#FFFFFF"]White[/COLOR]: Equipped item uses ESO's default magnifying glass icon; trait details are shown in the tooltip.
+[/LIST]
+
+[B]Optional Integrations[/B]
+[LIST]
+[*]TamrielTradeCentre: optional PC market price source.
+[*]BeamMeUp: enables Teleporter functionality.
+[*]LibPriceCache: optional price cache source.
+[*]TSCPriceDataAPIXBNA, TSCPriceDataAPIPSNA, TSCPriceDataAPIXBEU, TSCPriceDataAPIPSEU: optional console price data packages.
+[/LIST]
+
+[B]Price Data Attribution[/B]
 PC market data can use TamrielTradeCentre when installed:
 https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html
 
 Console price data provided by Tamriel Savings Co Price Fetcher / TSC Price Data API packages when installed:
 https://tamrielsavings.com/price-fetcher
 
-Trait Icon Color Meaning
-
-🟢 |c2DC50EGreen|r: Only copy with this trait you have access to; safe to research.
-🟡 |cFFFF00Yellow|r: Another copy with the same trait exists in your inventory.
-🔴 |cFF4444Red|r: Another copy with the same trait exists in your bank.
-⚪ |cFFFFFFWhite|r: Equipped item uses ESO's default white magnifying glass icon; trait details are shown in the tooltip.
-
-Main Features
-
-- Tooltip Price [Default: ON]: Better item price display with supported market data when available.
-- Tooltip Enchantment [Default: ON]: Cleaner enchantment text.
-- Tooltip Poison [Default: ON]: Improved poison tooltip formatting.
-- Tooltip Trait [Default: ON]: Better trait visibility in tooltips.
-- Tooltip Font [Default: ON]: Cleaner item tooltip font for gamepad play.
-- Inventory Traits [Default: ON]: Research trait indicators in inventory.
-- Inventory Covetous Countess [Default: ON]: Highlights relevant Covetous Countess treasures.
-- Gear Comparison [Default: ON]: Shows item stat comparison panels side by side.
-- Provisioning Hide Low-Level Recipes [Default: OFF]: Adds a filter to hide recipes below CP160.
-- Fishing [Default: ON]: Controller vibration, on-screen reel alert, automatic bait selection, and alternative bait fallback.
-- Teleporter [Default: ON]: BeamMeUp integration for map and chat jump helpers.
-- Map Search [Default: ON]: Search wayshrines, zones, houses, and points of interest from the gamepad world map.
-- Dungeon Finder [Default: ON]: Shows pledge quest names in the Dungeon Finder list.
-- Overview Panel [Default: ON]: Root menu overview with quest details, daily reminders, daily writ tracking, companion rapport dailies, research, surveys, treasure maps, and antiquity leads.
-- Loot Offset [Default: ON]: Moves the loot history panel upward so it does not overlap chat. Requires a UI reload after toggling.
-- Auto Charge [Default: ON]: Recharges equipped weapons after combat. Charge threshold default: 25%.
-- Auto Repair [Default: ON]: Repairs equipped items at merchants when repair is available.
-- Auto Eye [Default: ON]: Automatically slots and activates Antiquarian's Eye when usable.
-
-Required Libraries
-
-- LibCovetousCountess
-- LibItemLinkDecoder
-- LibTraitResearch
-- LibMultiIcon
-
-Optional Integrations
-
-- TamrielTradeCentre
-- BeamMeUp
-- LibPriceCache
-- TSCPriceDataAPIXBNA
-- TSCPriceDataAPIPSNA
-- TSCPriceDataAPIXBEU
-- TSCPriceDataAPIPSEU
-
-Notes
-
-Optional integrations enhance specific features but are not required for the addon to load.
-If supported market addons or price data packages are installed, Tooltip Price will show additional market information.
+[B]Notes[/B]
+[LIST]
+[*]Optional integrations improve specific features but are not required for GamePadHelper to load.
+[*]If no supported market addon or price data package is installed, Tooltip Price still reformats basic price information.
+[*]This addon is provided as-is. Please report issues on the GamePadHelper project page.
+[/LIST]
