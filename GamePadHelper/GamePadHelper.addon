@@ -4,7 +4,7 @@
 ## AddOnVersion: 10610
 ## Author: olegbl, quelron
 ## Description: |c3399FFGamePadHelper|r improves ESO's gamepad and console UI with modular quality-of-life features. Market prices can use TamrielTradeCentre and Tamriel Savings Co Price Fetcher / TSC data when available.
-## SavedVariables: GamePadHelperSavedVars
+## SavedVariables: GamePadHelperSavedVars GamePadHelperMapData
 ## DependsOn: LibCovetousCountess>=102 LibItemLinkDecoder>=102 LibTraitResearch>=103 LibMultiIcon>=102
 ## OptionalDependsOn: TamrielTradeCentre BeamMeUp LibPriceCache TSCPriceDataAPIXBNA TSCPriceDataAPIPSNA TSCPriceDataAPIXBEU TSCPriceDataAPIPSEU
 
@@ -34,4 +34,5 @@ modules/AutoEye.lua
 modules/AutoCharge.lua
 modules/AutoRepair.lua
 modules/MapSearch.xml
+modules/MapSearchData.lua
 modules/MapSearch.lua

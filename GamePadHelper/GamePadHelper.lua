@@ -31,6 +31,8 @@ local defaults = {
     mapSearchSetDestination = true,
     mapSearchNarratePostTeleport = true,
     mapSearchBookmarksAccountWide = false,
+    mapSearchAutoFocusSearch = false,
+    mapSearchOpenOnSearch = false,
     lootOffsetEnabled = true,
     lootOffset = 350,
     showLowLevelRecipes = false,
@@ -48,6 +50,7 @@ local defaults = {
     lastAnnouncedVersion = 0,
     overviewDebug = {},
 }
+_G["GamePadHelper_Defaults"] = defaults
 
 local savedVars
 

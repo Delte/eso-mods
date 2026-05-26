@@ -1,6 +1,7 @@
 local GPH_PANEL_ID = 9106
 local GPH_CATEGORY_NAME = GetString(SI_GPH_SETTINGS_CATEGORY)
 local GPH_RELOAD_DIALOG = "GPH_RELOADUI_CONFIRM"
+local GPH_RESET_DIALOG = "GPH_RESET_SETTINGS_CONFIRM"
 local gphLootReloadPending = false
 local gphExitHookRegistered = false
 local gphBackOverrideActive = false
@@ -26,6 +27,35 @@ local function SetSetting(key, value)
     local sv = GetSavedVars()
     if sv then
         sv[key] = value
+    end
+end
+
+local function CopyDefaultValue(value)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    local copy = {}
+    for k, v in pairs(value) do
+        copy[k] = CopyDefaultValue(v)
+    end
+    return copy
+end
+
+local function ResetSettingsToDefaults()
+    local sv = GetSavedVars()
+    local defaults = _G["GamePadHelper_Defaults"]
+    if not (sv and defaults) then return end
+
+    for key, value in pairs(defaults) do
+        if key ~= "lastAnnouncedVersion" and key ~= "overviewDebug" then
+            sv[key] = CopyDefaultValue(value)
+        end
+    end
+
+    gphLootReloadPending = false
+    if GAMEPAD_OPTIONS and GAMEPAD_OPTIONS.RefreshOptionsList then
+        GAMEPAD_OPTIONS:RefreshOptionsList()
     end
 end
 
@@ -139,6 +169,15 @@ local function ShowReloadPrompt(onConfirm, onCancel)
     end
 end
 
+local function ShowResetPrompt()
+    if ESO_Dialogs[GPH_RESET_DIALOG] then
+        ZO_Dialogs_ShowGamepadDialog(GPH_RESET_DIALOG)
+    else
+        ResetSettingsToDefaults()
+        ShowReloadPrompt()
+    end
+end
+
 local function MarkLootReloadPending()
     gphLootReloadPending = true
 end
@@ -178,6 +217,30 @@ local function EnsureReloadDialog()
     }
 end
 
+local function EnsureResetDialog()
+    if ESO_Dialogs[GPH_RESET_DIALOG] then
+        return
+    end
+
+    ESO_Dialogs[GPH_RESET_DIALOG] = {
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
+        title = { text = SI_GPH_RESET_SETTINGS_TITLE },
+        mainText = { text = SI_GPH_RESET_SETTINGS_BODY },
+        buttons = {
+            {
+                text = SI_DIALOG_CONFIRM,
+                callback = function()
+                    ResetSettingsToDefaults()
+                    ShowReloadPrompt()
+                end,
+            },
+            {
+                text = SI_DIALOG_CANCEL,
+            },
+        },
+    }
+end
+
 local function BuildSettingsData()
     local data = {}
     local nextSettingId = 1
@@ -191,6 +254,10 @@ local function BuildSettingsData()
 
     add(BuildInvoke(GetString(SI_GPH_SETTING_RELOAD_UI_NAME), GetString(SI_GPH_SETTING_RELOAD_UI_TOOLTIP), function()
         ShowReloadPrompt()
+    end))
+
+    add(BuildInvoke(GetString(SI_GPH_SETTING_RESET_SETTINGS_NAME), GetString(SI_GPH_SETTING_RESET_SETTINGS_TOOLTIP), function()
+        ShowResetPrompt()
     end))
 
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_FISHING_MODULE_NAME), GetString(SI_GPH_SETTING_FISHING_MODULE_TOOLTIP), function()
@@ -257,6 +324,25 @@ local function BuildSettingsData()
     end, function(v)
         SetSetting("mapSearchNarratePostTeleport", v)
     end, nil, mapSearchDisabled))
+
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_AUTO_FOCUS_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_AUTO_FOCUS_TOOLTIP), function()
+        return GetBoolSetting("mapSearchAutoFocusSearch", false)
+    end, function(v)
+        SetSetting("mapSearchAutoFocusSearch", v)
+    end, nil, mapSearchDisabled))
+
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_MAP_SEARCH_OPEN_ON_SEARCH_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_OPEN_ON_SEARCH_TOOLTIP), function()
+        return GetBoolSetting("mapSearchOpenOnSearch", false)
+    end, function(v)
+        SetSetting("mapSearchOpenOnSearch", v)
+    end, nil, mapSearchDisabled))
+
+    add(BuildInvoke(GetString(SI_GPH_SETTING_MAP_SEARCH_CLEAR_CACHE_NAME), GetString(SI_GPH_SETTING_MAP_SEARCH_CLEAR_CACHE_TOOLTIP), function()
+        if _G["GamePadHelper_ClearCityCache"] then
+            _G["GamePadHelper_ClearCityCache"]()
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, GetString(SI_GPH_SETTING_MAP_SEARCH_CLEAR_CACHE_NAME) .. ": done")
+        end
+    end))
 
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_DUNGEON_FINDER_NAME), GetString(SI_GPH_SETTING_DUNGEON_FINDER_TOOLTIP), function()
         return GetBoolSetting("dungeonFinderEnabled", false)
@@ -438,6 +524,7 @@ end
 
 local function InitializeGamepadSettings()
     EnsureReloadDialog()
+    EnsureResetDialog()
     HookInvokeCallback()
 
     local tryRegisterAttempts = 0
