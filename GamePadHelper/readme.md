@@ -1,6 +1,6 @@
 # GamePadHelper
 
-**Version:** 1.06.10 · **Authors:** olegbl, quelron · **API:** 101049
+**Version:** 1.06.11 · **Authors:** olegbl, quelron · **API:** 101049
 
 A collection of UI improvements and quality-of-life enhancements for Elder Scrolls Online, designed only for gamepad and console UI. Every feature can be toggled individually from the in-game settings panel.
 
@@ -8,23 +8,23 @@ Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsav
 
 ---
 
-## What's New in 1.06.10
+## What's New in 1.06.11
 
-- **Menu performance improvements** - reduced repeated scanning in Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing.
-- **Overview optimization** - task summaries now cache expensive inventory, antiquity, crafting, writ, and companion checks, refresh when relevant game data changes, and schedule an update at the daily reset.
-- **No-quest overview fix** - the Tasks panel now still appears when a character has no active quest, while the Quest panel stays hidden.
-- **Map Search tabs** - Search, Bookmarks, Recent, Houses, and Zones are now split into controller-friendly tabs.
-- **Map Search details** - zone rows can show quest, survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
-- **Map Search teleport fix** - Map Search owns its teleport keybind while the GPH Search tab is open, so the separate world-map teleporter no longer intercepts it.
-- **Tooltip Price optimization** - repeated price lookups are cached briefly and external price-line filtering is lighter.
-- **Map Search responsiveness** - duplicate searches and recall-cost scans are reduced.
+- **Map Search crafted sets** — crafting station results now show the crafted set name, required trait count, and localized set bonuses sourced from ESO item set data.
+- **Special crafting locations** — Map Search includes service-pin crafting stations such as Eyevea and The Earth Forge that are not exposed as standard POIs.
+- **City service pins** — Map Search now includes searchable city-level service locations: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other city services. Search by name or service type and teleport to the nearest wayshrine.
+- **Daily quest givers** — key daily quest NPCs (Mages Guild, Fighters Guild, Undaunted, Thieves Guild, zone world boss and delve dailies, and more) are now searchable in Map Search with their city locations.
+- **Teleport improvements** — teleporting from a city service or daily quest giver result navigates to the correct wayshrine for that city rather than the zone. Post-teleport announcement confirms the destination name.
+- **Teleporter friends** — world map zone teleport now includes friends alongside group and guild members when looking for free travel options.
+- **Overview daily reset** — daily tracker reset now uses server-aware day numbers (EU/NA reset hours) and checks on login, fixing cases where completion status persisted past the daily reset.
+- **Overview survey/writ counter** — fixed survey reports and master writs not showing for some users due to incorrect bag iteration.
 
 ---
 
 ## Table of Contents
 
 - [Installation](#installation)
-- [What's New in 1.06.10](#whats-new-in-10610)
+- [What's New in 1.06.11](#whats-new-in-10611)
 - [Settings](#settings)
 - [Features](#features)
   - [Fishing](#fishing)
@@ -110,10 +110,8 @@ Automatically slots and activates the **Antiquarian's Eye** collectible when you
 
 Two teleport improvements:
 
-- **World Map hotkey** — while hovering a zone on the world map, a new hotkey lets you instantly ask BeamMeUp to teleport to that zone using the best available method. Especially useful on gamepad where BeamMeUp's normal interface is hard to reach.
+- **World Map hotkey** — while hovering a zone on the world map, a new hotkey lets you instantly teleport to that zone. Prioritizes free travel: jumps to a group member, friend, or guild member in the zone if one is available, otherwise falls back to the nearest discovered wayshrine.
 - **Chat "Jump to Player"** — adds jump options to the chat context menu for friends, guild members, and group members.
-
-> Requires **BeamMeUp** (optional) for the teleport functionality.
 
 ---
 
@@ -136,6 +134,10 @@ Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search a
 - **Recent destinations** keeps the latest map targets available from its own tab.
 - **Zone details** can show quest, survey report, treasure map, and antiquity lead counts.
 - **Wayshrine details** can show nearby guild trader counts.
+- **Crafting station details** can show crafted set names, required trait counts, and localized set bonuses.
+- **Special crafting locations** exposed as map-location service pins, such as Eyevea and The Earth Forge, are included when available.
+- **City service pins** — searchable city-level services: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other services. Teleports to the correct city wayshrine.
+- **Daily quest givers** — key daily quest NPCs across all zones are searchable by name or quest category (Mages Guild daily, Fighters Guild daily, Undaunted, Thieves Guild, zone boss/delve dailies, and more).
 
 - Fuzzy search with ranked results — exact prefix matches score highest.
 - Results grouped by category: **Wayshrines**, **Zones**, **Owned Houses**, **Unowned Houses**, and named POI types (Delve, Dungeon, World Boss, Crafting Station, Mundus Stone, etc.).
@@ -145,7 +147,7 @@ Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search a
 - **Teleport to Nearest Wayshrine** fast-travels to the closest discovered wayshrine in the same zone as the selected result (or directly to the wayshrine/house if it is one).
 - **Tab memory** — reopening the map returns you to the GPH Search tab if that was the last tab you had open.
 - **Teleport announcement** — after arriving at the destination, a small on-screen message confirms the location name and reminds you to check the map for the destination pin.
-- Full **screen narration** support for gamepad accessibility — reads the name, category, ownership (houses), and discovery/lock status of each result.
+- Full **screen narration** support for gamepad accessibility — reads the name, category, ownership (houses), discovery/lock status, and crafted set details when available.
 
 ---
 
@@ -304,7 +306,6 @@ These are not required to load the addon. Each one unlocks or enhances a specifi
 
 | Library / Addon | What it unlocks |
 |---|---|
-| [BeamMeUp](https://www.esoui.com/downloads/info2143-BeamMeUp-TeleporterFastTravel.html) | Powers the **Teleporter** feature — the world map zone hotkey and the chat "Jump to Player" options both call BeamMeUp to perform the actual travel. Without it the Teleporter feature does nothing. |
 | [TamrielTradeCentre](https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html) | Optional market source for **Tooltip Price**. |
 | [Tamriel Savings Co Price Fetcher / TSC Price Data API](https://tamrielsavings.com/price-fetcher) (`TSCPriceDataAPIXBNA`, `TSCPriceDataAPIPSNA`, `TSCPriceDataAPIXBEU`, `TSCPriceDataAPIPSEU`) | Optional console market data source for **Tooltip Price**. |
 

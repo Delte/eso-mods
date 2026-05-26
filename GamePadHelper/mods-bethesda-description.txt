@@ -31,8 +31,8 @@ Open settings from:
 - **Gear Comparison:** side-by-side item stat comparison panels.
 - **Provisioning Filter:** hides low-level recipes below CP160.
 - **Fishing:** controller vibration, reel alert, automatic bait selection, and fallback bait.
-- **Teleporter:** BeamMeUp integration for map and chat jump helpers.
-- **Map Search:** search wayshrines, zones, houses, and points of interest from the gamepad world map, with separate Search, Bookmarks, Recent, Houses, and Zones tabs plus zone quest/map/lead counts and wayshrine guild trader hints.
+- **Teleporter:** world map hotkey to teleport to the hovered zone — prefers free travel via a group member, friend, or guild member in the zone, otherwise uses the nearest wayshrine. Also adds chat context menu jump options for friends, guild members, and group members.
+- **Map Search:** search wayshrines, zones, houses, points of interest, city services (guild traders, guild halls, banks), and daily quest givers from the gamepad world map. Separate tabs for Search, Bookmarks, Recent, Houses, and Zones. Zone quest/map/lead counts, wayshrine trader hints, crafted set details (set name, trait count, set bonuses) on crafting station results. Teleports to the correct city wayshrine for city service and daily quest results.
 - **Dungeon Finder:** shows pledge quest names in the Dungeon Finder list.
 - **Overview Panel:** root menu overview with quest details, daily reminders, daily writ tracking, companion rapport dailies, research, surveys, treasure maps, and antiquity leads. Task status refreshes when relevant data changes and at the daily reset.
 - **Loot Offset:** moves the loot history panel upward so it does not overlap chat. Requires UI reload after toggling.
@@ -50,7 +50,6 @@ Open settings from:
 ## Optional Integrations
 
 - **TamrielTradeCentre:** optional PC market price source.
-- **BeamMeUp:** enables Teleporter functionality.
 - **LibPriceCache:** optional price cache source.
 - **TSCPriceDataAPIXBNA, TSCPriceDataAPIPSNA, TSCPriceDataAPIXBEU, TSCPriceDataAPIPSEU:** optional console price data packages.
 

@@ -1,5 +1,5 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
-[B]Version 1.06.10[/B] | API 101049 | by olegbl, quelron[/CENTER]
+[B]Version 1.06.11[/B] | API 101049 | by olegbl, quelron[/CENTER]
 
 [CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
 Built only for gamepad and console UI.[/CENTER]
@@ -13,17 +13,17 @@ Built only for gamepad and console UI.[/CENTER]
 [*][B]Market prices[/B] - price data is shown when supported sources are installed, including [URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL]. Console price data provided by [URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher[/URL] / TSC Price Data API packages.
 [/LIST]
 
-[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.10[/B][/COLOR][/SIZE]
+[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.11[/B][/COLOR][/SIZE]
 
 [LIST]
-[*][B]Menu performance improvements[/B] - reduced repeated scanning in the gamepad Overview, Tooltip Price, Map Search, Dungeon Finder, and Fishing modules.
-[*][B]Overview optimization[/B] - the task summary now caches expensive inventory, antiquity, crafting, writ, and companion checks, refreshes when relevant game data changes, and schedules an update at the daily reset.
-[*][B]No-quest overview fix[/B] - the Tasks panel now still appears when a character has no active quest, while the Quest panel stays hidden.
-[*][B]Map Search tabs[/B] - the GPH Search panel now separates Search, Bookmarks, Recent, Houses, and Zones into controller-friendly tabs.
-[*][B]Map Search details[/B] - zone rows can show quest, survey, treasure map, and antiquity lead counts; wayshrines can show nearby guild trader counts.
-[*][B]Map Search teleport fix[/B] - Map Search now owns its teleport keybind while the GPH Search tab is open, preventing the separate world-map teleporter from intercepting the action.
-[*][B]Tooltip Price optimization[/B] - repeated price lookups are cached briefly and external price-line filtering is lighter.
-[*][B]Map Search responsiveness[/B] - duplicate searches and recall-cost scans are reduced while preserving search and teleport behavior.
+[*][B]Map Search crafted sets[/B] - crafting station results now show the crafted set name, required trait count, and localized set bonuses from ESO item set data.
+[*][B]Special crafting locations[/B] - Map Search includes service-pin crafting stations such as Eyevea and The Earth Forge that are not exposed as standard POIs.
+[*][B]City service pins[/B] - Map Search now includes searchable city-level services: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other city services. Teleports to the correct city wayshrine.
+[*][B]Daily quest givers[/B] - key daily quest NPCs are now searchable by name or quest category (Mages Guild, Fighters Guild, Undaunted, Thieves Guild, zone boss/delve dailies, and more) with their city locations.
+[*][B]Teleport improvements[/B] - teleporting from a city service or daily quest giver result navigates to the correct city wayshrine. Post-teleport announcement confirms the destination.
+[*][B]Teleporter friends[/B] - world map zone teleport now includes friends when looking for free travel options, alongside group and guild members.
+[*][B]Overview daily reset fix[/B] - daily tracker now resets correctly using server-aware day numbers (EU/NA reset hours) and checks on login.
+[*][B]Overview survey/writ counter fix[/B] - fixed survey reports and master writs not showing for some users.
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]Features[/B][/COLOR][/SIZE]
@@ -55,9 +55,8 @@ Built only for gamepad and console UI.[/CENTER]
 
 [B][COLOR="#DAA520"]Teleporter[/COLOR][/B] [Default: ON]
 [LIST]
-[*]Adds a world map hotkey that asks BeamMeUp to teleport to the hovered zone using the best available method.
+[*]Adds a world map hotkey to teleport to the hovered zone. Prioritizes free travel: jumps to a group member, friend, or guild member in the zone if available, otherwise uses the nearest wayshrine.
 [*]Adds chat context menu jump options for friends, guild members, and group members.
-[*]Requires BeamMeUp for teleport functionality.
 [/LIST]
 
 [B][COLOR="#DAA520"]Dungeon Finder[/COLOR][/B] [Default: ON]
@@ -72,8 +71,12 @@ Built only for gamepad and console UI.[/CENTER]
 [*]Separate tabs for Search, Bookmarks, Recent destinations, Houses, and Zones.
 [*]Zones can show quest, survey report, treasure map, and antiquity lead counts when detected.
 [*]Wayshrines can show nearby guild trader counts.
+[*]Crafting stations can show crafted set names, required trait counts, and localized set bonuses.
+[*]Special crafted set service pins such as Eyevea and The Earth Forge are included when available.
+[*]City service pins are searchable: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other services, with teleport to the correct city wayshrine.
+[*]Daily quest givers are searchable by name or quest category across all zones.
 [*]Includes fuzzy ranked results, per-character or account-wide bookmarks, map panning, ping markers, and nearest-wayshrine travel.
-[*]Supports gamepad screen narration for result name, category, ownership, and discovery or lock status.
+[*]Supports gamepad screen narration for result name, category, ownership, discovery or lock status, and crafted set details when available.
 [*]Map pin: [B]Default ON[/B].
 [*]Set destination: [B]Default ON[/B].
 [*]Post-teleport announcement: [B]Default ON[/B].
@@ -154,7 +157,6 @@ These must be installed for GamePadHelper to load:
 [SIZE="4"][COLOR="#3399FF"][B]Optional Dependencies[/B][/COLOR][/SIZE]
 
 [LIST]
-[*][URL="https://www.esoui.com/downloads/info2143-BeamMeUp-TeleporterFastTravel.html"]BeamMeUp[/URL] - enables the Teleporter feature.
 [*][URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL] - optional market source for Tooltip Price.
 [*][URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher / TSC Price Data API packages[/URL] - optional console market data source for Tooltip Price.
 [/LIST]
@@ -166,6 +168,19 @@ This addon is provided as-is, without warranty or support of any kind. Bug repor
 [URL="https://github.com/olegbl/eso-mods/tree/main/GamePadHelper"]GamePadHelper GitHub Repository[/URL]
 
 [SIZE="4"][COLOR="#3399FF"][B]Update Shortage[/B][/COLOR][/SIZE]
+
+1.06.11
+[LIST]
+[*][GamePadHelper] [MapSearch] Added crafted set names, trait requirements, and localized set bonuses to crafting station results.
+[*][GamePadHelper] [MapSearch] Added support for special crafting locations (Eyevea, The Earth Forge) exposed as map-location service pins.
+[*][GamePadHelper] [MapSearch] Added searchable city service pins: guild traders, guild halls, banks, and other city services.
+[*][GamePadHelper] [MapSearch] Added searchable daily quest giver locations across all zones.
+[*][GamePadHelper] [MapSearch] Teleporting from city service and daily quest giver results now targets the correct city wayshrine.
+[*][GamePadHelper] [MapSearch] Improved crafted set bonus display and screen narration.
+[*][GamePadHelper] [MapTeleporter] World map zone teleport now includes friends for free travel alongside group and guild members.
+[*][GamePadHelper] [OverviewTasks] Fixed daily tracker not resetting at server reset; now uses server-aware day numbers and checks on login.
+[*][GamePadHelper] [OverviewTasks] Fixed survey reports and master writs not showing for some users.
+[/LIST]
 
 1.06.10
 [LIST]

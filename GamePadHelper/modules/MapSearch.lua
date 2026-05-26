@@ -19,6 +19,8 @@ local function TruncateDetail(s, maxLen)
     return cut .. "..."
 end
 
+local SET_BONUS_UNSELECTED_MAX = 60
+
 local TYPE_WAYSHRINE     = 1
 local TYPE_ZONE          = 2
 local TYPE_POI           = 3
@@ -72,7 +74,107 @@ local zoneLeadCounts  = nil
 local zoneQuestCounts = nil
 
 local cityServicesCache = nil  -- { locations=[], tradersByNodeIndex={}, iconCounts={} }, populated on first use
-local CITY_SCAN_CACHE_VERSION = 6
+local CITY_SCAN_CACHE_VERSION = 7
+local clickableSubMapCache = nil
+local craftingPOIIndex = {}  -- "zoneId:pxKey:pyKey" -> poiIndex, built during PreScan
+
+local function GetCraftingSetPOIEntry(zoneId, poiIndex)
+    local byZone = GamePadHelper_MapSearchData
+        and GamePadHelper_MapSearchData.CRAFTING_SET_POIS
+        and GamePadHelper_MapSearchData.CRAFTING_SET_POIS[zoneId]
+    return byZone and byZone[poiIndex] or nil
+end
+
+local function GetCraftingSetIdForPOI(zoneId, poiIndex)
+    local entry = GetCraftingSetPOIEntry(zoneId, poiIndex)
+    if type(entry) == "table" then return entry.setId end
+    return entry
+end
+
+local function GetCraftingSetLocationEntry(zoneId, locationName)
+    if not zoneId or not locationName then return nil end
+    local byZone = GamePadHelper_MapSearchData
+        and GamePadHelper_MapSearchData.CRAFTING_SET_LOCATIONS
+        and GamePadHelper_MapSearchData.CRAFTING_SET_LOCATIONS[zoneId]
+    return byZone and byZone[locationName] or nil
+end
+
+local function GetCraftingSetTraitCount(setId, zoneId, poiIndex)
+    local poiEntry = GetCraftingSetPOIEntry(zoneId, poiIndex)
+    if type(poiEntry) == "table" and poiEntry.traits then return poiEntry.traits end
+    return nil
+end
+
+local function GetCraftingSetName(setId)
+    if not setId or not GetItemSetInfo then return nil end
+    local hasSet, setName = GetItemSetInfo(setId)
+    if hasSet and setName and setName ~= "" then
+        return CleanName(setName)
+    end
+    return nil
+end
+
+local function GetCraftingSetSearchAlias(setId)
+    local setName = GetCraftingSetName(setId)
+    if setName and setName ~= "" then return setName end
+    return ""
+end
+
+local function AddCraftingSetNarration(c, narrationBase)
+    if not c or not c.setId then return narrationBase end
+
+    local traitCount = c.traitCount
+    if not traitCount or traitCount == 0 then
+        traitCount = GetCraftingSetTraitCount(c.setId, c.zoneId, c.poiIndex)
+    end
+    if c.type == TYPE_CUSTOM and traitCount and traitCount > 0 then
+        narrationBase = narrationBase .. ", " .. traitCount .. " " .. GetString(traitCount == 1 and SI_GPH_MAPSEARCH_CRAFTING_TRAIT or SI_GPH_MAPSEARCH_CRAFTING_TRAITS)
+    end
+
+    local setName = c.setName
+    if not setName or setName == "" then
+        setName = GetCraftingSetName(c.setId)
+    end
+    if setName and setName ~= "" then
+        narrationBase = narrationBase .. ", " .. setName
+    end
+
+    if GetItemSetInfo and GetItemSetBonusInfo then
+        local hasSet, _, numBonuses = GetItemSetInfo(c.setId)
+        if hasSet and numBonuses and numBonuses > 0 then
+            for i = 1, numBonuses do
+                local _, desc, isPerfected = GetItemSetBonusInfo(c.setId, i)
+                if not isPerfected and desc and desc ~= "" then
+                    narrationBase = narrationBase .. ", " .. desc
+                end
+            end
+        end
+    end
+
+    return narrationBase
+end
+
+local function ExtractCraftingSetInfo(icon, isCraftingStation, zoneId, poiIndex)
+    if not isCraftingStation and (not icon or not icon:find("crafting")) then return nil, nil, nil end
+
+    local stations = _G["GamePadHelperMapData"] and _G["GamePadHelperMapData"].craftingStations
+    local entry = stations and zoneId and poiIndex and stations[tostring(zoneId) .. ":" .. tostring(poiIndex)]
+    local staticSetId = GetCraftingSetIdForPOI(zoneId, poiIndex)
+    local tc = entry and entry.traitCount or nil
+    local sn = entry and entry.setName   or nil
+    local si = staticSetId or (entry and entry.setId) or nil
+
+    if si then
+        if not tc or tc == 0 then
+            tc = GetCraftingSetTraitCount(si, zoneId, poiIndex)
+        end
+        if not sn or sn == "" then
+            sn = GetCraftingSetName(si)
+        end
+    end
+
+    return tc, sn, si
+end
 
 local function BuildSearchName(name, aliases)
     local searchName = (name and name ~= "") and name:lower() or ""
@@ -208,30 +310,30 @@ GetBookmarkKey = function(c)
 end
 
 local function GetBookmarksArray()
-    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
+    if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
     local sv = GetSavedVars()
     if sv and sv.mapSearchBookmarksAccountWide == true then
-        if not GamePadHelperSavedVars.mapSearchBookmarksAccountWide then
-            GamePadHelperSavedVars.mapSearchBookmarksAccountWide = {}
+        if not _G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide then
+            _G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide = {}
         end
-        return GamePadHelperSavedVars.mapSearchBookmarksAccountWide
+        return _G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide
     end
     local charName = GetUnitName("player")
-    if not GamePadHelperSavedVars.mapSearchBookmarks then
-        GamePadHelperSavedVars.mapSearchBookmarks = {}
+    if not _G["GamePadHelper_SavedVars"].mapSearchBookmarks then
+        _G["GamePadHelper_SavedVars"].mapSearchBookmarks = {}
     end
-    if not GamePadHelperSavedVars.mapSearchBookmarks[charName] then
-        GamePadHelperSavedVars.mapSearchBookmarks[charName] = {}
+    if not _G["GamePadHelper_SavedVars"].mapSearchBookmarks[charName] then
+        _G["GamePadHelper_SavedVars"].mapSearchBookmarks[charName] = {}
     end
-    return GamePadHelperSavedVars.mapSearchBookmarks[charName]
+    return _G["GamePadHelper_SavedVars"].mapSearchBookmarks[charName]
 end
 
 local function GetRecentArray()
-    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
-    if not GamePadHelperSavedVars.mapSearchRecent then
-        GamePadHelperSavedVars.mapSearchRecent = {}
+    if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
+    if not _G["GamePadHelper_SavedVars"].mapSearchRecent then
+        _G["GamePadHelper_SavedVars"].mapSearchRecent = {}
     end
-    return GamePadHelperSavedVars.mapSearchRecent
+    return _G["GamePadHelper_SavedVars"].mapSearchRecent
 end
 
 local function MakeSavedCandidate(c, key)
@@ -259,6 +361,9 @@ local function MakeSavedCandidate(c, key)
         isLocked     = c.isLocked,
         known        = c.known,
         houseId      = c.houseId,
+        traitCount   = c.traitCount,
+        setName      = c.setName,
+        setId        = c.setId,
     }
 end
 
@@ -301,14 +406,14 @@ local function AddBookmark(c)
     arr[#arr + 1] = MakeSavedCandidate(c)
 end
 
--- POI type labels (tables live in MapSearchData.lua as GamePadHelper_MapSearchData.POI_TYPE_NAMES/DIRECT)
+-- POI type labels
 
 local function GetPOITypeLabel(icon, poiType)
     local data = GamePadHelper_MapSearchData
+    if not data then return nil end
     if poiType and data.POI_TYPE_DIRECT[poiType] then
         return data.POI_TYPE_DIRECT[poiType]
     end
-    -- type 0 and type 2 (Standard / ambiguous) need icon parsing.
     if not icon or icon == "" then return nil end
     local name = (icon:match("([^/]+)%.dds$") or icon)
         :gsub("_complete$",   "")
@@ -337,6 +442,9 @@ local function BuildCandidateNarrationText(c, isBookmark)
             parts[#parts + 1] = c.zoneName
         end
         parts[#parts + 1] = c.poiTypeLabel or GetString(SI_GPH_MAPSEARCH_NARRATION_POI)
+        if c.traitCount and c.traitCount > 0 then
+            parts[#parts + 1] = c.traitCount .. " " .. GetString(c.traitCount == 1 and SI_GPH_MAPSEARCH_CRAFTING_TRAIT or SI_GPH_MAPSEARCH_CRAFTING_TRAITS)
+        end
     elseif c.type == TYPE_CUSTOM then
         if c.isLocked      then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED)
         elseif not c.known then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
@@ -369,7 +477,55 @@ end
 
 -- pre-scan 
 
+local function AddClickableSubMap(maps, seen, parentMapIndex, parentZoneId, x, y, fallbackName)
+    if not x or not y or x <= 0 then return end
+    local locationName, _, _, _, _, _, mapId = GetMapMouseoverInfo(x, y)
+    if mapId and mapId ~= 0 and not seen[mapId] then
+        seen[mapId] = true
+        maps[#maps + 1] = {
+            mapId = mapId,
+            name = CleanName((locationName and locationName ~= "") and locationName or (fallbackName or "")),
+            parentMapIndex = parentMapIndex,
+            parentZoneId = parentZoneId,
+        }
+    end
+end
+
+local function GetClickableSubMaps()
+    if clickableSubMapCache then return clickableSubMapCache end
+
+    local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
+    local maps = {}
+    local seen = {}
+
+    for mapIndex = 1, GetNumMaps() do
+        local mapName, mapType, _, zoneIndex = GetMapInfoByIndex(mapIndex)
+        if mapName and mapName ~= "" and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_SUBZONE or mapType == MAPTYPE_WORLD) then
+            SetMapToMapListIndex(mapIndex)
+            local parentZoneId = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or 0
+
+            if zoneIndex and zoneIndex > 0 then
+                for poiIndex = 1, GetNumPOIs(zoneIndex) do
+                    local poiName = GetPOIInfo(zoneIndex, poiIndex)
+                    local nx, ny = GetPOIMapInfo(zoneIndex, poiIndex)
+                    AddClickableSubMap(maps, seen, mapIndex, parentZoneId, nx, ny, poiName)
+                end
+            end
+
+            for blobIndex = 1, GetNumMapBlobs() do
+                local blobName, nx, nz = GetMapBlobNameInfo(blobIndex)
+                AddClickableSubMap(maps, seen, mapIndex, parentZoneId, nx, nz, blobName)
+            end
+        end
+    end
+
+    if originalMapId then SetMapToMapId(originalMapId) end
+    clickableSubMapCache = maps
+    return maps
+end
+
 local function PreScan()
+    craftingPOIIndex = {}
     local zoneToMap    = {}
     local nameToZoneId = {}
     for mi = 1, GetNumMaps() do
@@ -459,28 +615,38 @@ local function PreScan()
                 local uid = zoneIndex .. ":" .. poiIndex
                 if not seenPOI[uid] then
                     seenPOI[uid] = true
-                    local name = GetPOIInfo(zoneIndex, poiIndex)
+                    local name, _, startDesc, finishedDesc = GetPOIInfo(zoneIndex, poiIndex)
                     if name and name ~= "" then
                         local nx, ny, _, icon, _, collectibleLocked, isDiscovered = GetPOIMapInfo(zoneIndex, poiIndex)
                         local poiType = GetPOIType(zoneIndex, poiIndex)
                         if not icon or not icon:find("wayshrine") then
                             local poiIcon  = (icon and icon ~= "") and icon or nil
                             local isLocked = collectibleLocked or lockedZoneIndex[zoneIndex] or false
+                            local poiTypeLabel = GetPOITypeLabel(poiIcon, poiType)
+                            local isCraftingStation = poiTypeLabel == GetString(SI_GPH_MAPSEARCH_LABEL_CRAFTING_STATION)
+                            if isCraftingStation and nx and nx > 0 then
+                                local pk = tostring(zoneId) .. ":" .. string.format("%d", nx * 10000 + 0.5) .. ":" .. string.format("%d", ny * 10000 + 0.5)
+                                craftingPOIIndex[pk] = poiIndex
+                            end
+                            local traitCount, setName, setId = ExtractCraftingSetInfo(poiIcon, isCraftingStation, zoneId, poiIndex)
                             local poiEntry = {
-                                name      = CleanName(name),
-                                icon      = poiIcon or ICON_POI_GENERIC,
+                                name       = CleanName(name),
+                                icon       = poiIcon or ICON_POI_GENERIC,
                                 -- Only _owned suffix means you own it; _complete/_incomplete do not.
-                                isOwned   = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
-                                poiType   = poiType,
-                                zoneIndex = zoneIndex,
-                                zoneId    = zoneId,
-                                poiIndex  = poiIndex,
-                                mapIndex  = zoneToMap[zoneIndex],
-                                zoneName  = zoneName,
-                                known     = isDiscovered,
-                                isLocked  = isLocked,
-                                x         = (nx and nx > 0) and nx or nil,
-                                y         = (ny and ny > 0) and ny or nil,
+                                isOwned    = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
+                                poiType    = poiType,
+                                zoneIndex  = zoneIndex,
+                                zoneId     = zoneId,
+                                poiIndex   = poiIndex,
+                                mapIndex   = zoneToMap[zoneIndex],
+                                zoneName   = zoneName,
+                                known      = isDiscovered,
+                                isLocked   = isLocked,
+                                traitCount = traitCount,
+                                setName    = setName,
+                                setId      = setId,
+                                x          = (nx and nx > 0) and nx or nil,
+                                y          = (ny and ny > 0) and ny or nil,
                             }
                             data.pois[#data.pois + 1] = poiEntry
                             if poiEntry.x then
@@ -493,6 +659,76 @@ local function PreScan()
             end
         end
     end
+
+    local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
+    for _, subMap in ipairs(GetClickableSubMaps()) do
+        if subMap.mapId and subMap.mapId ~= 0 then
+            SetMapToMapId(subMap.mapId)
+            local zoneIndex = GetCurrentMapZoneIndex()
+            if zoneIndex and zoneIndex > 0 then
+                local zoneId = GetZoneId(zoneIndex)
+                local zoneName = CleanName(GetZoneNameById(zoneId))
+                if zoneId and zoneId > 0 and not seenZone[zoneId] then
+                    seenZone[zoneId] = true
+                    data.zones[#data.zones + 1] = {
+                        name      = zoneName ~= "" and zoneName or CleanName(GetMapName()),
+                        zoneId    = zoneId,
+                        zoneIndex = zoneIndex,
+                        mapIndex  = subMap.parentMapIndex,
+                        isLocked  = lockedZoneIndex[zoneIndex] or false,
+                    }
+                    nameToZoneId[zoneName] = zoneId
+                end
+
+                for poiIndex = 1, GetNumPOIs(zoneIndex) do
+                    local uid = zoneIndex .. ":" .. poiIndex
+                    if not seenPOI[uid] then
+                        seenPOI[uid] = true
+                        local name, _, startDesc, finishedDesc = GetPOIInfo(zoneIndex, poiIndex)
+                        if name and name ~= "" then
+                            local nx, ny, _, icon, _, collectibleLocked, isDiscovered = GetPOIMapInfo(zoneIndex, poiIndex)
+                            local poiType = GetPOIType(zoneIndex, poiIndex)
+                            if not icon or not icon:find("wayshrine") then
+                                local poiIcon  = (icon and icon ~= "") and icon or nil
+                                local isLocked = collectibleLocked or lockedZoneIndex[zoneIndex] or false
+                                local poiTypeLabel = GetPOITypeLabel(poiIcon, poiType)
+                                local isCraftingStation = poiTypeLabel == GetString(SI_GPH_MAPSEARCH_LABEL_CRAFTING_STATION)
+                                if isCraftingStation and nx and nx > 0 then
+                                    local pk = tostring(zoneId) .. ":" .. string.format("%d", nx * 10000 + 0.5) .. ":" .. string.format("%d", ny * 10000 + 0.5)
+                                    craftingPOIIndex[pk] = poiIndex
+                                end
+                                local traitCount, setName, setId = ExtractCraftingSetInfo(poiIcon, isCraftingStation, zoneId, poiIndex)
+                                local poiEntry = {
+                                    name       = CleanName(name),
+                                    icon       = poiIcon or ICON_POI_GENERIC,
+                                    isOwned    = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
+                                    poiType    = poiType,
+                                    zoneIndex  = zoneIndex,
+                                    zoneId     = zoneId,
+                                    poiIndex   = poiIndex,
+                                    mapIndex   = subMap.parentMapIndex,
+                                    zoneName   = zoneName,
+                                    known      = isDiscovered,
+                                    isLocked   = isLocked,
+                                    traitCount = traitCount,
+                                    setName    = setName,
+                                    setId      = setId,
+                                    x          = (nx and nx > 0) and nx or nil,
+                                    y          = (ny and ny > 0) and ny or nil,
+                                }
+                                data.pois[#data.pois + 1] = poiEntry
+                                if poiEntry.x then
+                                    if not data.poisByZoneId[zoneId] then data.poisByZoneId[zoneId] = {} end
+                                    data.poisByZoneId[zoneId][#data.poisByZoneId[zoneId] + 1] = poiEntry
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if originalMapId then SetMapToMapId(originalMapId) end
 
     scannedData = data
     candidates  = nil
@@ -663,6 +899,10 @@ local function ScanCityServices()
                 for locIndex = 1, GetNumMapLocations() do
                     local locIcon, lx, lz = GetMapLocationIcon(locIndex)
                     local iconFile = GetLocationIconFile(locIcon)
+                    local header = GetMapLocationTooltipHeader(locIndex)
+                    local lines = ReadMapLocationLines(locIndex)
+                    local name, aliases = GetMapLocationText(header, lines)
+                    local category = GetMapLocationCategory(lines, name)
                     if LOCATION_TRADER_ICONS[iconFile] then
                         tradersByZoneId[parentZoneId] = (tradersByZoneId[parentZoneId] or 0) + 1
                         local nearestNode = FindNearestWayshrineToPos(lx, lz, 0, zoneIndex)
@@ -670,6 +910,21 @@ local function ScanCityServices()
                             tradersByNodeIndex[nearestNode] = (tradersByNodeIndex[nearestNode] or 0) + 1
                         end
                     end
+                    AddScannedLocation(locations, seenLocations, iconCounts, {
+                        name         = name,
+                        category     = category,
+                        aliases      = aliases,
+                        icon         = locIcon,
+                        iconFile     = iconFile,
+                        zoneId       = parentZoneId,
+                        cityMapId    = GetCurrentMapId and GetCurrentMapId() or 0,
+                        cityName     = CleanName(GetMapName()),
+                        destinationX = lx,
+                        destinationY = lz,
+                        mapIndex     = mapIndex,
+                        isTrader     = LOCATION_TRADER_ICONS[iconFile] == true,
+                        lines        = lines,
+                    })
                 end
             end
 
@@ -721,6 +976,48 @@ local function ScanCityServices()
                         end
                     end
                 end
+            end
+        end
+    end
+
+    for _, subMap in ipairs(GetClickableSubMaps()) do
+        local mapId = subMap.mapId
+        if mapId and mapId ~= 0 and not seenCityMapIds[mapId] then
+            seenCityMapIds[mapId] = true
+            cityCount = cityCount + 1
+            SetMapToMapId(mapId)
+            local zoneIndex = GetCurrentMapZoneIndex()
+            local zoneId = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or subMap.parentZoneId
+            local mapName = CleanName(GetMapName())
+            for locIndex = 1, GetNumMapLocations() do
+                local locIcon, lx, lz = GetMapLocationIcon(locIndex)
+                local iconFile = GetLocationIconFile(locIcon)
+                local header = GetMapLocationTooltipHeader(locIndex)
+                local lines = ReadMapLocationLines(locIndex)
+                local name, aliases = GetMapLocationText(header, lines)
+                local category = GetMapLocationCategory(lines, name)
+                if LOCATION_TRADER_ICONS[iconFile] then
+                    tradersByZoneId[zoneId] = (tradersByZoneId[zoneId] or 0) + 1
+                    local nearestNode = FindNearestWayshrineToPos(lx, lz, 0, zoneIndex)
+                    if nearestNode then
+                        tradersByNodeIndex[nearestNode] = (tradersByNodeIndex[nearestNode] or 0) + 1
+                    end
+                end
+                AddScannedLocation(locations, seenLocations, iconCounts, {
+                    name         = name,
+                    category     = category,
+                    aliases      = aliases,
+                    icon         = locIcon,
+                    iconFile     = iconFile,
+                    zoneId       = zoneId,
+                    cityMapId    = mapId,
+                    cityName     = mapName ~= "" and mapName or subMap.name,
+                    destinationX = lx,
+                    destinationY = lz,
+                    mapIndex     = subMap.parentMapIndex,
+                    isTrader     = LOCATION_TRADER_ICONS[iconFile] == true,
+                    lines        = lines,
+                })
             end
         end
     end
@@ -854,7 +1151,7 @@ local function BuildCandidates()
             else
                 list[#list + 1] = {
                     name         = poi.name,
-                    searchName   = BuildSearchName(poi.name, searchAliases),
+                    searchName   = BuildSearchName(poi.name, (searchAliases ~= "" and searchAliases .. " " or "") .. GetCraftingSetSearchAlias(poi.setId)),
                     type         = entryType,
                     poiTypeLabel = poiTypeLabel,
                     icon         = poi.icon,
@@ -867,6 +1164,9 @@ local function BuildCandidates()
                     houseId      = matchedOwnedHouse and matchedOwnedHouse.houseId or nil,
                     known        = poi.known,
                     isLocked     = poi.isLocked,
+                    traitCount   = poi.traitCount,
+                    setName      = poi.setName,
+                    setId        = poi.setId,
                 }
             end
         end
@@ -876,6 +1176,7 @@ local function BuildCandidates()
     local seenCustom = {}
     local function AddCityServiceCandidate(service, zoneName, displayName, searchAliases, placeName, category, detailLabel)
         if not displayName or displayName == "" then return end
+        local setEntry = GetCraftingSetLocationEntry(service.zoneId, displayName)
         local key = table.concat({
             displayName:lower(),
             placeName and placeName:lower() or "",
@@ -898,6 +1199,7 @@ local function BuildCandidates()
                 category or "",
                 detailLabel or "",
                 service.iconFile or "",
+                setEntry and GetCraftingSetSearchAlias(setEntry.setId) or "",
             }, " ")),
             type         = TYPE_CUSTOM,
             icon         = (service.icon and service.icon ~= "") and service.icon or ICON_POI_GENERIC,
@@ -915,6 +1217,9 @@ local function BuildCandidates()
             isTrader     = service.isTrader,
             known        = true,
             isLocked     = false,
+            traitCount   = setEntry and setEntry.traits or nil,
+            setName      = setEntry and GetCraftingSetName(setEntry.setId) or nil,
+            setId        = setEntry and setEntry.setId or nil,
         }
     end
 
@@ -1372,6 +1677,7 @@ local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmar
         local traderText = traderCount .. " " .. GetString(traderCount == 1 and SI_GPH_MAPSEARCH_WAYSHRINE_TRADER or SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS)
         narrationBase = narrationBase .. ", " .. traderText
     end
+    narrationBase = AddCraftingSetNarration(c, narrationBase)
     entryData.narrationText = narrationBase
     entryData:SetIconTintOnSelection(true)
     entryData:SetShowUnselectedSublabels(true)
@@ -1390,9 +1696,49 @@ local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmar
         if c.detailLabel and c.detailLabel ~= "" then
             entryData:AddSubLabel("|cFFD700" .. TruncateDetail(c.detailLabel, 60) .. "|r")
         end
-    else
+    end
+    if c.type ~= TYPE_CUSTOM or c.setId then
         local sub = GetCandidateSubText(c)
-        if sub then entryData:AddSubLabel(sub) end
+        if c.type ~= TYPE_CUSTOM and sub then entryData:AddSubLabel(sub) end
+        local displayTraitCount = c.traitCount
+        local displaySetName    = c.setName
+        if c.setId and (not displayTraitCount or displayTraitCount == 0 or not displaySetName or displaySetName == "") then
+            if not displayTraitCount or displayTraitCount == 0 then
+                displayTraitCount = GetCraftingSetTraitCount(c.setId, c.zoneId, c.poiIndex)
+            end
+            if not displaySetName or displaySetName == "" then
+                displaySetName = GetCraftingSetName(c.setId)
+            end
+        end
+        if displayTraitCount and displayTraitCount > 0 then
+            local traitStr = displayTraitCount .. " " .. GetString(displayTraitCount == 1 and SI_GPH_MAPSEARCH_CRAFTING_TRAIT or SI_GPH_MAPSEARCH_CRAFTING_TRAITS)
+            entryData:AddSubLabel("|cFFD700" .. traitStr .. "|r")
+        end
+        if displaySetName and displaySetName ~= "" then
+            entryData:AddSubLabel("|cFFD700" .. displaySetName .. "|r")
+            if c.setId then
+                local hasSet, _, numBonuses = GetItemSetInfo(c.setId)
+                if hasSet and numBonuses and numBonuses > 0 then
+                    local selectedBonusLabels = {}
+                    local unselectedBonusParts = {}
+                    for i = 1, numBonuses do
+                        local numRequired, desc, isPerfected = GetItemSetBonusInfo(c.setId, i)
+                        if not isPerfected and desc and desc ~= "" then
+                            selectedBonusLabels[#selectedBonusLabels + 1] = "|c99CCFF" .. desc .. "|r"
+                            unselectedBonusParts[#unselectedBonusParts + 1] = desc
+                        end
+                    end
+                    if #selectedBonusLabels > 0 then
+                        local unselectedLabel = "|c99CCFF" .. TruncateDetail(table.concat(unselectedBonusParts, "; "), SET_BONUS_UNSELECTED_MAX) .. "|r"
+                        entryData.gphSetBonusLabels = {
+                            selected = selectedBonusLabels,
+                            unselected = unselectedLabel,
+                        }
+                        entryData:AddSubLabel(unselectedLabel)
+                    end
+                end
+            end
+        end
     end
     if c.type == TYPE_ZONE then
         local mapText = GetZoneMapCountText(c.searchName)
@@ -1675,8 +2021,8 @@ local function BuildKeybindDescriptor()
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
                     AddRecent(td.candidate)
-                    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
-                    GamePadHelperSavedVars.lastSelectedPOI = MakeSavedCandidate(td.candidate)
+                    if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
+                    _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(td.candidate)
                     CenterMapOnCandidate(td.candidate)
                     local keybindName = ZO_Keybindings_GetBindingStringFromAction("UI_SHORTCUT_QUINARY") or GetString(SI_GPH_TELEPORT)
                     pendingNarration = BuildCandidateNarrationText(td.candidate, td.isBookmark) .. ". " .. zo_strformat(SI_GPH_MAPSEARCH_SHOWN_ON_MAP, keybindName)
@@ -1804,8 +2150,8 @@ local function BuildKeybindDescriptor()
                 local c = td.candidate
 
                 AddRecent(c)
-                if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
-                GamePadHelperSavedVars.lastSelectedPOI = MakeSavedCandidate(c)
+                if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
+                _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(c)
 
                 if c.isLocked then
                     local collectibleData
@@ -1961,8 +2307,8 @@ function GPH_MapSearch_SelectCurrent()
     if editControl and editControl:HasFocus() then editControl:LoseFocus() end
     local td = listObject and listObject:GetTargetData()
     if td and td.candidate then
-        if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
-        GamePadHelperSavedVars.lastSelectedPOI = MakeSavedCandidate(td.candidate)
+        if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
+        _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(td.candidate)
         CenterMapOnCandidate(td.candidate)
     end
 end
@@ -1984,6 +2330,28 @@ local function InitList(control)
                     data.subLabels[i] = selected and full or trunc
                     break
                 end
+            end
+        end
+        if data.gphSetBonusLabels and data.subLabels then
+            for i = #data.subLabels, 1, -1 do
+                local label = data.subLabels[i]
+                local remove = label == data.gphSetBonusLabels.unselected
+                if not remove then
+                    for _, selectedLabel in ipairs(data.gphSetBonusLabels.selected or {}) do
+                        if label == selectedLabel then
+                            remove = true
+                            break
+                        end
+                    end
+                end
+                if remove then table.remove(data.subLabels, i) end
+            end
+            if selected then
+                for _, selectedLabel in ipairs(data.gphSetBonusLabels.selected or {}) do
+                    data.subLabels[#data.subLabels + 1] = selectedLabel
+                end
+            else
+                data.subLabels[#data.subLabels + 1] = data.gphSetBonusLabels.unselected
             end
         end
         ZO_SharedGamepadEntry_OnSetup(control, data, selected, ...)
@@ -2187,22 +2555,22 @@ local function SanitizeSavedMapSearchCandidate(c)
 end
 
 local function SanitizeSavedMapSearchData()
-    if not GamePadHelperSavedVars then return end
-    if type(GamePadHelperSavedVars.mapSearchRecent) == "table" then
-        for _, c in ipairs(GamePadHelperSavedVars.mapSearchRecent) do
+    if not _G["GamePadHelper_SavedVars"] then return end
+    if type(_G["GamePadHelper_SavedVars"].mapSearchRecent) == "table" then
+        for _, c in ipairs(_G["GamePadHelper_SavedVars"].mapSearchRecent) do
             SanitizeSavedMapSearchCandidate(c)
         end
     end
-    if type(GamePadHelperSavedVars.lastSelectedPOI) == "table" then
-        SanitizeSavedMapSearchCandidate(GamePadHelperSavedVars.lastSelectedPOI)
+    if type(_G["GamePadHelper_SavedVars"].lastSelectedPOI) == "table" then
+        SanitizeSavedMapSearchCandidate(_G["GamePadHelper_SavedVars"].lastSelectedPOI)
     end
-    if type(GamePadHelperSavedVars.mapSearchBookmarksAccountWide) == "table" then
-        for _, c in ipairs(GamePadHelperSavedVars.mapSearchBookmarksAccountWide) do
+    if type(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide) == "table" then
+        for _, c in ipairs(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide) do
             SanitizeSavedMapSearchCandidate(c)
         end
     end
-    if type(GamePadHelperSavedVars.mapSearchBookmarks) == "table" then
-        for _, bookmarks in pairs(GamePadHelperSavedVars.mapSearchBookmarks) do
+    if type(_G["GamePadHelper_SavedVars"].mapSearchBookmarks) == "table" then
+        for _, bookmarks in pairs(_G["GamePadHelper_SavedVars"].mapSearchBookmarks) do
             if type(bookmarks) == "table" then
                 for _, c in ipairs(bookmarks) do
                     SanitizeSavedMapSearchCandidate(c)
@@ -2242,6 +2610,76 @@ local function OnAddonLoaded(_, name)
     end)
     EVENT_MANAGER:RegisterForEvent("MapSearch_POIUpdated", EVENT_POI_UPDATED, function()
         cachedRecallNode = nil
+    end)
+
+    -- Auto-capture crafting set trait data when player visits a crafting station
+    local SMITHING_TYPES = {
+        [CRAFTING_TYPE_BLACKSMITHING] = true,
+        [CRAFTING_TYPE_CLOTHIER]      = true,
+        [CRAFTING_TYPE_WOODWORKING]   = true,
+    }
+    EVENT_MANAGER:RegisterForEvent("MapSearch_CraftingStation", EVENT_CRAFTING_STATION_INTERACT, function(_, craftingType)
+        if not SMITHING_TYPES[craftingType] then return end
+        zo_callLater(function()
+            local numPatterns = GetNumSmithingPatterns()
+            if numPatterns == 0 then return end
+            local _, _, _, _, numTraitsRequired = GetSmithingPatternInfo(1)
+            if not numTraitsRequired or numTraitsRequired == 0 then return end
+
+            -- get set ID via result link
+            local setName, setId = nil, nil
+            local numMaterials = select(4, GetSmithingPatternInfo(1))
+            for matIdx = 1, (numMaterials or 5) do
+                local resultLink = GetSmithingPatternResultLink(1, matIdx, 1, 1, ITEM_TRAIT_TYPE_NONE, LINK_STYLE_DEFAULT)
+                if resultLink and resultLink ~= "" then
+                    local hasSet, sName, _, _, _, sId = GetItemLinkSetInfo(resultLink, false)
+                    if hasSet and sId and sId ~= 0 then
+                        setName = CleanName(sName)
+                        setId   = sId
+                        break
+                    end
+                end
+            end
+            if not setId then return end
+
+            -- find matching POI index from the lookup built during PreScan
+            local nx, ny = GetMapPlayerPosition("player")
+            if not nx or nx == 0 then return end
+            local zoneIndex = GetCurrentMapZoneIndex()
+            local zoneId    = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or 0
+            if zoneId == 0 then return end
+
+            local pk = tostring(zoneId) .. ":" .. string.format("%d", nx * 10000 + 0.5) .. ":" .. string.format("%d", ny * 10000 + 0.5)
+            local bestPoiIndex = craftingPOIIndex[pk]
+            if not bestPoiIndex then
+                -- fallback for special-access zones not in PreScan (Eyevea, The Earth Forge, etc.)
+                local bestDist = math.huge
+                for pi = 1, GetNumPOIs(zoneIndex) do
+                    local px, py = GetPOIMapInfo(zoneIndex, pi)
+                    if px and px > 0 then
+                        local dx, dy = px - nx, py - ny
+                        local d = dx * dx + dy * dy
+                        if d < bestDist then
+                            bestDist     = d
+                            bestPoiIndex = pi
+                        end
+                    end
+                end
+                if not bestPoiIndex or bestDist > 0.0004 then return end
+            end
+
+            local mapData = _G["GamePadHelperMapData"]
+            if not mapData then mapData = {} _G["GamePadHelperMapData"] = mapData end
+            if not mapData.craftingStations then mapData.craftingStations = {} end
+
+            local key = tostring(zoneId) .. ":" .. tostring(bestPoiIndex)
+            mapData.craftingStations[key] = {
+                setId      = setId,
+                setName    = setName,
+                traitCount = numTraitsRequired,
+            }
+            candidates = nil  -- refresh list so new data shows
+        end, 300)
     end)
 
     EVENT_MANAGER:RegisterForEvent("MapSearch_Teleport", EVENT_PLAYER_ACTIVATED, function()
@@ -2373,100 +2811,23 @@ local function OnAddonLoaded(_, name)
             wasOnGPHSearch = IsFragmentShowing()
         elseif newState == SCENE_SHOWING then
             zo_callLater(InsertMapSearchTab, 0)
-            if GamePadHelperSavedVars and GamePadHelperSavedVars.lastSelectedPOI then
+            if _G["GamePadHelper_SavedVars"] and _G["GamePadHelper_SavedVars"].lastSelectedPOI then
                 zo_callLater(function()
-                    local poi = GamePadHelperSavedVars.lastSelectedPOI
+                    local poi = _G["GamePadHelper_SavedVars"].lastSelectedPOI
                     CenterMapOnCandidate(poi)
-                    GamePadHelperSavedVars.lastSelectedPOI = nil
+                    _G["GamePadHelper_SavedVars"].lastSelectedPOI = nil
                 end, 100)
             end
         end
     end)
 end
 
--- debug dump: /gphdump [keyword]  -- lists POI scan results matching keyword (default: all guild types)
 local function SaveDump(key, data)
-    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
-    if not GamePadHelperSavedVars.debugDumps then GamePadHelperSavedVars.debugDumps = {} end
-    GamePadHelperSavedVars.debugDumps[key] = data
-    d("[GPH] saved to GamePadHelperSavedVars.debugDumps." .. key)
+    if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
+    if not _G["GamePadHelper_SavedVars"].debugDumps then _G["GamePadHelper_SavedVars"].debugDumps = {} end
+    _G["GamePadHelper_SavedVars"].debugDumps[key] = data
+    d("[GPH] saved to GamePadHelper_SavedVars.debugDumps." .. key)
 end
-
-local function DumpPOIScan(keyword)
-    if not scannedData then PreScan() end
-    local filter = keyword and keyword:lower() or nil
-
-    local GUILD_TERMS = { "fighters", "mages", "undaunted", "thieves", "brotherhood", "antiquarian", "guild" }
-
-    local function shouldPrint(poi)
-        if filter and filter ~= "" then
-            return poi.name:lower():find(filter, 1, true) ~= nil
-                or (poi.zoneName and poi.zoneName:lower():find(filter, 1, true) ~= nil)
-        end
-        local n = poi.name:lower()
-        for _, t in ipairs(GUILD_TERMS) do
-            if n:find(t, 1, true) then return true end
-        end
-        return false
-    end
-
-    local rows = {}
-    for _, poi in ipairs(scannedData.pois) do
-        if shouldPrint(poi) then
-            rows[#rows + 1] = {
-                name     = poi.name,
-                zone     = poi.zoneName or "",
-                x        = poi.x,
-                y        = poi.y,
-                icon     = poi.icon and poi.icon:match("([^/]+)$") or "",
-                poiType  = poi.poiType,
-            }
-        end
-    end
-
-    local key = "pois_" .. (filter or "guild")
-    SaveDump(key, {
-        filter     = filter or "guild keywords",
-        totalPois  = #scannedData.pois,
-        matched    = #rows,
-        results    = rows,
-    })
-end
-
-local function DumpMaps(mapTypeFilter)
-    local filter = (mapTypeFilter and mapTypeFilter:lower()) or "city"
-    local typeMap = {
-        city     = MAPTYPE_CITY,
-        zone     = MAPTYPE_ZONE,
-        world    = MAPTYPE_WORLD,
-        interior = MAPTYPE_AUTOMATED_INTERIOR,
-        dungeon  = MAPTYPE_DUNGEON,
-        subzone  = MAPTYPE_SUBZONE,
-    }
-    local targetType = filter ~= "all" and typeMap[filter] or nil
-
-    local rows = {}
-    for mapIndex = 1, GetNumMaps() do
-        local mapName, mapType, _, zoneIndex = GetMapInfoByIndex(mapIndex)
-        if mapName and mapName ~= "" and (targetType == nil or mapType == targetType) then
-            local poiCount = (zoneIndex and zoneIndex > 0) and GetNumPOIs(zoneIndex) or 0
-            local zoneId   = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or 0
-            rows[#rows + 1] = {
-                name      = mapName,
-                mapType   = mapType,
-                zoneIndex = zoneIndex or 0,
-                zoneId    = zoneId,
-                poiCount  = poiCount,
-            }
-        end
-    end
-
-    local key = "maps_" .. filter
-    SaveDump(key, { filter = filter, count = #rows, maps = rows })
-end
-
-_G["GamePadHelper_DumpPOIScan"] = DumpPOIScan
-_G["GamePadHelper_DumpMaps"]    = DumpMaps
 
 _G["GamePadHelper_ClearCityCache"] = function()
     cityServicesCache = nil
@@ -2475,411 +2836,95 @@ _G["GamePadHelper_ClearCityCache"] = function()
     if mapData then mapData.cityScanCache = nil end
 end
 
-SLASH_COMMANDS["/gphdump"] = function(args)
-    DumpPOIScan(args ~= "" and args or nil)
-end
+-- /gphdumpcurrentmap -- saves POIs, map locations, blobs and legend from the currently open map
+SLASH_COMMANDS["/gphdumpcurrentmap"] = function()
+    local zoneIndex = GetCurrentMapZoneIndex()
+    local zoneId = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or 0
+    local mapId = GetCurrentMapId and GetCurrentMapId() or 0
+    local mapName = CleanName(GetMapName())
 
-SLASH_COMMANDS["/gphdumpmaps"] = function(args)
-    DumpMaps(args ~= "" and args or nil)
-end
-
--- /gphdumpalllocs -- must run with world map OPEN
--- iterates every map, reads every MapLocation with all API fields, saves raw to savedvars
-SLASH_COMMANDS["/gphdumpalllocs"] = function()
-    local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
-    local maps = {}
-
-    for mapIndex = 1, GetNumMaps() do
-        local mapName, mapType, mapContentType, zoneIndex = GetMapInfoByIndex(mapIndex)
-        if mapName and mapName ~= "" then
-            SetMapToMapListIndex(mapIndex)
-            local numLocs = GetNumMapLocations()
-            if numLocs > 0 then
-                local locations = {}
-                for locIndex = 1, numLocs do
-                    local icon, nx, nz   = GetMapLocationIcon(locIndex)
-                    local isVisible      = IsMapLocationVisible(locIndex)
-                    local header         = GetMapLocationTooltipHeader(locIndex)
-                    local numLines       = GetNumMapLocationTooltipLines(locIndex)
-                    local lines          = {}
-                    for lineIndex = 1, numLines do
-                        local lineIcon, name, grouping, categoryName = GetMapLocationTooltipLineInfo(locIndex, lineIndex)
-                        local lineVisible = IsMapLocationTooltipLineVisible(locIndex, lineIndex)
-                        lines[lineIndex] = {
-                            icon      = lineIcon and lineIcon:match("([^/]+)$") or "",
-                            name      = name or "",
-                            grouping  = grouping,
-                            category  = categoryName or "",
-                            visible   = lineVisible,
-                        }
-                    end
-                    locations[locIndex] = {
-                        icon      = icon and icon:match("([^/]+)$") or "",
-                        x         = nx,
-                        z         = nz,
-                        isVisible = isVisible,
-                        header    = header or "",
-                        lines     = lines,
-                    }
-                end
-                maps[#maps + 1] = {
-                    mapIndex        = mapIndex,
-                    name            = mapName,
-                    mapType         = mapType,
-                    mapContentType  = mapContentType,
-                    zoneIndex       = zoneIndex,
-                    locations       = locations,
-                }
-            end
-        end
-    end
-
-    if originalMapId then SetMapToMapId(originalMapId) end
-    SaveDump("alllocs", { mapsWithLocations = #maps, maps = maps })
-end
-
--- /gphdumpblobs -- must run with world map OPEN
--- scans GetMapBlobNameInfo, GetMapKeySectionSymbolInfo, GetMapFloorInfo across all maps
-SLASH_COMMANDS["/gphdumpblobs"] = function()
-    local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
-    local maps = {}
-
-    for mapIndex = 1, GetNumMaps() do
-        local mapName, mapType, mapContentType, zoneIndex = GetMapInfoByIndex(mapIndex)
-        if mapName and mapName ~= "" then
-            SetMapToMapListIndex(mapIndex)
-
-            local currentFloor, numFloors = GetMapFloorInfo()
-            local blobs = {}
-            local numBlobs = GetNumMapBlobs()
-            for i = 1, numBlobs do
-                local name, nx, nz, width, scale = GetMapBlobNameInfo(i)
-                blobs[i] = { name = name or "", x = nx, z = nz, width = width, scale = scale }
-            end
-
-            local keySections = {}
-            local numSections = GetNumMapKeySections()
-            for si = 1, numSections do
-                local sectionName = GetMapKeySectionName(si)
-                local symbols = {}
-                for sym = 1, GetNumMapKeySectionSymbols(si) do
-                    local symName, symIcon, symTooltip = GetMapKeySectionSymbolInfo(si, sym)
-                    symbols[sym] = {
-                        name    = symName or "",
-                        icon    = symIcon and symIcon:match("([^/]+)$") or "",
-                        tooltip = symTooltip or "",
-                    }
-                end
-                keySections[si] = { name = sectionName or "", symbols = symbols }
-            end
-
-            if numBlobs > 0 or numSections > 0 then
-                maps[#maps + 1] = {
-                    mapIndex       = mapIndex,
-                    name           = mapName,
-                    mapType        = mapType,
-                    mapContentType = mapContentType,
-                    zoneIndex      = zoneIndex,
-                    floor          = currentFloor,
-                    numFloors      = numFloors,
-                    blobs          = blobs,
-                    keySections    = keySections,
-                }
-            end
-        end
-    end
-
-    if originalMapId then SetMapToMapId(originalMapId) end
-    SaveDump("allblobs", { mapsWithData = #maps, maps = maps })
-end
-
--- /gphdumpcitylocs -- must run with world map OPEN
--- scans all MAPTYPE_SUBZONE city maps: reads MapLocations + POIs for each
-SLASH_COMMANDS["/gphdumpcitylocs"] = function()
-    local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
-    local results = {}
-
-    for mapIndex = 1, GetNumMaps() do
-        local mapName, mapType, _, zoneIndex = GetMapInfoByIndex(mapIndex)
-        if mapName and mapName ~= "" and mapType == MAPTYPE_SUBZONE then
-            SetMapToMapListIndex(mapIndex)
-            local zoneId = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or 0
-
-            -- map locations (service pins)
-            local locations = {}
-            for locIndex = 1, GetNumMapLocations() do
-                local icon, nx, nz = GetMapLocationIcon(locIndex)
-                local header = GetMapLocationTooltipHeader(locIndex)
-                local numLines = GetNumMapLocationTooltipLines(locIndex)
-                local lines = {}
-                for li = 1, numLines do
-                    local _, name, _, cat = GetMapLocationTooltipLineInfo(locIndex, li)
-                    lines[li] = { name = name or "", cat = cat or "" }
-                end
-                locations[#locations + 1] = {
-                    icon   = icon and icon:match("([^/]+)$") or "",
-                    x      = nx, z = nz,
-                    header = header or "",
-                    lines  = lines,
-                }
-            end
-
-            -- POIs in this zone
-            local pois = {}
-            if zoneIndex and zoneIndex > 0 then
-                for poiIndex = 1, GetNumPOIs(zoneIndex) do
-                    local name = GetPOIInfo(zoneIndex, poiIndex)
-                    if name and name ~= "" then
-                        local nx, ny, _, icon = GetPOIMapInfo(zoneIndex, poiIndex)
-                        pois[#pois + 1] = {
-                            name  = name,
-                            icon  = icon and icon:match("([^/]+)$") or "",
-                            x     = nx, y = ny,
-                        }
-                    end
-                end
-            end
-
-            results[#results + 1] = {
-                mapIndex  = mapIndex,
-                name      = mapName,
-                zoneIndex = zoneIndex or 0,
-                zoneId    = zoneId,
-                locations = locations,
-                pois      = pois,
+    local pois = {}
+    if zoneIndex and zoneIndex > 0 then
+        for poiIndex = 1, GetNumPOIs(zoneIndex) do
+            local name, _, startDesc, finishedDesc = GetPOIInfo(zoneIndex, poiIndex)
+            local nx, ny, isShown, icon, _, locked, discovered = GetPOIMapInfo(zoneIndex, poiIndex)
+            local poiType = GetPOIType(zoneIndex, poiIndex)
+            pois[#pois + 1] = {
+                poiIndex = poiIndex,
+                name = CleanName(name or ""),
+                icon = icon or "",
+                iconFile = icon and icon:match("([^/]+)$") or "",
+                x = nx,
+                y = ny,
+                poiType = poiType,
+                poiTypeLabel = GetPOITypeLabel(icon, poiType),
+                isShown = isShown,
+                locked = locked,
+                discovered = discovered,
+                startDesc = startDesc or "",
+                finishedDesc = finishedDesc or "",
             }
         end
     end
 
-    if originalMapId then SetMapToMapId(originalMapId) end
-    SaveDump("citylocs", { count = #results, maps = results })
-end
-
--- /gphmarkpos [label] -- run while standing anywhere to capture your exact world position
-SLASH_COMMANDS["/gphmarkpos"] = function(args)
-    local label = (args and args ~= "") and args or ("pos_" .. tostring(GetTimeStamp()))
-    local zoneId, wx, wy, wz = GetUnitWorldPosition("player")
-    local nx, nz, _, isShown = GetMapPlayerPosition("player")
-    local currentMapId = GetCurrentMapId and GetCurrentMapId() or nil
-    local entry = {
-        label      = label,
-        zoneId     = zoneId,
-        worldX     = wx,
-        worldY     = wy,
-        worldZ     = wz,
-        normalizedX = nx,
-        normalizedZ = nz,
-        isShownOnCurrentMap = isShown,
-        mapId      = currentMapId,
-    }
-    if not GamePadHelperSavedVars then GamePadHelperSavedVars = {} end
-    if not GamePadHelperSavedVars.markedPositions then GamePadHelperSavedVars.markedPositions = {} end
-    GamePadHelperSavedVars.markedPositions[label] = entry
-    d("[GPH] Marked position '" .. label .. "': worldX=" .. tostring(wx) .. " worldY=" .. tostring(wy) .. " worldZ=" .. tostring(wz) .. " zone=" .. tostring(zoneId))
-end
-
--- /gphdumpcityzoom -- must run with world map OPEN
--- for every city POI on every zone map, navigates to its city-zoom mapId via GetMapMouseoverInfo,
--- then reads GetMapLocations at that zoom level to capture guild hall service pins
-SLASH_COMMANDS["/gphdumpcityzoom"] = function()
-    local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
-    local results = {}
-    local seenMapIds = {}
-
-    for mapIndex = 1, GetNumMaps() do
-        local mapName, mapType, _, zoneIndex = GetMapInfoByIndex(mapIndex)
-        if mapName and mapName ~= "" and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_SUBZONE) then
-            SetMapToMapListIndex(mapIndex)
-            local zoneId = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or 0
-
-            -- find all city POIs on this zone map
-            if zoneIndex and zoneIndex > 0 then
-                for poiIndex = 1, GetNumPOIs(zoneIndex) do
-                    local nx, ny, _, icon = GetPOIMapInfo(zoneIndex, poiIndex)
-                    if icon and (icon:find("poi_city") or icon:find("poi_town")) and nx and nx > 0 then
-                        local poiName = GetPOIInfo(zoneIndex, poiIndex)
-
-                        -- get the city's zoom mapId via mouseover
-                        local locName, texFile, w, h, locX, locY, cityMapId = GetMapMouseoverInfo(nx, ny)
-                        if cityMapId and cityMapId ~= 0 and not seenMapIds[cityMapId] then
-                            seenMapIds[cityMapId] = true
-                            SetMapToMapId(cityMapId)
-
-                            -- read all service locations at city zoom level
-                            local locations = {}
-                            for locIndex = 1, GetNumMapLocations() do
-                                local locIcon, lx, lz = GetMapLocationIcon(locIndex)
-                                local isVisible = IsMapLocationVisible(locIndex)
-                                local header = GetMapLocationTooltipHeader(locIndex)
-                                local lines = {}
-                                for li = 1, GetNumMapLocationTooltipLines(locIndex) do
-                                    local _, name, _, cat = GetMapLocationTooltipLineInfo(locIndex, li)
-                                    lines[li] = { name = name or "", cat = cat or "" }
-                                end
-                                locations[#locations + 1] = {
-                                    icon      = locIcon and locIcon:match("([^/]+)$") or "",
-                                    x = lx, z = lz,
-                                    isVisible = isVisible,
-                                    header    = header or "",
-                                    lines     = lines,
-                                }
-                            end
-
-                            results[#results + 1] = {
-                                parentMap   = mapName,
-                                parentZoneId = zoneId,
-                                cityPOI     = poiName or "",
-                                cityMapId   = cityMapId,
-                                poiIcon     = icon and icon:match("([^/]+)$") or "",
-                                poiX        = nx, poiY = ny,
-                                mouseoverName = locName or "",
-                                numLocations  = #locations,
-                                locations     = locations,
-                            }
-
-                            -- restore to parent zone to continue scanning
-                            SetMapToMapListIndex(mapIndex)
-                        end
-                    end
-                end
-            end
-        end
+    local locations = {}
+    for locIndex = 1, GetNumMapLocations() do
+        local locIcon, lx, lz = GetMapLocationIcon(locIndex)
+        local iconFile = GetLocationIconFile(locIcon)
+        local header = GetMapLocationTooltipHeader(locIndex)
+        local lines = ReadMapLocationLines(locIndex)
+        local name, aliases = GetMapLocationText(header, lines)
+        locations[#locations + 1] = {
+            locIndex = locIndex,
+            name = name,
+            aliases = aliases,
+            category = GetMapLocationCategory(lines, name),
+            icon = locIcon,
+            iconFile = iconFile,
+            x = lx,
+            y = lz,
+            header = header or "",
+            lines = lines,
+        }
     end
 
-    if originalMapId then SetMapToMapId(originalMapId) end
-    SaveDump("cityzoom", { count = #results, cities = results })
-end
+    local blobs = {}
+    for i = 1, GetNumMapBlobs() do
+        local name, nx, nz, width, scale = GetMapBlobNameInfo(i)
+        blobs[i] = { name = name or "", x = nx, z = nz, width = width, scale = scale }
+    end
 
--- /gphdumpcityservices -- scans/search-cache city services and saves the compact searchable dataset
-SLASH_COMMANDS["/gphdumpcityservices"] = function()
-    cityServicesCache = nil
-    local mapData = _G["GamePadHelperMapData"]
-    if mapData then mapData.cityScanCache = nil end
-    local result = GetCityServices()
-    candidates = nil
-    SaveDump("cityservices", result)
-    local summary = result and result.summary or {}
-    d("[GPH] City services dumped: " .. tostring(summary.services or 0) .. " services, " .. tostring(summary.iconTypes or 0) .. " icon types, " .. tostring(summary.cities or 0) .. " city maps")
-end
-
--- /gphdumpfull -- must run with world map OPEN
--- scans every single map with no filter: map info, POIs, service locations, blobs, key sections, floor info
-SLASH_COMMANDS["/gphdumpfull"] = function()
-    local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
-    local maps = {}
-
-    local MAP_TYPE_NAMES = {
-        [MAPTYPE_COSMIC]      = "COSMIC",
-        [MAPTYPE_DEPRECATED_1]= "DEPRECATED_1",
-        [MAPTYPE_NONE]        = "NONE",
-        [MAPTYPE_SUBZONE]     = "SUBZONE",
-        [MAPTYPE_WORLD]       = "WORLD",
-        [MAPTYPE_ZONE]        = "ZONE",
-    }
-
-    for mapIndex = 1, GetNumMaps() do
-        local mapName, mapType, mapContentType, zoneIndex = GetMapInfoByIndex(mapIndex)
-        if mapName and mapName ~= "" then
-            SetMapToMapListIndex(mapIndex)
-            local zoneId = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or 0
-
-            -- service locations (map pins: traders, banks, etc.)
-            local locations = {}
-            for locIndex = 1, GetNumMapLocations() do
-                local icon, nx, nz = GetMapLocationIcon(locIndex)
-                local isVisible    = IsMapLocationVisible(locIndex)
-                local header       = GetMapLocationTooltipHeader(locIndex)
-                local lines        = {}
-                for li = 1, GetNumMapLocationTooltipLines(locIndex) do
-                    local lineIcon, name, grouping, cat = GetMapLocationTooltipLineInfo(locIndex, li)
-                    lines[li] = {
-                        icon     = lineIcon and lineIcon:match("([^/]+)$") or "",
-                        name     = name or "",
-                        grouping = grouping,
-                        cat      = cat or "",
-                        visible  = IsMapLocationTooltipLineVisible(locIndex, li),
-                    }
-                end
-                locations[#locations + 1] = {
-                    icon      = icon and icon:match("([^/]+)$") or "",
-                    x = nx, z = nz,
-                    isVisible = isVisible,
-                    header    = header or "",
-                    lines     = lines,
-                }
-            end
-
-            -- POIs
-            local pois = {}
-            if zoneIndex and zoneIndex > 0 then
-                for poiIndex = 1, GetNumPOIs(zoneIndex) do
-                    local name = GetPOIInfo(zoneIndex, poiIndex)
-                    if name and name ~= "" then
-                        local nx, ny, isShown, icon, _, locked, discovered = GetPOIMapInfo(zoneIndex, poiIndex)
-                        local poiType = GetPOIType(zoneIndex, poiIndex)
-                        pois[#pois + 1] = {
-                            name       = name,
-                            icon       = icon and icon:match("([^/]+)$") or "",
-                            x = nx, y = ny,
-                            poiType    = poiType,
-                            isShown    = isShown,
-                            locked     = locked,
-                            discovered = discovered,
-                        }
-                    end
-                end
-            end
-
-            -- blobs (zone sub-region labels)
-            local blobs = {}
-            for i = 1, GetNumMapBlobs() do
-                local name, nx, nz, width, scale = GetMapBlobNameInfo(i)
-                blobs[i] = { name = name or "", x = nx, z = nz, width = width, scale = scale }
-            end
-
-            -- key sections (map legend)
-            local keySections = {}
-            for si = 1, GetNumMapKeySections() do
-                local sectionName = GetMapKeySectionName(si)
-                local symbols = {}
-                for sym = 1, GetNumMapKeySectionSymbols(si) do
-                    local symName, symIcon, symTooltip = GetMapKeySectionSymbolInfo(si, sym)
-                    symbols[sym] = {
-                        name    = symName or "",
-                        icon    = symIcon and symIcon:match("([^/]+)$") or "",
-                        tooltip = symTooltip or "",
-                    }
-                end
-                keySections[si] = { name = sectionName or "", symbols = symbols }
-            end
-
-            -- floor info
-            local currentFloor, numFloors = GetMapFloorInfo()
-
-            maps[#maps + 1] = {
-                mapIndex       = mapIndex,
-                name           = mapName,
-                mapType        = mapType,
-                mapTypeName    = MAP_TYPE_NAMES[mapType] or tostring(mapType),
-                mapContentType = mapContentType,
-                zoneIndex      = zoneIndex or 0,
-                zoneId         = zoneId,
-                floor          = currentFloor,
-                numFloors      = numFloors,
-                numLocations   = #locations,
-                numPOIs        = #pois,
-                numBlobs       = #blobs,
-                numKeySections = #keySections,
-                locations      = locations,
-                pois           = pois,
-                blobs          = blobs,
-                keySections    = keySections,
+    local keySections = {}
+    for si = 1, GetNumMapKeySections() do
+        local sectionName = GetMapKeySectionName(si)
+        local symbols = {}
+        for sym = 1, GetNumMapKeySectionSymbols(si) do
+            local symName, symIcon, symTooltip = GetMapKeySectionSymbolInfo(si, sym)
+            symbols[sym] = {
+                name = symName or "",
+                icon = symIcon and symIcon:match("([^/]+)$") or "",
+                tooltip = symTooltip or "",
             }
         end
+        keySections[si] = { name = sectionName or "", symbols = symbols }
     end
 
-    if originalMapId then SetMapToMapId(originalMapId) end
-    SaveDump("fullscan", { totalMaps = #maps, maps = maps })
+    SaveDump("currentmap", {
+        mapId = mapId,
+        mapName = mapName,
+        zoneIndex = zoneIndex or 0,
+        zoneId = zoneId,
+        zoneName = GetCleanZoneName(zoneId, "?"),
+        numPOIs = #pois,
+        numLocations = #locations,
+        numBlobs = #blobs,
+        numKeySections = #keySections,
+        pois = pois,
+        locations = locations,
+        blobs = blobs,
+        keySections = keySections,
+    })
+    d("[GPH] current map dump: " .. mapName .. " zoneId=" .. tostring(zoneId) .. " POIs=" .. #pois .. " locations=" .. #locations .. " blobs=" .. #blobs)
 end
 
 -- /gphrescancities -- force a fresh city services scan (open world map first)
@@ -2938,5 +2983,6 @@ SLASH_COMMANDS["/gphloc"] = function(args)
         d("[GPH] loc: SavedVars not ready")
     end
 end
+
 
 EVENT_MANAGER:RegisterForEvent("MapSearch", EVENT_ADD_ON_LOADED, OnAddonLoaded)

@@ -1,11 +1,10 @@
-﻿-- ============================================================
+-- ============================================================
 -- GPH Map Search Data
 -- Static search helpers that are not exposed reliably by ESO APIs.
 -- Source for daily quest giver names/locations:
 -- https://en.uesp.net/wiki/Online:Daily_Quests
 -- Individual NPC page locations were fetched from UESP raw pages.
--- Coordinates sourced from LibQuestData (LibQuestData_QuestLocations.lua)
--- and Destinations (DestinationsQuestData.lua).
+-- Coordinates sourced from manual mapping.
 -- ============================================================
 
 GamePadHelper_MapSearchData = GamePadHelper_MapSearchData or {}
@@ -575,4 +574,220 @@ data.POI_TYPE_DIRECT = {
     [5] = GetString(SI_GPH_MAPSEARCH_LABEL_PUBLIC_DUNGEON),
     [6] = GetString(SI_GPH_MAPSEARCH_LABEL_GROUP_DUNGEON),
     [7] = GetString(SI_GPH_MAPSEARCH_LABEL_HOUSE),
+}
+
+-- Crafted set map-location lookup: zoneId -> locationName -> { setId, traits }.
+-- These entries come from GetNumMapLocations service pins instead of POIs.
+data.CRAFTING_SET_LOCATIONS = {
+    [267] = { -- Eyevea
+        ["Eyes of Mara"] = { setId = 87, traits = 8 }, -- Eyes of Mara
+        ["Shalidor's Curse"] = { setId = 95, traits = 8 }, -- Shalidor's Curse
+    },
+    [642] = { -- The Earth Forge
+        ["The Earth Forge"] = { setId = 92, traits = 8 }, -- Kagrenac's Hope
+        ["Pressure Room III"] = { setId = 84, traits = 8 }, -- Orgnum's Scales
+    },
+}
+
+-- Crafted set POI lookup: zoneId -> poiIndex -> { setId, traits }.
+-- MapSearch.lua resolves localized set names and bonuses through ESO's
+-- GetItemSetInfo/GetItemSetBonusInfo.
+data.CRAFTING_SET_POIS = {
+    [3] = { -- Glenumbra
+        [56] = { setId = 40, traits = 2 }, -- Night's Silence - Mesanthano's Tower
+        [60] = { setId = 37, traits = 2 }, -- Death's Wind - Chill House
+        [61] = { setId = 54, traits = 2 }, -- Ashen Grip - Par Molag
+    },
+    [19] = { -- Stormhaven
+        [56] = { setId = 75, traits = 3 }, -- Torug's Pact - Hammerdeath Workshop
+        [57] = { setId = 43, traits = 3 }, -- Armor of the Seducer - Fisherman's Island
+        [59] = { setId = 38, traits = 3 }, -- Twilight's Embrace - Windridge Warehouse
+    },
+    [20] = { -- Rivenspire
+        [52] = { setId = 48, traits = 4 }, -- Magnus' Gift - Veawend Ede
+        [53] = { setId = 41, traits = 4 }, -- Whitestrake's Retribution - Westwind Lighthouse
+        [57] = { setId = 78, traits = 4 }, -- Hist Bark - Trader's Rest
+    },
+    [41] = { -- Stonefalls
+        [54] = { setId = 37, traits = 2 }, -- Death's Wind - Armature's Upheaval
+        [56] = { setId = 40, traits = 2 }, -- Night's Silence - Steamfont Cavern
+        [59] = { setId = 54, traits = 2 }, -- Ashen Grip - Magmaflow Overlook
+    },
+    [57] = { -- Deshaan
+        [51] = { setId = 38, traits = 3 }, -- Twilight's Embrace - Avayan's Farm
+        [52] = { setId = 75, traits = 3 }, -- Torug's Pact - Lake Hlaalu Retreat
+        [53] = { setId = 43, traits = 3 }, -- Armor of the Seducer - Berezan's Mine
+    },
+    [58] = { -- Malabal Tor
+        [53] = { setId = 81, traits = 5 }, -- Song of Lamae - Sleepy Senche Overlook
+        [56] = { setId = 82, traits = 5 }, -- Alessia's Bulwark - Chancel of Divine Entreaty
+        [58] = { setId = 44, traits = 5 }, -- Vampire's Kiss - Matthild's Last Venture
+    },
+    [92] = { -- Bangkorai
+        [49] = { setId = 51, traits = 6 }, -- Night Mother's Gaze - Silaseli Ruins
+        [55] = { setId = 79, traits = 6 }, -- Willow's Path - Viridian Hideaway
+        [57] = { setId = 80, traits = 6 }, -- Hunding's Rage - Wethers' Cleft
+    },
+    [101] = { -- Eastmarch
+        [52] = { setId = 82, traits = 5 }, -- Alessia's Bulwark - Hammerhome
+        [54] = { setId = 81, traits = 5 }, -- Song of Lamae - Tinkerer Tobin's Workshop
+        [55] = { setId = 44, traits = 5 }, -- Vampire's Kiss - Crimson Kada's Crafting Cavern
+    },
+    [103] = { -- The Rift
+        [53] = { setId = 79, traits = 6 }, -- Willow's Path - Smokefrost Vigil
+        [57] = { setId = 51, traits = 6 }, -- Night Mother's Gaze - Eldbjorg's Hideaway
+        [59] = { setId = 80, traits = 6 }, -- Hunding's Rage - Trollslayer's Gully
+    },
+    [104] = { -- Alik'r Desert
+        [54] = { setId = 81, traits = 5 }, -- Song of Lamae - Rkulftzel
+        [55] = { setId = 82, traits = 5 }, -- Alessia's Bulwark - Alezer Kotu
+        [59] = { setId = 44, traits = 5 }, -- Vampire's Kiss - Artisan's Oasis
+    },
+    [108] = { -- Greenshade
+        [50] = { setId = 41, traits = 4 }, -- Whitestrake's Retribution - Lanalda Pond
+        [52] = { setId = 48, traits = 4 }, -- Magnus' Gift - Arananga
+        [55] = { setId = 78, traits = 4 }, -- Hist Bark - Rootwatch Tower
+    },
+    [117] = { -- Shadowfen
+        [50] = { setId = 48, traits = 4 }, -- Magnus' Gift - Xal Haj-Ei Shrine
+        [57] = { setId = 78, traits = 4 }, -- Hist Bark - Hatchling's Crown
+        [59] = { setId = 41, traits = 4 }, -- Whitestrake's Retribution - Weeping Wamasu Falls
+    },
+    [181] = { -- Cyrodiil
+        [107] = { setId = 482, traits = 3 }, -- Dauntless Combatant - Cropsford Armory
+        [108] = { setId = 480, traits = 3 }, -- Critical Riposte - Vlastarus Armory
+        [109] = { setId = 481, traits = 3 }, -- Unchained Aggressor - Bruma Armory
+    },
+    [347] = { -- Coldharbour
+        [47] = { setId = 74, traits = 8 }, -- Spectre's Eye - Deathspinner's Lair
+        [56] = { setId = 73, traits = 8 }, -- Oblivion's Foe - Font of Schemes
+    },
+    [381] = { -- Auridon
+        [50] = { setId = 40, traits = 2 }, -- Night's Silence - Hightide Keep
+        [55] = { setId = 54, traits = 2 }, -- Ashen Grip - Beacon Falls
+        [56] = { setId = 37, traits = 2 }, -- Death's Wind - Eastshore Islets Camp
+    },
+    [382] = { -- Reaper's March
+        [48] = { setId = 51, traits = 6 }, -- Night Mother's Gaze - Old Town Cavern
+        [51] = { setId = 80, traits = 6 }, -- Hunding's Rage - Broken Arch
+        [52] = { setId = 79, traits = 6 }, -- Willow's Path - Greenspeaker's Grove
+    },
+    [383] = { -- Grahtwood
+        [49] = { setId = 38, traits = 3 }, -- Twilight's Embrace - Vineshade Lodge
+        [52] = { setId = 43, traits = 3 }, -- Armor of the Seducer - Temple of the Eight
+        [55] = { setId = 75, traits = 3 }, -- Torug's Pact - Fisherman's Isle
+    },
+    [584] = { -- Imperial City
+        [22] = { setId = 177, traits = 7 }, -- Redistributor - Arboretum Armory
+        [23] = { setId = 176, traits = 5 }, -- Noble's Conquest - Nobles Armory
+        [24] = { setId = 178, traits = 9 }, -- Armor Master - Memorial Armory
+    },
+    [684] = { -- Wrothgar
+        [51] = { setId = 208, traits = 3 }, -- Trial by Fire - Malacath Statue
+        [52] = { setId = 207, traits = 6 }, -- Law of Julianos - Boreal Forge
+        [53] = { setId = 219, traits = 9 }, -- Morkuldin - Morkuldin Forge
+    },
+    [726] = { -- Murkmire
+        [17] = { setId = 410, traits = 4 }, -- Might of the Lost Legion - Ruined Village
+        [18] = { setId = 409, traits = 2 }, -- Naga Shaman - Deep Swamp Forge
+        [19] = { setId = 408, traits = 7 }, -- Grave-Stake Collector - Sweet Breeze Overlook
+    },
+    [816] = { -- Hew's Bane
+        [19] = { setId = 226, traits = 9 }, -- Eternal Hunt - The Lost Pavilion
+        [21] = { setId = 224, traits = 5 }, -- Tava's Favor - Forebear's Junction
+        [24] = { setId = 225, traits = 7 }, -- Clever Alchemist - No Shira Workshop
+    },
+    [823] = { -- Gold Coast
+        [18] = { setId = 240, traits = 5 }, -- Kvatch Gladiator - Marja's Mill
+        [19] = { setId = 241, traits = 7 }, -- Varen's Legacy - Strid River Artisans Camp
+        [20] = { setId = 242, traits = 9 }, -- Pelinal's Wrath - Colovian Revolt Forge Yard
+    },
+    [849] = { -- Vvardenfell
+        [44] = { setId = 323, traits = 3 }, -- Assassin's Guile - Marandus
+        [45] = { setId = 324, traits = 8 }, -- Daedric Trickery - Randas Ancestral Tomb
+        [46] = { setId = 325, traits = 6 }, -- Shacklebreaker - Zergonipal
+    },
+    [888] = { -- Craglorn
+        [12] = { setId = 161, traits = 9 }, -- Twice-Born Star - Atelier of the Twice-Born Star
+        [43] = { setId = 148, traits = 8 }, -- Way of the Arena - Lanista's Waystation
+    },
+    [980] = { -- Clockwork City
+        [19] = { setId = 351, traits = 2 }, -- Innate Axiom - The Refurbishing Yard
+        [20] = { setId = 353, traits = 6 }, -- Mechanical Acuity - Pavilion of Artifice
+    },
+    [981] = { -- Brass Fortress
+        [3] = { setId = 352, traits = 4 }, -- Fortified Brass - Restricted Brassworks
+    },
+    [1011] = { -- Summerset
+        [33] = { setId = 385, traits = 3 }, -- Adept Rider - Shimmerene Dockworks
+        [34] = { setId = 387, traits = 9 }, -- Nocturnal's Favor - Augury Basin
+    },
+    [1027] = { -- Artaeum
+        [1] = { setId = 386, traits = 6 }, -- Sload's Semblance - Artaeum Craftworks
+    },
+    [1086] = { -- Northern Elsweyr
+        [26] = { setId = 438, traits = 5 }, -- Senche-raht's Grit - Starlight Adeptorium
+        [27] = { setId = 437, traits = 8 }, -- Coldharbour's Favorite - Valenwood Border Artisan Camp
+        [28] = { setId = 439, traits = 3 }, -- Vastarie's Tutelage - Rimmen Masterworks
+    },
+    [1133] = { -- Southern Elsweyr
+        [11] = { setId = 470, traits = 9 }, -- New Moon Acolyte - Fur-Forge Cove
+        [12] = { setId = 468, traits = 3 }, -- Daring Corsair - Cat's-Claw Station
+    },
+    [1146] = { -- Tideholm
+        [2] = { setId = 469, traits = 6 }, -- Ancient Dragonguard - Dragonguard Armory
+    },
+    [1160] = { -- Western Skyrim
+        [48] = { setId = 490, traits = 5 }, -- Stuhn's Favor - Hunter's House
+        [49] = { setId = 491, traits = 7 }, -- Dragon's Appetite - Dragon's Belly
+    },
+    [1161] = { -- Blackreach: Greymoor Caverns
+        [22] = { setId = 506, traits = 3 }, -- Spell Parasite - Parasite's Cave
+    },
+    [1207] = { -- The Reach
+        [4] = { setId = 540, traits = 6 }, -- Legacy of Karth - Druadach Redoubt
+        [17] = { setId = 539, traits = 3 }, -- Red Eagle's Fury - Red Eagle Redoubt
+    },
+    [1208] = { -- Blackreach: Arkthzand Cavern
+        [11] = { setId = 541, traits = 9 }, -- Aetherial Ascension - Philosopher's Cradle
+    },
+    [1261] = { -- Blackwood
+        [50] = { setId = 584, traits = 5 }, -- Diamond's Victory - Pentric Run
+        [51] = { setId = 583, traits = 7 }, -- Heartland Conqueror - Sariellen's Sword
+        [52] = { setId = 582, traits = 3 }, -- Hist Whisperer - Withered Root
+    },
+    [1283] = { -- The Shambles
+        [1] = { setId = 612, traits = 5 }, -- Iron Flask - Forgotten Feretory
+    },
+    [1286] = { -- The Deadlands
+        [19] = { setId = 610, traits = 3 }, -- Wretched Vitality - Stormwright's Cleft
+        [20] = { setId = 611, traits = 7 }, -- Deadlands Demolisher - The Razorworks
+    },
+    [1318] = { -- High Isle
+        [36] = { setId = 641, traits = 5 }, -- Serpent's Disdain - Stonelore Forge and Craft
+        [37] = { setId = 640, traits = 3 }, -- Order's Wrath - Steadfast Hammer and Saw
+        [38] = { setId = 642, traits = 7 }, -- Druid's Braid - Hidden Foundry
+    },
+    [1383] = { -- Galen
+        [8] = { setId = 678, traits = 3 }, -- Old Growth Brewer - Old Port Mornard
+        [9] = { setId = 677, traits = 7 }, -- Chimera's Rebuke - Fort Avrippe
+        [10] = { setId = 679, traits = 5 }, -- Claw of the Forest Wraith - Oaken Forge
+    },
+    [1413] = { -- Apocrypha
+        [18] = { setId = 697, traits = 7 }, -- Seeker Synthesis - Versicolor Carrels
+        [19] = { setId = 695, traits = 5 }, -- Shattered Fate - Artisan's Hermitage
+    },
+    [1414] = { -- Telvanni Peninsula
+        [15] = { setId = 696, traits = 3 }, -- Telvanni Efficiency - Tel Hlurag Ven
+    },
+    [1443] = { -- West Weald
+        [3] = { setId = 764, traits = 5 }, -- Highland Sentinel - Leftwheal Granary
+        [4] = { setId = 763, traits = 3 }, -- Tharriker's Strike - Singer's Outpost
+        [5] = { setId = 765, traits = 7 }, -- Threads of War - Deserter's Lagoon
+    },
+    [1502] = { -- Solstice
+        [51] = { setId = 809, traits = 5 }, -- Tide-Born Wildstalker - Tide-Born Foundry
+        [74] = { setId = 808, traits = 3 }, -- Shared Burden - Salt-Air Station
+        [75] = { setId = 810, traits = 7 }, -- Fellowship's Fortitude - Fellowship Forge
+    },
 }

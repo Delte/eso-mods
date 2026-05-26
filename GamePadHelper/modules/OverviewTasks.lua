@@ -30,12 +30,13 @@ local GPH_DAILY_WRIT_TRACKER_KEY = "overviewDailyWritTracker"
 local TASKS_CACHE_TTL_MS = 30000
 local DAILY_RESET_REFRESH_NAMESPACE = "GPH_OverviewTasks_DailyResetRefresh"
 local SECONDS_IN_DAY = 86400
-local NA_RESET_ANCHOR_TIME = 1735639200
-local EU_RESET_OFFSET_SECONDS = 25200
+local SERVER_RESET_HOURS = {
+  ["EU Megaserver"] = 3, ["XB1live-eu"] = 3, ["PS4live-eu"] = 3,
+  ["NA Megaserver"] = 10, ["PTS"] = 10,
+}
 local tasksCacheText = nil
 local tasksCacheTimeMs = 0
 local tasksCacheDirty = true
-local dailyResetRefreshScheduledAt = 0
 local EnsureCompanionTrackerState
 local EnsureDailyWritTrackerState
 
@@ -76,43 +77,21 @@ function Tasks.InvalidateCache()
   tasksCacheTimeMs = 0
 end
 
-local function GetFallbackSecondsUntilDailyReset()
-  if not GetTimeStamp then return SECONDS_IN_DAY end
-
+local function GetServerDayNumber()
   local now = GetTimeStamp()
-  local anchorTime = GetTimedActivityTypeResetTimeS and TIMED_ACTIVITY_TYPE_WEEKLY and GetTimedActivityTypeResetTimeS(TIMED_ACTIVITY_TYPE_WEEKLY) or 0
   local worldName = GetWorldName and GetWorldName() or ""
-  local isEuServer = worldName == "EU Megaserver" or worldName == "XB1live-eu" or worldName == "PS4live-eu"
-
-  if not anchorTime or anchorTime <= 0 then
-    anchorTime = isEuServer and (NA_RESET_ANCHOR_TIME - EU_RESET_OFFSET_SECONDS) or NA_RESET_ANCHOR_TIME
+  local resetHour = SERVER_RESET_HOURS[worldName] or 10
+  local dateTable = os.date("!*t", now)
+  if dateTable.hour < resetHour then
+    now = now - SECONDS_IN_DAY
   end
-
-  local previousReset = anchorTime + zo_floor((now - anchorTime) / SECONDS_IN_DAY) * SECONDS_IN_DAY
-  return previousReset + SECONDS_IN_DAY - now
+  return math.floor(now / SECONDS_IN_DAY)
 end
 
-local function GetSecondsUntilDailyResetSafe()
-  local candidates = {}
-
-  if GetSecondsUntilDailyReset then
-    candidates[#candidates + 1] = GetSecondsUntilDailyReset()
-  end
-  if GetTimeUntilNextDailyLoginRewardClaimS then
-    candidates[#candidates + 1] = GetTimeUntilNextDailyLoginRewardClaimS()
-  end
-  if GetTimedActivityTypeResetTimeS and TIMED_ACTIVITY_TYPE_DAILY then
-    candidates[#candidates + 1] = GetTimedActivityTypeResetTimeS(TIMED_ACTIVITY_TYPE_DAILY)
-  end
-
-  for _, seconds in ipairs(candidates) do
-    seconds = tonumber(seconds)
-    if seconds and seconds > 0 and seconds <= 172800 then
-      return seconds
-    end
-  end
-
-  return GetFallbackSecondsUntilDailyReset()
+local function GetSecondsUntilReset()
+  local s = GetTimeUntilNextDailyLoginRewardClaimS and GetTimeUntilNextDailyLoginRewardClaimS()
+  if s and s > 0 and s <= 172800 then return s end
+  return SECONDS_IN_DAY
 end
 
 local function RefreshTasksTooltipIfVisible()
@@ -127,22 +106,17 @@ local function RefreshTasksTooltipIfVisible()
   Tasks.ShowRightTooltip(rightTooltip)
 end
 
-local function ScheduleDailyResetRefresh(secondsUntilReset)
-  if not EVENT_MANAGER or not secondsUntilReset then return end
-
-  local now = GetTimeStamp and GetTimeStamp() or 0
-  local targetResetAt = now + secondsUntilReset
-  if dailyResetRefreshScheduledAt == targetResetAt then return end
-
-  dailyResetRefreshScheduledAt = targetResetAt
+local function ScheduleDailyResetRefresh()
+  if not EVENT_MANAGER then return end
+  local secondsUntilReset = GetSecondsUntilReset()
   EVENT_MANAGER:UnregisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE)
-  EVENT_MANAGER:RegisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE, zo_max(60, secondsUntilReset + 2) * 1000, function()
+  EVENT_MANAGER:RegisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE, (secondsUntilReset + 2) * 1000, function()
     EVENT_MANAGER:UnregisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE)
-    dailyResetRefreshScheduledAt = 0
-    Tasks.InvalidateCache()
     EnsureCompanionTrackerState()
     EnsureDailyWritTrackerState()
+    Tasks.InvalidateCache()
     RefreshTasksTooltipIfVisible()
+    ScheduleDailyResetRefresh()
   end)
 end
 
@@ -269,19 +243,14 @@ function EnsureCompanionTrackerState()
 
   sv[GPH_COMPANION_TRACKER_KEY] = sv[GPH_COMPANION_TRACKER_KEY] or {}
   local tracker = sv[GPH_COMPANION_TRACKER_KEY]
-  tracker.doneByActivity = tracker.doneByActivity or {}
-  tracker.nextResetAt = tracker.nextResetAt or 0
 
-  local now = GetTimeStamp and GetTimeStamp() or 0
-  if now >= tracker.nextResetAt then
+  local currentDay = GetServerDayNumber()
+  if tracker.lastKnownDay ~= currentDay then
     tracker.doneByActivity = {}
-    local untilReset = GetSecondsUntilDailyResetSafe()
-    tracker.nextResetAt = now + zo_max(untilReset, 60)
-    ScheduleDailyResetRefresh(untilReset)
-  elseif tracker.nextResetAt > now then
-    ScheduleDailyResetRefresh(tracker.nextResetAt - now)
+    tracker.lastKnownDay = currentDay
   end
 
+  tracker.doneByActivity = tracker.doneByActivity or {}
   return tracker
 end
 
@@ -291,25 +260,20 @@ function EnsureDailyWritTrackerState()
 
   sv[GPH_DAILY_WRIT_TRACKER_KEY] = sv[GPH_DAILY_WRIT_TRACKER_KEY] or {}
   local tracker = sv[GPH_DAILY_WRIT_TRACKER_KEY]
-  tracker.doneByQuestId = tracker.doneByQuestId or {}
-  tracker.doneByWritKey = tracker.doneByWritKey or {}
-  tracker.activeByQuestId = tracker.activeByQuestId or {}
-  tracker.activeByWritKey = tracker.activeByWritKey or {}
-  tracker.nextResetAt = tracker.nextResetAt or 0
 
-  local now = GetTimeStamp and GetTimeStamp() or 0
-  if now >= tracker.nextResetAt then
+  local currentDay = GetServerDayNumber()
+  if tracker.lastKnownDay ~= currentDay then
     tracker.doneByQuestId = {}
     tracker.doneByWritKey = {}
     tracker.activeByQuestId = {}
     tracker.activeByWritKey = {}
-    local untilReset = GetSecondsUntilDailyResetSafe()
-    tracker.nextResetAt = now + zo_max(untilReset, 60)
-    ScheduleDailyResetRefresh(untilReset)
-  elseif tracker.nextResetAt > now then
-    ScheduleDailyResetRefresh(tracker.nextResetAt - now)
+    tracker.lastKnownDay = currentDay
   end
 
+  tracker.doneByQuestId = tracker.doneByQuestId or {}
+  tracker.doneByWritKey = tracker.doneByWritKey or {}
+  tracker.activeByQuestId = tracker.activeByQuestId or {}
+  tracker.activeByWritKey = tracker.activeByWritKey or {}
   return tracker
 end
 
@@ -637,7 +601,7 @@ local function CountAllInventoryItems()
   local totalSurveyCount = 0
   local totalWritCount = 0
 
-  for bagId = BAG_BACKPACK, BAG_SUBSCRIBER_BANK do
+  for _, bagId in ipairs({ BAG_BACKPACK, BAG_BANK, BAG_SUBSCRIBER_BANK }) do
     for slotIndex = 0, GetBagSize(bagId) - 1 do
       if GetItemId(bagId, slotIndex) > 0 then
         local itemType, specializedItemType = GetItemType(bagId, slotIndex)
@@ -833,6 +797,14 @@ end
 EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_Cache", EVENT_ADD_ON_LOADED, function(_, name)
   if name ~= "GamePadHelper" then return end
   EVENT_MANAGER:UnregisterForEvent("GPH_OverviewTasks_Cache", EVENT_ADD_ON_LOADED)
+
+  EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
+    EVENT_MANAGER:UnregisterForEvent("GPH_OverviewTasks_PlayerActivated", EVENT_PLAYER_ACTIVATED)
+    EnsureCompanionTrackerState()
+    EnsureDailyWritTrackerState()
+    Tasks.InvalidateCache()
+    ScheduleDailyResetRefresh()
+  end)
 
   RegisterCacheInvalidationEvent("GPH_OverviewTasks_InventoryCache", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
   RegisterCacheInvalidationEvent("GPH_OverviewTasks_ResearchCompletedCache", EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED)

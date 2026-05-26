@@ -41,7 +41,7 @@ local function PopulateMapNameToZoneIdMapping()
 end
 
 local function GetFallbackZoneId()
-    local saved = _G["GamePadHelperSavedVars"]
+    local saved = _G["GamePadHelper_SavedVars"]
     local candidate = saved and saved.lastSelectedPOI
     if type(candidate) == "table" then
         if candidate.zoneId and candidate.zoneId ~= 0 then
@@ -88,7 +88,8 @@ local function ZonesOverlap(zoneA, zoneB)
     return false
 end
 
-local socialErrorCode = 0
+local teleportChainId = 0
+local teleportChainErrors = {}
 
 local function FindPlayersInZone(targetZoneId)
     local myName = GetDisplayName()
@@ -108,6 +109,18 @@ local function FindPlayersInZone(targetZoneId)
                         results[#results + 1] = { displayName = displayName, charName = GetUnitName(tag), isGroup = true }
                     end
                 end
+            end
+        end
+    end
+
+    -- then friends
+    for j = 1, GetNumFriends() do
+        local displayName, _, status = GetFriendInfo(j)
+        if displayName and displayName ~= "" and displayName ~= myName and status ~= PLAYER_STATUS_OFFLINE and not seen[displayName] then
+            local hasChar, charName, _, _, _, _, _, zoneId = GetFriendCharacterInfo(j)
+            if hasChar and zoneId and zoneId ~= 0 and ZonesOverlap(zoneId, targetZoneId) then
+                seen[displayName] = true
+                results[#results + 1] = { displayName = displayName, charName = charName }
             end
         end
     end
@@ -133,6 +146,7 @@ end
 local TryPlayersFromIndex  -- forward declaration
 
 local function TeleportToPlayer(displayName)
+    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, displayName))
     for i = 1, GetGroupSize() do
         local tag = GetGroupUnitTagByIndex(i)
         if tag and GetUnitDisplayName(tag) == displayName then
@@ -148,14 +162,19 @@ local function TeleportToPlayer(displayName)
 end
 
 TryPlayersFromIndex = function(players, index, onAllFailed)
+    if index == 1 then
+        teleportChainId = teleportChainId + 1
+        teleportChainErrors[teleportChainId] = nil
+    end
     if index > #players then
+        teleportChainErrors[teleportChainId] = nil
         if onAllFailed then onAllFailed() end
         return
     end
-    socialErrorCode = 0
+    local capturedChainId = teleportChainId
     TeleportToPlayer(players[index].displayName)
     zo_callLater(function()
-        local err = socialErrorCode
+        local err = teleportChainErrors[capturedChainId]
         if err == SOCIAL_RESULT_NO_LOCATION or err == SOCIAL_RESULT_CHARACTER_NOT_FOUND then
             TryPlayersFromIndex(players, index + 1, onAllFailed)
         end
@@ -221,7 +240,7 @@ local function CreateTeleportCallback()
     end
 
     local players  = FindPlayersInZone(zoneId)
-    local houseId  = FindOwnedHouseInZone(zoneId)
+    local houseId, houseName = FindOwnedHouseInZone(zoneId)
     local nodeIndex = (not players and not houseId) and FindWayshrineInZone(zoneId)
 
     if not players and not houseId and not nodeIndex then
@@ -238,8 +257,10 @@ local function CreateTeleportCallback()
 
     local function onAllFailed()
         if houseId then
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, houseName or cleanLocation))
             RequestJumpToHouse(houseId, true)
         elseif nodeIndex then
+            ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, cleanLocation))
             FastTravelToNode(nodeIndex)
         else
             ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_FREE_TRAVEL_FAILED))
@@ -249,6 +270,7 @@ local function CreateTeleportCallback()
     if players then
         TryPlayersFromIndex(players, 1, onAllFailed)
     else
+        ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, houseName or cleanLocation))
         RequestJumpToHouse(houseId, true)
     end
 end
@@ -402,6 +424,7 @@ local function GamepadChatInit()
                     end
                     SCENE_MANAGER:HideCurrentScene()
                     local displayName = data.displayName
+                    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, displayName))
                     if IsFriendJumpable() then
                         JumpToFriend(displayName)
                     elseif IsGroupJumpable() then
@@ -426,7 +449,7 @@ local function OnAddonLoaded(_, name)
     PopulateKeybindStripDescriptor()
 
     EVENT_MANAGER:RegisterForEvent("MapTeleporter_SocialError", EVENT_SOCIAL_ERROR, function(_, errorCode)
-        socialErrorCode = errorCode or 0
+        teleportChainErrors[teleportChainId] = errorCode or 0
     end)
 
     ZO_Dialogs_RegisterCustomDialog("GPH_HOVER_WAYSHRINE_CONFIRM", {
@@ -458,6 +481,7 @@ local function OnAddonLoaded(_, name)
                 text     = SI_DIALOG_CONFIRM,
                 callback = function(dialog)
                     if not dialog.data then return end
+                    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, dialog.data.name))
                     FastTravelToNode(dialog.data.nodeIndex)
                     SCENE_MANAGER:ShowBaseScene()
                 end,
