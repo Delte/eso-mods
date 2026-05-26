@@ -67,6 +67,7 @@ local RunSearch
 local RebuildList
 
 local lastSelectedIndex = 1
+local expandedEntryData = nil
 local currentTab = TAB_SEARCH
 local pendingNarration  = nil
 local postTeleportMsg   = nil
@@ -425,7 +426,6 @@ local function GetPOITypeLabel(icon, poiType)
         :gsub("^u%d+_poi_",   "")
         :gsub("^u%d+_",       "")
         :gsub("^poi_",        "")
-        :gsub("^u%d+_",       "")
     return data.POI_TYPE_NAMES[name]
 end
 
@@ -480,7 +480,7 @@ end
 -- pre-scan 
 
 local function AddClickableSubMap(maps, seen, parentMapIndex, parentZoneId, x, y, fallbackName)
-    if not x or not y or x <= 0 then return end
+    if not x or not y or x <= 0 or y <= 0 then return end
     local locationName, _, _, _, _, _, mapId = GetMapMouseoverInfo(x, y)
     if mapId and mapId ~= 0 and not seen[mapId] then
         seen[mapId] = true
@@ -740,7 +740,7 @@ end
 -- candidates
 
 local function FindNearestWayshrineToPos(px, py, minDist, filterZoneIndex)
-    if not px or not py or px == 0 then return nil end
+    if not px or not py or px == 0 or py == 0 then return nil end
     local bestNode, bestDist = nil, math.huge
     for nodeIndex = 1, GetNumFastTravelNodes() do
         local known, _, wsNx, wsNy, _, _, typePOI, _, isLocked = GetFastTravelNodeInfo(nodeIndex)
@@ -1417,9 +1417,35 @@ RunSearch = function(term)
         return (a.c.searchName or a.c.name or "") < (b.c.searchName or b.c.name or "")
     end)
 
+    -- bucket by type, preserving score order within each bucket
+    local buckets  = {}
+    local typeKeys = {}
+    for _, item in ipairs(scored) do
+        local t = item.c.type
+        if not buckets[t] then
+            buckets[t]            = {}
+            typeKeys[#typeKeys+1] = t
+        end
+        buckets[t][#buckets[t]+1] = item.c
+    end
+    table.sort(typeKeys)
+
+    -- round-robin across types so no single type dominates; total cap 50
     results = {}
-    for i = 1, #scored do
-        results[#results + 1] = scored[i].c
+    local indices = {}
+    for _, t in ipairs(typeKeys) do indices[t] = 1 end
+    local progress = true
+    while #results < 50 and progress do
+        progress = false
+        for _, t in ipairs(typeKeys) do
+            if #results >= 50 then break end
+            local idx = indices[t]
+            if idx <= #buckets[t] then
+                results[#results+1] = buckets[t][idx]
+                indices[t]          = idx + 1
+                progress            = true
+            end
+        end
     end
 end
 
@@ -1733,9 +1759,10 @@ local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmar
                     if #selectedBonusLabels > 0 then
                         local unselectedLabel = "|c99CCFF" .. TruncateDetail(table.concat(unselectedBonusParts, "; "), SET_BONUS_UNSELECTED_MAX) .. "|r"
                         entryData.gphSetBonusLabels = {
-                            selected = selectedBonusLabels,
+                            selected   = selectedBonusLabels,
                             unselected = unselectedLabel,
                         }
+                        entryData.gphSetBonusStartIdx = #entryData.subLabels + 1
                         entryData:AddSubLabel(unselectedLabel)
                     end
                 end
@@ -1759,6 +1786,7 @@ end
 
 RebuildList = function()
     if not listObject then return end
+    expandedEntryData = nil
     listObject:Clear()
 
     local bookmarks = GetBookmarksArray()
@@ -1869,6 +1897,7 @@ end
 -- map interaction
 
 local postTeleportDestination = nil
+local postTeleportCandidate   = nil
 
 local function AddMapPin(x, y)
     local sv = GetSavedVars()
@@ -1880,24 +1909,47 @@ local function AddMapPin(x, y)
 end
 
 
+local function PlaceDestinationDiamondPre(c)
+    local sv = GetSavedVars()
+    if sv ~= nil and sv.mapSearchSetDestination == false then return end
+    local x, y
+    if c.destinationX and c.destinationY then
+        x, y = c.destinationX, c.destinationY
+    elseif c.zoneIndex and c.poiIndex then
+        x, y = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
+    elseif c.nodeIndex then
+        local _, _, nx, ny = GetFastTravelNodeInfo(c.nodeIndex)
+        x, y = nx, ny
+    end
+    if not x or x <= 0 or not y or y <= 0 then return end
+    if ZO_WorldMap_RemovePlayerWaypoint then
+        ZO_WorldMap_RemovePlayerWaypoint()
+    elseif RemovePlayerWaypoint then
+        RemovePlayerWaypoint()
+    end
+    PingMap(MAP_PIN_TYPE_PLAYER_WAYPOINT, MAP_TYPE_LOCATION_CENTERED, x, y)
+end
+
 local function StorePostTeleportDestination(c)
     local sv = GetSavedVars()
     if sv ~= nil and sv.mapSearchSetDestination == false then return end
+    local mapId = c.cityMapId
+        or (c.zoneId and GetMapIdByZoneId and GetMapIdByZoneId(c.zoneId) or nil)
     if c.destinationX and c.destinationY then
-        postTeleportDestination = { x = c.destinationX, y = c.destinationY, cityMapId = c.cityMapId }
+        postTeleportDestination = { x = c.destinationX, y = c.destinationY, mapId = mapId }
         return
     end
     if c.zoneIndex and c.poiIndex then
         local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
         if nx and nx > 0 then
-            postTeleportDestination = { x = nx, y = ny }
+            postTeleportDestination = { x = nx, y = ny, mapId = mapId }
             return
         end
     end
     if c.nodeIndex then
         local _, _, nx, ny = GetFastTravelNodeInfo(c.nodeIndex)
         if nx and nx > 0 then
-            postTeleportDestination = { x = nx, y = ny }
+            postTeleportDestination = { x = nx, y = ny, mapId = mapId }
         end
     end
 end
@@ -1952,50 +2004,38 @@ local function CenterMapOnCandidate(c)
     end
 end
 
-local function PlacePostTeleportDestination(dest, attempt)
-    if not dest or not dest.x or not dest.y then return end
-    attempt = attempt or 1
+local pendingWaypointDest = nil
 
-    if dest.cityMapId and dest.cityMapId > 0 then
-        local currentMapId = GetCurrentMapId and GetCurrentMapId() or nil
-        if currentMapId ~= dest.cityMapId and attempt < 4 then
-            SetMapToMapId(dest.cityMapId)
-            if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER.SetMapById and (GetCurrentMapId and GetCurrentMapId() ~= dest.cityMapId) then
-                WORLD_MAP_MANAGER:SetMapById(dest.cityMapId)
-            end
-            if attempt < 6 then
-                zo_callLater(function()
-                    PlacePostTeleportDestination(dest, attempt + 1)
-                end, 250)
-            end
-            return
+local function ApplyWaypointNow(dest)
+    if not dest or not dest.x or not dest.y then return end
+    if dest.mapId and dest.mapId > 0 then
+        if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER.SetMapById then
+            WORLD_MAP_MANAGER:SetMapById(dest.mapId)
         end
     end
-
     if ZO_WorldMap_IsNormalizedPointInsideMapBounds and not ZO_WorldMap_IsNormalizedPointInsideMapBounds(dest.x, dest.y) then
         return
     end
-
-    if not dest.waypointCleared then
-        dest.waypointCleared = true
-        if ZO_WorldMap_RemovePlayerWaypoint then
-            ZO_WorldMap_RemovePlayerWaypoint()
-        elseif RemovePlayerWaypoint then
-            RemovePlayerWaypoint()
-        end
+    if ZO_WorldMap_RemovePlayerWaypoint then
+        ZO_WorldMap_RemovePlayerWaypoint()
+    elseif RemovePlayerWaypoint then
+        RemovePlayerWaypoint()
     end
     PingMap(MAP_PIN_TYPE_PLAYER_WAYPOINT, MAP_TYPE_LOCATION_CENTERED, dest.x, dest.y)
     if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER.RefreshMapPings then
         WORLD_MAP_MANAGER:RefreshMapPings()
     end
     AddMapPin(dest.x, dest.y)
-    if GetMapPlayerWaypoint and attempt < 6 then
-        zo_callLater(function()
-            local wx, wy = GetMapPlayerWaypoint()
-            if not wx or wx == 0 or not wy or wy == 0 then
-                PlacePostTeleportDestination(dest, attempt + 1)
-            end
-        end, 250)
+end
+
+local function PlacePostTeleportDestination(dest)
+    if not dest or not dest.x or not dest.y then return end
+    local mapScene = IsInGamepadPreferredMode() and GAMEPAD_WORLD_MAP_SCENE or WORLD_MAP_SCENE
+    if mapScene and mapScene:IsShowing() then
+        ApplyWaypointNow(dest)
+        pendingWaypointDest = nil
+    else
+        pendingWaypointDest = dest
     end
 end
 
@@ -2022,13 +2062,16 @@ local function BuildKeybindDescriptor()
                 end
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
-                    AddRecent(td.candidate)
                     if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
                     _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(td.candidate)
                     CenterMapOnCandidate(td.candidate)
                     local keybindName = ZO_Keybindings_GetBindingStringFromAction("UI_SHORTCUT_QUINARY") or GetString(SI_GPH_TELEPORT)
                     pendingNarration = BuildCandidateNarrationText(td.candidate, td.isBookmark) .. ". " .. zo_strformat(SI_GPH_MAPSEARCH_SHOWN_ON_MAP, keybindName)
                     SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
+                    if td.gphSetBonusLabels then
+                        expandedEntryData = td
+                        listObject:RefreshVisible()
+                    end
                 end
             end,
             visible  = function()
@@ -2151,7 +2194,6 @@ local function BuildKeybindDescriptor()
                 if not td or not td.candidate then return end
                 local c = td.candidate
 
-                AddRecent(c)
                 if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
                 _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(c)
 
@@ -2216,7 +2258,10 @@ local function BuildKeybindDescriptor()
 
                 local atWayshrine = GetInteractionType() == INTERACTION_FAST_TRAVEL
                 local cost = (not atWayshrine) and GetRecallCost(nodeIndex) or 0
+                CenterMapOnCandidate(c)
+                PlaceDestinationDiamondPre(c)
                 StorePostTeleportDestination(c)
+                postTeleportCandidate = c
                 if cost > 0 then
                     local tryFree = _G["GamePadHelper_MapTeleporter_TryFreeTeleport"]
                     local handled = tryFree and c.zoneId and tryFree({
@@ -2229,6 +2274,7 @@ local function BuildKeybindDescriptor()
                             if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
                                 postTeleportMsg = zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, c.name)
                             end
+                            PlaceDestinationDiamondPre(c)
                             FastTravelToNode(nodeIndex)
                             SCENE_MANAGER:ShowBaseScene()
                         end,
@@ -2312,6 +2358,10 @@ function GPH_MapSearch_SelectCurrent()
         if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
         _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(td.candidate)
         CenterMapOnCandidate(td.candidate)
+        if td.gphSetBonusLabels then
+            expandedEntryData = td
+            listObject:RefreshVisible()
+        end
     end
 end
 
@@ -2334,22 +2384,12 @@ local function InitList(control)
                 end
             end
         end
-        if data.gphSetBonusLabels and data.subLabels then
-            for i = #data.subLabels, 1, -1 do
-                local label = data.subLabels[i]
-                local remove = label == data.gphSetBonusLabels.unselected
-                if not remove then
-                    for _, selectedLabel in ipairs(data.gphSetBonusLabels.selected or {}) do
-                        if label == selectedLabel then
-                            remove = true
-                            break
-                        end
-                    end
-                end
-                if remove then table.remove(data.subLabels, i) end
+        if data.gphSetBonusLabels and data.subLabels and data.gphSetBonusStartIdx then
+            while #data.subLabels >= data.gphSetBonusStartIdx do
+                table.remove(data.subLabels)
             end
-            if selected then
-                for _, selectedLabel in ipairs(data.gphSetBonusLabels.selected or {}) do
+            if data == expandedEntryData then
+                for _, selectedLabel in ipairs(data.gphSetBonusLabels.selected) do
                     data.subLabels[#data.subLabels + 1] = selectedLabel
                 end
             else
@@ -2370,6 +2410,7 @@ local function InitList(control)
         nil, "ZO_GamepadMenuEntryHeaderTemplate")
 
     listObject:SetOnTargetDataChangedCallback(function()
+        expandedEntryData = nil
         local idx = listObject:GetSelectedIndex()
         if idx and idx > 0 then lastSelectedIndex = idx end
         UpdateKeybinds()
@@ -2694,12 +2735,18 @@ local function OnAddonLoaded(_, name)
                 CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(params)
             end, 500)
         end
+        if postTeleportCandidate then
+            AddRecent(postTeleportCandidate)
+            postTeleportCandidate = nil
+        end
         if postTeleportDestination then
             local dest = postTeleportDestination
             postTeleportDestination = nil
             zo_callLater(function()
                 PlacePostTeleportDestination(dest)
             end, 500)
+        else
+            pendingWaypointDest = nil
         end
     end)
 
@@ -2782,6 +2829,10 @@ local function OnAddonLoaded(_, name)
                     if sv == nil or sv.mapSearchNarratePostTeleport ~= false then
                         postTeleportMsg = zo_strformat(SI_GPH_MAPSEARCH_TELEPORTED_TO, d.name)
                     end
+                    if d.candidate then
+                        PlaceDestinationDiamondPre(d.candidate)
+                        postTeleportCandidate = d.candidate
+                    end
                     FastTravelToNode(d.nodeIndex)
                     SCENE_MANAGER:ShowBaseScene()
                 end,
@@ -2820,8 +2871,23 @@ local function OnAddonLoaded(_, name)
                     _G["GamePadHelper_SavedVars"].lastSelectedPOI = nil
                 end, 100)
             end
+            if pendingWaypointDest then
+                local dest = pendingWaypointDest
+                pendingWaypointDest = nil
+                zo_callLater(function() ApplyWaypointNow(dest) end, 150)
+            end
         end
     end)
+
+    if WORLD_MAP_SCENE then
+        WORLD_MAP_SCENE:RegisterCallback("StateChange", function(_, newState)
+            if newState == SCENE_SHOWING and pendingWaypointDest then
+                local dest = pendingWaypointDest
+                pendingWaypointDest = nil
+                zo_callLater(function() ApplyWaypointNow(dest) end, 150)
+            end
+        end)
+    end
 end
 
 local function SaveDump(key, data)

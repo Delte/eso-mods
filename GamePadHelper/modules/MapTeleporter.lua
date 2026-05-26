@@ -343,6 +343,7 @@ _G["GamePadHelper_MapTeleporter_TryFreeTeleport"] = function(params)
     local first = players and players[1]
     ZO_Dialogs_ShowGamepadDialog("GPH_FREE_TRAVEL_OPTIONS", {
         name          = params.name,
+        zoneId        = params.zoneId,
         nodeIndex     = params.nodeIndex,
         cost          = params.cost,
         players       = players,
@@ -491,82 +492,90 @@ local function OnAddonLoaded(_, name)
     })
 
     ZO_Dialogs_RegisterCustomDialog("GPH_FREE_TRAVEL_OPTIONS", {
-        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
-        canQueue    = true,
-        title       = { text = SI_GPH_MAPSEARCH_FREE_TRAVEL_TITLE },
-        mainText    = {
+        gamepadInfo    = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
+        canQueue       = true,
+        title          = { text = SI_GPH_MAPSEARCH_FREE_TRAVEL_TITLE },
+        mainText       = {
             text = function(dialog)
                 if not dialog.data then return "" end
                 return zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_PROMPT, dialog.data.name)
             end,
         },
-        buttons = {
-            {
-                keybind  = "DIALOG_PRIMARY",
-                text     = function(dialog)
-                    if not dialog.data then return "" end
-                    local d = dialog.data
-                    if d.memberDisplay then
-                        local label = (d.memberChar and d.memberChar ~= "") and d.memberChar or d.memberDisplay
-                        return zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_MEMBER, label)
-                    end
-                    return zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_HOUSE, d.houseName)
-                end,
-                callback = function(dialog)
-                    if not dialog.data then return end
-                    local d = dialog.data
-                    if d.players then
-                        SCENE_MANAGER:ShowBaseScene()
-                        TryPlayersFromIndex(d.players, 1, function()
-                            if d.houseId then
-                                ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
-                                    { GetReferenceId = function() return d.houseId end })
+        parametricList = {},
+        setup = function(dialog)
+            local d    = dialog.data
+            local list = dialog.info.parametricList
+            ZO_ClearNumericallyIndexedTable(list)
+
+            if d.memberDisplay then
+                local label = (d.memberChar and d.memberChar ~= "") and d.memberChar or d.memberDisplay
+                table.insert(list, {
+                    template     = "ZO_GamepadTextFieldSubmitItem",
+                    templateData = {
+                        text  = zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_MEMBER, label),
+                        setup = ZO_SharedGamepadEntry_OnSetup,
+                        callback = function()
+                            ZO_Dialogs_ReleaseDialogOnButtonPress("GPH_FREE_TRAVEL_OPTIONS")
+                            local freshPlayers = d.zoneId and FindPlayersInZone(d.zoneId)
+                            if freshPlayers then
+                                SCENE_MANAGER:ShowBaseScene()
+                                TryPlayersFromIndex(freshPlayers, 1, function()
+                                    if d.houseId then
+                                        ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
+                                            { GetReferenceId = function() return d.houseId end })
+                                    else
+                                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_FREE_TRAVEL_FAILED))
+                                    end
+                                end)
                             else
                                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_FREE_TRAVEL_FAILED))
                             end
-                        end)
-                    elseif d.houseId then
-                        ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
-                            { GetReferenceId = function() return d.houseId end })
-                    end
-                end,
-                visible  = function(dialog)
-                    return dialog.data and (dialog.data.memberDisplay ~= nil or dialog.data.houseId ~= nil)
-                end,
-            },
+                        end,
+                    },
+                })
+            end
+
+            if d.houseId then
+                table.insert(list, {
+                    template     = "ZO_GamepadTextFieldSubmitItem",
+                    templateData = {
+                        text  = zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_HOUSE, d.houseName),
+                        setup = ZO_SharedGamepadEntry_OnSetup,
+                        callback = function()
+                            ZO_Dialogs_ReleaseDialogOnButtonPress("GPH_FREE_TRAVEL_OPTIONS")
+                            ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
+                                { GetReferenceId = function() return d.houseId end })
+                        end,
+                    },
+                })
+            end
+
+            if d.nodeIndex then
+                table.insert(list, {
+                    template     = "ZO_GamepadTextFieldSubmitItem",
+                    templateData = {
+                        text  = zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_WAYSHRINE, d.cost),
+                        setup = ZO_SharedGamepadEntry_OnSetup,
+                        callback = function()
+                            ZO_Dialogs_ReleaseDialogOnButtonPress("GPH_FREE_TRAVEL_OPTIONS")
+                            if d.onWayshrine then d.onWayshrine() end
+                        end,
+                    },
+                })
+            end
+
+            dialog:setupFunc()
+        end,
+        buttons = {
             {
-                keybind  = "DIALOG_SECONDARY",
-                text     = function(dialog)
-                    if not dialog.data then return "" end
-                    return zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_HOUSE, dialog.data.houseName)
-                end,
+                keybind  = "DIALOG_PRIMARY",
+                text     = SI_GAMEPAD_SELECT_OPTION,
                 callback = function(dialog)
-                    if not dialog.data or not dialog.data.houseId then return end
-                    ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
-                        { GetReferenceId = function() return dialog.data.houseId end })
-                end,
-                visible  = function(dialog)
-                    return dialog.data
-                        and dialog.data.memberDisplay ~= nil
-                        and dialog.data.houseId ~= nil
+                    local data = dialog.entryList:GetTargetData()
+                    if data and data.callback then data.callback() end
                 end,
             },
-            {
-                keybind  = "DIALOG_TERTIARY",
-                text     = function(dialog)
-                    if not dialog.data then return "" end
-                    return zo_strformat(SI_GPH_MAPSEARCH_FREE_TRAVEL_WAYSHRINE, dialog.data.cost)
-                end,
-                callback = function(dialog)
-                    if dialog.data and dialog.data.onWayshrine then
-                        dialog.data.onWayshrine()
-                    end
-                end,
-                visible  = function(dialog)
-                    return dialog.data and dialog.data.nodeIndex ~= nil
-                end,
-            },
-            { keybind = "DIALOG_NEGATIVE", text = SI_DIALOG_CANCEL },
+            { keybind = "DIALOG_NEGATIVE", text = SI_GAMEPAD_BACK_OPTION },
         },
     })
 
