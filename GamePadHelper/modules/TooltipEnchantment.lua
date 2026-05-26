@@ -18,7 +18,7 @@ local function Tooltip_AddEnchant_Before(self, itemLink, enchantDiffMode, equipS
         headerText = string.format(
             "%s (%s %s)",
             headerText,
-            decodedItemLink.enchantChampionLevel > 0 and "CP" or GetString(SI_GPH_TOOLTIPENCHANTMENT_LEVEL),
+            decodedItemLink.enchantChampionLevel > 0 and GetString(SI_GPH_TOOLTIPENCHANTMENT_CP) or GetString(SI_GPH_TOOLTIPENCHANTMENT_LEVEL),
             COLOR_WHITE:Colorize(tostring(decodedItemLink.enchantChampionLevel > 0 and decodedItemLink.enchantChampionLevel or decodedItemLink.enchantLevel))
         )
 

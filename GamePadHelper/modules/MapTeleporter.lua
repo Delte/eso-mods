@@ -585,18 +585,20 @@ local function OnAddonLoaded(_, name)
         end
     end)
 
-    ZO_PreHook(CHAT_MENU_GAMEPAD, "OnShow", GamepadChatInit)
+    if CHAT_MENU_GAMEPAD then
+        ZO_PreHook(CHAT_MENU_GAMEPAD, "OnShow", GamepadChatInit)
 
-    ZO_PreHook(CHAT_MENU_GAMEPAD, "OnTargetChanged", function(_, _, targetData)
-        CHAT_MENU_GAMEPAD.socialData = targetData and (targetData.data or targetData) or nil
-        if CHAT_KEYBIND_STRIP_DESCRIPTOR then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(CHAT_KEYBIND_STRIP_DESCRIPTOR)
-        end
-    end)
+        ZO_PreHook(CHAT_MENU_GAMEPAD, "OnTargetChanged", function(_, _, targetData)
+            CHAT_MENU_GAMEPAD.socialData = targetData and (targetData.data or targetData) or nil
+            if CHAT_KEYBIND_STRIP_DESCRIPTOR then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(CHAT_KEYBIND_STRIP_DESCRIPTOR)
+            end
+        end)
 
-    ZO_PreHook(CHAT_MENU_GAMEPAD, "OnHide", function()
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(CHAT_KEYBIND_STRIP_DESCRIPTOR)
-    end)
+        ZO_PreHook(CHAT_MENU_GAMEPAD, "OnHide", function()
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(CHAT_KEYBIND_STRIP_DESCRIPTOR)
+        end)
+    end
 end
 
 EVENT_MANAGER:RegisterForEvent("MapTeleporter", EVENT_ADD_ON_LOADED, OnAddonLoaded)

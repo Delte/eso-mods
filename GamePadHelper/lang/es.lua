@@ -250,6 +250,7 @@ local strings = {
     SI_GPH_TIME_MINUTE_SHORT = "<<1>>min",
     SI_GPH_TOOLTIP_EQUIPPED = "(Equipado)",
     SI_GPH_TOOLTIPENCHANTMENT_LEVEL = "Nivel",
+    SI_GPH_TOOLTIPENCHANTMENT_CP = "CP",
     SI_GPH_TOOLTIPPRICE_GAME_MATERIALS = "(materiales del juego)",
     SI_GPH_TOOLTIPPRICE_MATERIALS = " (materiales)",
     SI_GPH_TOOLTIPPRICE_NO_MARKET = "(Sin datos de mercado)",

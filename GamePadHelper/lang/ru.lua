@@ -250,6 +250,7 @@ local strings = {
     SI_GPH_TIME_MINUTE_SHORT = "<<1>>м",
     SI_GPH_TOOLTIP_EQUIPPED = "(Оборудовано)",
     SI_GPH_TOOLTIPENCHANTMENT_LEVEL = "Уровень",
+    SI_GPH_TOOLTIPENCHANTMENT_CP = "CP",
     SI_GPH_TOOLTIPPRICE_GAME_MATERIALS = "(игровые материалы)",
     SI_GPH_TOOLTIPPRICE_MATERIALS = " (материалы)",
     SI_GPH_TOOLTIPPRICE_NO_MARKET = "(Нет рыночных данных)",

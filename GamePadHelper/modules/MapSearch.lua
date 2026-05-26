@@ -19,6 +19,8 @@ local function TruncateDetail(s, maxLen)
     return cut .. "..."
 end
 
+local d = function(msg) CHAT_SYSTEM:AddMessage(msg) end
+
 local SET_BONUS_UNSELECTED_MAX = 60
 
 local TYPE_WAYSHRINE     = 1

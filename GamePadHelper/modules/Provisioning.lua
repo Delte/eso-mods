@@ -93,9 +93,13 @@ local function OnAddonLoaded(event, name)
         showLowLevelFilter.checked = sv.showLowLevelRecipes
     end
 
-    ZO_PreHook(GAMEPAD_PROVISIONER.recipeList, "Commit", HideRecipes)
-    ZO_PostHook(GAMEPAD_PROVISIONER, "SaveFilters", SaveOptions)
-    ZO_PreHook(GAMEPAD_PROVISIONER, "ShowOptionsMenu", HookOptions)
+    if GAMEPAD_PROVISIONER then
+        if GAMEPAD_PROVISIONER.recipeList then
+            ZO_PreHook(GAMEPAD_PROVISIONER.recipeList, "Commit", HideRecipes)
+        end
+        ZO_PostHook(GAMEPAD_PROVISIONER, "SaveFilters", SaveOptions)
+        ZO_PreHook(GAMEPAD_PROVISIONER, "ShowOptionsMenu", HookOptions)
+    end
 end
 
 EVENT_MANAGER:RegisterForEvent("Provisioning", EVENT_ADD_ON_LOADED, OnAddonLoaded)
