@@ -492,8 +492,9 @@ local function OnAddonLoaded(_, name)
     })
 
     ZO_Dialogs_RegisterCustomDialog("GPH_FREE_TRAVEL_OPTIONS", {
-        gamepadInfo    = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
-        canQueue       = true,
+        gamepadInfo             = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
+        canQueue                = true,
+        blockDialogReleaseOnPress = true,
         title          = { text = SI_GPH_MAPSEARCH_FREE_TRAVEL_TITLE },
         mainText       = {
             text = function(dialog)
@@ -543,8 +544,8 @@ local function OnAddonLoaded(_, name)
                         setup = ZO_SharedGamepadEntry_OnSetup,
                         callback = function()
                             ZO_Dialogs_ReleaseDialogOnButtonPress("GPH_FREE_TRAVEL_OPTIONS")
-                            ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
-                                { GetReferenceId = function() return d.houseId end })
+                            SCENE_MANAGER:ShowBaseScene()
+                            RequestJumpToHouse(d.houseId, true)
                         end,
                     },
                 })
@@ -575,7 +576,11 @@ local function OnAddonLoaded(_, name)
                     if data and data.callback then data.callback() end
                 end,
             },
-            { keybind = "DIALOG_NEGATIVE", text = SI_GAMEPAD_BACK_OPTION },
+            {
+                keybind  = "DIALOG_NEGATIVE",
+                text     = SI_GAMEPAD_BACK_OPTION,
+                callback = function() ZO_Dialogs_ReleaseDialogOnButtonPress("GPH_FREE_TRAVEL_OPTIONS") end,
+            },
         },
     })
 
