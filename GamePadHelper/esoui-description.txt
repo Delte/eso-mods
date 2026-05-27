@@ -16,6 +16,10 @@ Built only for gamepad and console UI.[/CENTER]
 [SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.11[/B][/COLOR][/SIZE]
 
 [LIST]
+[*][B]Set bonus tooltip[/B] - selecting a crafting station result now shows the full crafted set bonuses in the right-side movable tooltip panel, with no truncation regardless of screen text size.
+[*][B]Guild trader names[/B] - wayshrines and guild trader POI results now display the names of your guilds occupying nearby kiosks, with a count of all traders at that location.
+[*][B]Travel service destinations[/B] - ferry, caravan, and silt strider NPCs are now individual searchable entries showing their destination routes (e.g. "Vulkhel Guard; Davon's Watch").
+[*][B]Ashlander activity labels[/B] - Sharp-as-Night's Ald'ruhn Hunt and Ald'ruhn Relic daily activity labels are renamed to Ashlander Hunt Daily and Ashlander Relic Daily across all languages.
 [*][B]Map Search crafted sets[/B] - crafting station results now show the crafted set name, required trait count, and localized set bonuses from ESO item set data.
 [*][B]Special crafting locations[/B] - Map Search includes service-pin crafting stations such as Eyevea and The Earth Forge that are not exposed as standard POIs.
 [*][B]City service pins[/B] - Map Search now includes searchable city-level services: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other city services. Teleports to the correct city wayshrine.
@@ -70,11 +74,12 @@ Built only for gamepad and console UI.[/CENTER]
 [*]Search wayshrines, zones, houses, and named points of interest.
 [*]Separate tabs for Search, Bookmarks, Recent destinations, Houses, and Zones.
 [*]Zones can show quest, survey report, treasure map, and antiquity lead counts when detected.
-[*]Wayshrines can show nearby guild trader counts.
-[*]Crafting stations can show crafted set names, required trait counts, and localized set bonuses.
+[*]Wayshrines and guild trader POIs show nearby trader counts and your guild names occupying those kiosks.
+[*]Crafting stations show crafted set names, required trait counts, and full set bonuses in the right-side tooltip panel.
 [*]Special crafted set service pins such as Eyevea and The Earth Forge are included when available.
 [*]City service pins are searchable: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other services, with teleport to the correct city wayshrine.
 [*]Daily quest givers are searchable by name or quest category across all zones.
+[*]Travel service NPCs (ferry, caravan, silt strider) are individual searchable entries with destination routes.
 [*]Includes fuzzy ranked results, per-character or account-wide bookmarks, map panning, ping markers, and nearest-wayshrine travel.
 [*]Supports gamepad screen narration for result name, category, ownership, discovery or lock status, and crafted set details when available.
 [*]Map pin: [B]Default ON[/B].
@@ -171,6 +176,10 @@ This addon is provided as-is, without warranty or support of any kind. Bug repor
 
 1.06.11
 [LIST]
+[*][GamePadHelper] [MapSearch] Set bonuses for crafting stations now shown in right-side movable tooltip, no truncation at any screen text size.
+[*][GamePadHelper] [MapSearch] Wayshrines and guild trader POIs now show guild names occupying nearby kiosks.
+[*][GamePadHelper] [MapSearch] Ferry, caravan, and silt strider NPCs are now individual searchable entries with destination routes.
+[*][GamePadHelper] [OverviewTasks] Renamed Sharp-as-Night Ald'ruhn Hunt/Relic activity labels to Ashlander Hunt Daily / Ashlander Relic Daily across all languages.
 [*][GamePadHelper] [MapSearch] Added crafted set names, trait requirements, and localized set bonuses to crafting station results.
 [*][GamePadHelper] [MapSearch] Added support for special crafting locations (Eyevea, The Earth Forge) exposed as map-location service pins.
 [*][GamePadHelper] [MapSearch] Added searchable city service pins: guild traders, guild halls, banks, and other city services.

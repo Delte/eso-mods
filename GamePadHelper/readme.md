@@ -10,6 +10,10 @@ Price data provided by [**Tamriel Savings Co Price Fetcher**](https://tamrielsav
 
 ## What's New in 1.06.11
 
+- **Set bonus tooltip** — selecting a crafting station result now shows the full set bonuses in the right-side movable tooltip panel, never truncated regardless of screen text size.
+- **Guild trader names** — wayshrines and guild trader POI results now display the names of your guilds occupying nearby kiosks, alongside the total trader count at that location.
+- **Travel service destinations** — ferry, caravan, and silt strider NPCs are now individual searchable entries showing their destination routes (e.g. "Vulkhel Guard; Davon's Watch").
+- **Ashlander activity labels** — Sharp-as-Night's (and Mirri's) Ald'ruhn Hunt and Ald'ruhn Relic daily activity labels renamed to Ashlander Hunt Daily and Ashlander Relic Daily across all languages.
 - **Map Search crafted sets** — crafting station results now show the crafted set name, required trait count, and localized set bonuses sourced from ESO item set data.
 - **Special crafting locations** — Map Search includes service-pin crafting stations such as Eyevea and The Earth Forge that are not exposed as standard POIs.
 - **City service pins** — Map Search now includes searchable city-level service locations: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other city services. Search by name or service type and teleport to the nearest wayshrine.
@@ -133,11 +137,12 @@ Adds a **GPH Search** tab to the Gamepad World Map info panel. Lets you search a
 - The Search tab starts empty until you type; saved and recent destinations live in their own tabs.
 - **Recent destinations** keeps the latest map targets available from its own tab.
 - **Zone details** can show quest, survey report, treasure map, and antiquity lead counts.
-- **Wayshrine details** can show nearby guild trader counts.
-- **Crafting station details** can show crafted set names, required trait counts, and localized set bonuses.
+- **Wayshrine and trader POI details** show nearby trader counts and your guild names occupying those kiosks.
+- **Crafting station details** show crafted set names, required trait counts, and full set bonuses in the right-side tooltip panel.
 - **Special crafting locations** exposed as map-location service pins, such as Eyevea and The Earth Forge, are included when available.
 - **City service pins** — searchable city-level services: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other services. Teleports to the correct city wayshrine.
 - **Daily quest givers** — key daily quest NPCs across all zones are searchable by name or quest category (Mages Guild daily, Fighters Guild daily, Undaunted, Thieves Guild, zone boss/delve dailies, and more).
+- **Travel service NPCs** — ferry captains, caravan drivers, and silt strider operators are individual searchable entries showing their destination routes.
 
 - Fuzzy search with ranked results — exact prefix matches score highest.
 - Results grouped by category: **Wayshrines**, **Zones**, **Owned Houses**, **Unowned Houses**, and named POI types (Delve, Dungeon, World Boss, Crafting Station, Mundus Stone, etc.).
@@ -233,11 +238,11 @@ When a companion is active, the right panel shows the companion's name, current 
 | Companion | Tracked Activities |
 |---|---|
 | Bastian | Mages Guild Daily |
-| Mirri | Fighters Guild Daily, Ald'ruhn Hunt Daily, Ald'ruhn Relic Daily |
+| Mirri | Fighters Guild Daily, Ashlander Hunt Daily, Ashlander Relic Daily |
 | Ember | Mages Guild Daily, Thieves Guild Heist, High Isle Delve Daily |
 | Isobel | Undaunted Daily, High Isle World Boss Daily |
 | Azandar | Necrom Delve Daily, Enchanter Writ |
-| Sharp-as-Night | Necrom World Boss Daily, Ald'ruhn Hunt Daily, Ald'ruhn Relic Daily |
+| Sharp-as-Night | Necrom World Boss Daily, Ashlander Hunt Daily, Ashlander Relic Daily |
 | Tanlorin | Fighters Guild Daily, Alchemy Writ |
 | Zerith-var | Northern Grahtwood Defence Force Daily, Tales of Tribute Daily |
 

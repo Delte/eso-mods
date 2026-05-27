@@ -96,7 +96,7 @@ local zoneQuestCounts = nil
 
 local cityServicesCache = nil  -- { locations=[], tradersByNodeIndex={} }, populated on first use
 local traderGuildMap    = nil  -- trader/guild tooltip data, built with city cache
-local CITY_SCAN_CACHE_VERSION = 12
+local CITY_SCAN_CACHE_VERSION = 14
 local clickableSubMapCache = nil
 local craftingPOIIndex = {}  -- "zoneId:pxKey:pyKey" -> poiIndex, built during PreScan
 
@@ -823,8 +823,8 @@ local function GetTraderNamesFromService(service, displayName)
         AddUnique(names, seen, name)
     end
 
-    for _, line in ipairs(service.lines or {}) do
-        addName(line[1])
+    for _, npcName in ipairs(service.npcLines or {}) do
+        addName(npcName)
     end
     if matchedDisplayName then return { displayName } end
     if #names == 0 then
@@ -928,6 +928,16 @@ local function ScanCurrentMapLocations(scan)
             end
         end
 
+        local npcLines = nil
+        if #lines > 0 then
+            npcLines = {}
+            for _, line in ipairs(lines) do
+                local n = line[1] or ""
+                if n ~= "" then npcLines[#npcLines + 1] = n end
+            end
+            if #npcLines == 0 then npcLines = nil end
+        end
+
         AddScannedLocation(scan.locations, scan.seenLocations, {
             name         = name,
             category     = category,
@@ -941,7 +951,7 @@ local function ScanCurrentMapLocations(scan)
             mapIndex     = scan.mapIndex,
             isTrader     = isTrader,
             nearestNode  = traderNode,
-            lines        = lines,
+            npcLines     = npcLines,
         })
     end
 
@@ -1352,9 +1362,9 @@ local function BuildCandidates()
         }
     end
 
-    local function ExtractDestinations(lineName)
+    local function ExtractDestinations(npcLine)
         local parts = {}
-        for dest in (lineName:gsub("^[^\n]+\n", "")):gmatch("[^\n]+") do
+        for dest in (npcLine:gsub("^[^\n]+\n", "")):gmatch("[^\n]+") do
             local d = dest:match("^%s*(.-)%s*$")
             if d and d ~= "" then parts[#parts + 1] = d end
         end
@@ -1371,13 +1381,11 @@ local function BuildCandidates()
             local detailLabel = nil
             local serviceDetailParts = {}
             local npcAliases = {}
-            for _, line in ipairs(service.lines or {}) do
-                if line.grouping == 1 and line.name and line.name ~= "" then
-                    local npcName = GetFirstLineText(line.name)
-                    if npcName then
-                        serviceDetailParts[#serviceDetailParts + 1] = npcName
-                        npcAliases[#npcAliases + 1] = npcName
-                    end
+            for _, npcName in ipairs(service.npcLines or {}) do
+                local n = GetFirstLineText(npcName)
+                if n then
+                    serviceDetailParts[#serviceDetailParts + 1] = n
+                    npcAliases[#npcAliases + 1] = n
                 end
             end
             if #serviceDetailParts > 0 then detailLabel = table.concat(serviceDetailParts, "; ") end
@@ -1387,28 +1395,15 @@ local function BuildCandidates()
                 table.concat(npcAliases, " "),
             }, " "), nil, service.category, detailLabel)
 
-            for _, line in ipairs(service.lines or {}) do
-                local lineName = line.name
-                if line.grouping == 1 then
-                    -- NPC lines with \n become individual candidates with their destinations
-                    if lineName and lineName:find("\n") then
-                        local cleanLineName = GetFirstLineText(lineName)
-                        if cleanLineName and cleanLineName ~= displayName then
-                            local lineDetail = ExtractDestinations(lineName)
-                            local lineType = IsTravelService(service, cleanLineName, service.category, lineDetail) and TYPE_TRAVEL or TYPE_NPC
-                            AddCityServiceCandidate(service, zoneName, cleanLineName, name, nil, service.category, lineDetail, lineType)
+            if not service.isTrader then
+                for _, npcName in ipairs(service.npcLines or {}) do
+                    if npcName:find("\n", 1, true) then
+                        local cleanNpcName = GetFirstLineText(npcName)
+                        if cleanNpcName and cleanNpcName ~= displayName then
+                            local destinations = ExtractDestinations(npcName)
+                            local lineType = IsTravelService(service, cleanNpcName, service.category, destinations) and TYPE_TRAVEL or TYPE_NPC
+                            AddCityServiceCandidate(service, zoneName, cleanNpcName, name, nil, service.category, destinations, lineType)
                         end
-                    end
-                    -- Pure destination lines (no \n) remain only in service detailLabel
-                elseif line.visible ~= false and lineName and lineName ~= "" then
-                    local cleanLineName = GetFirstLineText(lineName)
-                    local lineDetail = lineName:find("\n") and ExtractDestinations(lineName) or nil
-                    if cleanLineName and cleanLineName ~= displayName then
-                        local isStation = line.grouping == 2
-                            or (line.grouping == 5 and cleanLineName == line.category)
-                        local category = not isStation and line.category or nil
-                        local lineType = IsTravelService(service, cleanLineName, category, lineDetail) and TYPE_TRAVEL or TYPE_NPC
-                        AddCityServiceCandidate(service, zoneName, cleanLineName, name, nil, category, lineDetail, lineType)
                     end
                 end
             end
