@@ -41,7 +41,6 @@ local function IsTravelService(service, displayName, category, detailLabel)
         detailLabel or "",
         service and service.name or "",
         service and service.aliases or "",
-        service and service.iconFile or "",
     }, " "):lower()
     return haystack:find("ferry", 1, true)
         or haystack:find("caravan", 1, true)
@@ -95,9 +94,9 @@ local zoneMapCounts   = nil
 local zoneLeadCounts  = nil
 local zoneQuestCounts = nil
 
-local cityServicesCache = nil  -- { locations=[], tradersByNodeIndex={}, iconCounts={} }, populated on first use
+local cityServicesCache = nil  -- { locations=[], tradersByNodeIndex={} }, populated on first use
 local traderGuildMap    = nil  -- trader/guild tooltip data, built with city cache
-local CITY_SCAN_CACHE_VERSION = 10
+local CITY_SCAN_CACHE_VERSION = 12
 local clickableSubMapCache = nil
 local craftingPOIIndex = {}  -- "zoneId:pxKey:pyKey" -> poiIndex, built during PreScan
 
@@ -825,7 +824,7 @@ local function GetTraderNamesFromService(service, displayName)
     end
 
     for _, line in ipairs(service.lines or {}) do
-        addName(line.name)
+        addName(line[1])
     end
     if matchedDisplayName then return { displayName } end
     if #names == 0 then
@@ -838,13 +837,12 @@ end
 local function ReadMapLocationLines(locIndex)
     local lines = {}
     for lineIndex = 1, GetNumMapLocationTooltipLines(locIndex) do
-        local lineIcon, lineName, grouping, category = GetMapLocationTooltipLineInfo(locIndex, lineIndex)
+        local _, lineName, grouping, category = GetMapLocationTooltipLineInfo(locIndex, lineIndex)
         lines[#lines + 1] = {
-            icon     = GetLocationIconFile(lineIcon),
-            name     = CleanName(lineName or ""),
-            grouping = grouping,
-            category = CleanName(category or ""),
-            visible  = IsMapLocationTooltipLineVisible(locIndex, lineIndex),
+            CleanName(lineName or ""),
+            grouping,
+            CleanName(category or ""),
+            IsMapLocationTooltipLineVisible(locIndex, lineIndex),
         }
     end
     return lines
@@ -855,16 +853,18 @@ local function GetMapLocationText(header, lines)
     local aliases = {}
 
     for _, line in ipairs(lines or {}) do
-        if line.name and line.name ~= "" then
+        local lineName = line[1]
+        local category = line[3]
+        if lineName and lineName ~= "" then
             if name == "" then
-                name = line.name
-            elseif line.name ~= name then
-                aliases[#aliases + 1] = line.name
+                name = lineName
+            elseif lineName ~= name then
+                aliases[#aliases + 1] = lineName
             end
         end
-        if line.category and line.category ~= "" then
-            if line.category ~= name then
-                aliases[#aliases + 1] = line.category
+        if category and category ~= "" then
+            if category ~= name then
+                aliases[#aliases + 1] = category
             end
         end
     end
@@ -876,7 +876,7 @@ local function GetMapLocationCategory(lines, fallbackName)
     fallbackName = CleanName(fallbackName or "")
     local sameAsName = nil
     for _, line in ipairs(lines or {}) do
-        local category = line.category
+        local category = line[3]
         if category and category ~= "" then
             if category ~= fallbackName then
                 return category
@@ -888,12 +888,12 @@ local function GetMapLocationCategory(lines, fallbackName)
     return sameAsName
 end
 
-local function AddScannedLocation(locations, seenLocations, iconCounts, loc)
+local function AddScannedLocation(locations, seenLocations, loc)
     if not loc.name or loc.name == "" or not loc.destinationX or not loc.destinationY then return end
 
     local key = table.concat({
         tostring(loc.cityMapId or ""),
-        tostring(loc.iconFile or ""),
+        tostring(loc.icon or ""),
         tostring(loc.destinationX or ""),
         tostring(loc.destinationY or ""),
         loc.name:lower(),
@@ -902,8 +902,6 @@ local function AddScannedLocation(locations, seenLocations, iconCounts, loc)
     seenLocations[key] = true
 
     locations[#locations + 1] = loc
-    local iconFile = loc.iconFile ~= "" and loc.iconFile or "unknown"
-    iconCounts[iconFile] = (iconCounts[iconFile] or 0) + 1
 end
 
 local function ScanCurrentMapLocations(scan)
@@ -930,12 +928,11 @@ local function ScanCurrentMapLocations(scan)
             end
         end
 
-        AddScannedLocation(scan.locations, scan.seenLocations, scan.iconCounts, {
+        AddScannedLocation(scan.locations, scan.seenLocations, {
             name         = name,
             category     = category,
             aliases      = aliases,
             icon         = locIcon,
-            iconFile     = iconFile,
             zoneId       = scan.zoneId,
             cityMapId    = scan.cityMapId,
             cityName     = scan.cityName,
@@ -948,22 +945,15 @@ local function ScanCurrentMapLocations(scan)
         })
     end
 
-    if traderCount > 0 and scan.zoneId and scan.zoneId > 0 then
-        scan.tradersByZoneId[scan.zoneId] = (scan.tradersByZoneId[scan.zoneId] or 0) + traderCount
-    end
-
     return traderCount
 end
 
 local function ScanCityServices()
     local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
     local locations = {}
-    local tradersByZoneId = {}
     local tradersByNodeIndex = {}
-    local iconCounts = {}
     local seenCityMapIds = {}
     local seenLocations = {}
-    local cityCount = 0
 
     for mapIndex = 1, GetNumMaps() do
         local mapName, mapType, _, zoneIndex = GetMapInfoByIndex(mapIndex)
@@ -976,8 +966,6 @@ local function ScanCityServices()
                 ScanCurrentMapLocations({
                     locations = locations,
                     seenLocations = seenLocations,
-                    iconCounts = iconCounts,
-                    tradersByZoneId = tradersByZoneId,
                     tradersByNodeIndex = tradersByNodeIndex,
                     zoneId = parentZoneId,
                     zoneIndex = zoneIndex,
@@ -995,14 +983,11 @@ local function ScanCityServices()
                         local _, _, _, _, _, _, cityMapId = GetMapMouseoverInfo(nx, ny)
                         if cityMapId and cityMapId ~= 0 and not seenCityMapIds[cityMapId] then
                             seenCityMapIds[cityMapId] = true
-                            cityCount = cityCount + 1
                             local nearestNode = FindNearestWayshrineToPos(nx, ny, 0, zoneIndex)
                             SetMapToMapId(cityMapId)
                             ScanCurrentMapLocations({
                                 locations = locations,
                                 seenLocations = seenLocations,
-                                iconCounts = iconCounts,
-                                tradersByZoneId = tradersByZoneId,
                                 tradersByNodeIndex = tradersByNodeIndex,
                                 zoneId = parentZoneId,
                                 cityMapId = cityMapId,
@@ -1022,7 +1007,6 @@ local function ScanCityServices()
         local mapId = subMap.mapId
         if mapId and mapId ~= 0 and not seenCityMapIds[mapId] then
             seenCityMapIds[mapId] = true
-            cityCount = cityCount + 1
             SetMapToMapId(mapId)
             local zoneIndex = GetCurrentMapZoneIndex()
             local zoneId = (zoneIndex and zoneIndex > 0) and GetZoneId(zoneIndex) or subMap.parentZoneId
@@ -1030,8 +1014,6 @@ local function ScanCityServices()
             ScanCurrentMapLocations({
                 locations = locations,
                 seenLocations = seenLocations,
-                iconCounts = iconCounts,
-                tradersByZoneId = tradersByZoneId,
                 tradersByNodeIndex = tradersByNodeIndex,
                 zoneId = zoneId,
                 zoneIndex = zoneIndex,
@@ -1043,25 +1025,10 @@ local function ScanCityServices()
     end
 
     if originalMapId then SetMapToMapId(originalMapId) end
-    local iconTypeCount = 0
-    for _ in pairs(iconCounts) do iconTypeCount = iconTypeCount + 1 end
-    local traderZoneCount = 0
-    for _ in pairs(tradersByZoneId) do traderZoneCount = traderZoneCount + 1 end
-    local traderNodeCount = 0
-    for _ in pairs(tradersByNodeIndex) do traderNodeCount = traderNodeCount + 1 end
     return {
         locations = locations,
-        tradersByZoneId = tradersByZoneId,
         tradersByNodeIndex = tradersByNodeIndex,
-        iconCounts = iconCounts,
         version = CITY_SCAN_CACHE_VERSION,
-        summary = {
-            cities = cityCount,
-            services = #locations,
-            iconTypes = iconTypeCount,
-            traderZones = traderZoneCount,
-            traderNodes = traderNodeCount,
-        },
     }
 end
 
@@ -1344,7 +1311,7 @@ local function BuildCandidates()
             category and category:lower() or "",
             zoneName:lower(),
             tostring(service.cityMapId or ""),
-            tostring(service.iconFile or ""),
+            tostring(service.icon or ""),
             tostring(service.destinationX or ""),
             tostring(service.destinationY or ""),
         }, "|")
@@ -1359,7 +1326,6 @@ local function BuildCandidates()
                 placeName or "",
                 category or "",
                 detailLabel or "",
-                service.iconFile or "",
                 setEntry and GetCraftingSetSearchAlias(setEntry.setId) or "",
             }, " ")),
             type         = entryType,
