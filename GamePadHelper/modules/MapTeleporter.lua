@@ -89,13 +89,24 @@ local function ZonesOverlap(zoneA, zoneB)
 end
 
 local teleportChainId = 0
-local teleportChainErrors = {}
 
 local function FindPlayersInZone(targetZoneId)
     local myName = GetDisplayName()
     local results, seen = {}, {}
 
-    -- group members first (active party, highest priority)
+    -- friends first
+    for j = 1, GetNumFriends() do
+        local displayName, _, status = GetFriendInfo(j)
+        if displayName and displayName ~= "" and displayName ~= myName and status ~= PLAYER_STATUS_OFFLINE and not seen[displayName] then
+            local hasChar, charName, _, _, _, _, _, zoneId = GetFriendCharacterInfo(j)
+            if hasChar and zoneId and zoneId ~= 0 and ZonesOverlap(zoneId, targetZoneId) then
+                seen[displayName] = true
+                results[#results + 1] = { displayName = displayName, charName = charName }
+            end
+        end
+    end
+
+    -- then group/party members
     for i = 1, GetGroupSize() do
         local tag = GetGroupUnitTagByIndex(i)
         if tag and IsUnitOnline(tag) and not IsGroupMemberInRemoteRegion(tag) then
@@ -109,18 +120,6 @@ local function FindPlayersInZone(targetZoneId)
                         results[#results + 1] = { displayName = displayName, charName = GetUnitName(tag), isGroup = true }
                     end
                 end
-            end
-        end
-    end
-
-    -- then friends
-    for j = 1, GetNumFriends() do
-        local displayName, _, status = GetFriendInfo(j)
-        if displayName and displayName ~= "" and displayName ~= myName and status ~= PLAYER_STATUS_OFFLINE and not seen[displayName] then
-            local hasChar, charName, _, _, _, _, _, zoneId = GetFriendCharacterInfo(j)
-            if hasChar and zoneId and zoneId ~= 0 and ZonesOverlap(zoneId, targetZoneId) then
-                seen[displayName] = true
-                results[#results + 1] = { displayName = displayName, charName = charName }
             end
         end
     end
@@ -145,16 +144,13 @@ end
 
 local TryPlayersFromIndex  -- forward declaration
 
-local function TeleportToPlayer(displayName)
-    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, displayName))
-    for i = 1, GetGroupSize() do
-        local tag = GetGroupUnitTagByIndex(i)
-        if tag and GetUnitDisplayName(tag) == displayName then
-            JumpToGroupMember(displayName)
-            return
-        end
-    end
-    if IsFriend(displayName) then
+local function TeleportToPlayer(player)
+    local displayName = type(player) == "table" and player.displayName or player
+    local alertName = (type(player) == "table" and player.charName and player.charName ~= "") and player.charName or displayName
+    ZO_Alert(UI_ALERT_CATEGORY_ALERT, nil, zo_strformat(SI_GPH_TELEPORTING_TO, alertName))
+    if type(player) == "table" and player.isGroup then
+        JumpToGroupMember(displayName)
+    elseif IsFriend(displayName) then
         JumpToFriend(displayName)
     else
         JumpToGuildMember(displayName)
@@ -164,21 +160,59 @@ end
 TryPlayersFromIndex = function(players, index, onAllFailed)
     if index == 1 then
         teleportChainId = teleportChainId + 1
-        teleportChainErrors[teleportChainId] = nil
     end
     if index > #players then
-        teleportChainErrors[teleportChainId] = nil
         if onAllFailed then onAllFailed() end
         return
     end
-    local capturedChainId = teleportChainId
-    TeleportToPlayer(players[index].displayName)
-    zo_callLater(function()
-        local err = teleportChainErrors[capturedChainId]
-        if err == SOCIAL_RESULT_NO_LOCATION or err == SOCIAL_RESULT_CHARACTER_NOT_FOUND then
-            TryPlayersFromIndex(players, index + 1, onAllFailed)
+    local chainId   = teleportChainId
+    local jumpName  = "TryPlayers_Jump_"  .. chainId
+    local activName = "TryPlayers_Activ_" .. chainId
+    local done        = false
+    local jumpStarted = false
+
+    local function cleanup()
+        EVENT_MANAGER:UnregisterForEvent(jumpName,  EVENT_JUMP_FAILED)
+        EVENT_MANAGER:UnregisterForEvent(activName, EVENT_PLAYER_ACTIVATED)
+    end
+
+    local function onFail()
+        done = true
+        cleanup()
+        local p = players[index]
+        local name = type(p) == "table" and ((p.charName ~= "" and p.charName) or p.displayName) or tostring(p)
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, zo_strformat(SI_GPH_TELEPORT_PLAYER_UNREACHABLE, name))
+        TryPlayersFromIndex(players, index + 1, onAllFailed)
+    end
+
+    -- success: zone loaded
+    EVENT_MANAGER:RegisterForEvent(activName, EVENT_PLAYER_ACTIVATED, function()
+        if done then return end
+        done = true
+        cleanup()
+    end)
+
+    -- EVENT_JUMP_FAILED fires for all jump results (success-initiation and failures)
+    EVENT_MANAGER:RegisterForEvent(jumpName, EVENT_JUMP_FAILED, function(_, reason)
+        if done then return end
+        if reason == JUMP_RESULT_REMOTE_JUMP_INITIATED
+        or reason == JUMP_RESULT_LOCAL_JUMP_SUCCESSFUL
+        or reason == JUMP_RESULT_JUMP_CONVERTED_TO_REMOTE
+        or reason == JUMP_RESULT_JUMP_CONVERTED_TO_LOCAL then
+            jumpStarted = true  -- jump confirmed started, wait for EVENT_PLAYER_ACTIVATED
+            EVENT_MANAGER:UnregisterForEvent(jumpName, EVENT_JUMP_FAILED)
+            return
         end
-    end, 1800)
+        onFail()
+    end)
+
+    TeleportToPlayer(players[index])
+
+    -- fallback: if EVENT_JUMP_FAILED never fires and jump never started after 4s = silent drop
+    zo_callLater(function()
+        if done or jumpStarted then return end
+        onFail()
+    end, 4000)
 end
 
 local function FindWayshrineInZone(targetZoneId)
@@ -343,7 +377,6 @@ _G["GamePadHelper_MapTeleporter_TryFreeTeleport"] = function(params)
     local first = players and players[1]
     ZO_Dialogs_ShowGamepadDialog("GPH_FREE_TRAVEL_OPTIONS", {
         name          = params.name,
-        zoneId        = params.zoneId,
         nodeIndex     = params.nodeIndex,
         cost          = params.cost,
         players       = players,
@@ -449,10 +482,6 @@ local function OnAddonLoaded(_, name)
     PopulateMapNameToZoneIdMapping()
     PopulateKeybindStripDescriptor()
 
-    EVENT_MANAGER:RegisterForEvent("MapTeleporter_SocialError", EVENT_SOCIAL_ERROR, function(_, errorCode)
-        teleportChainErrors[teleportChainId] = errorCode or 0
-    end)
-
     ZO_Dialogs_RegisterCustomDialog("GPH_HOVER_WAYSHRINE_CONFIRM", {
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.BASIC },
         canQueue    = true,
@@ -517,20 +546,15 @@ local function OnAddonLoaded(_, name)
                         setup = ZO_SharedGamepadEntry_OnSetup,
                         callback = function()
                             ZO_Dialogs_ReleaseDialogOnButtonPress("GPH_FREE_TRAVEL_OPTIONS")
-                            local freshPlayers = d.zoneId and FindPlayersInZone(d.zoneId)
-                            if freshPlayers then
-                                SCENE_MANAGER:ShowBaseScene()
-                                TryPlayersFromIndex(freshPlayers, 1, function()
-                                    if d.houseId then
-                                        ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
-                                            { GetReferenceId = function() return d.houseId end })
-                                    else
-                                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_FREE_TRAVEL_FAILED))
-                                    end
-                                end)
-                            else
-                                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_FREE_TRAVEL_FAILED))
-                            end
+                            SCENE_MANAGER:ShowBaseScene()
+                            TryPlayersFromIndex(d.players, 1, function()
+                                if d.houseId then
+                                    ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG",
+                                        { GetReferenceId = function() return d.houseId end })
+                                else
+                                    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_MAPSEARCH_FREE_TRAVEL_FAILED))
+                                end
+                            end)
                         end,
                     },
                 })
