@@ -31,6 +31,7 @@ local defaults = {
     mapSearchSetDestination = true,
     mapSearchNarratePostTeleport = true,
     mapSearchBookmarksAccountWide = false,
+    mapSearchBookmarksAll = {},
     mapSearchAutoFocusSearch = false,
     mapSearchOpenOnSearch = false,
     lootOffsetEnabled = true,

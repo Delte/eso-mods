@@ -332,30 +332,31 @@ GetBookmarkKey = function(c)
 end
 
 local function GetBookmarksArray()
-    if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
     local sv = GetSavedVars()
-    if sv and sv.mapSearchBookmarksAccountWide == true then
-        if not _G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide then
-            _G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide = {}
+    if not sv then return {} end
+    if sv.mapSearchBookmarksAccountWide == true then
+        if not sv.mapSearchBookmarksAll then
+            sv.mapSearchBookmarksAll = {}
         end
-        return _G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide
+        return sv.mapSearchBookmarksAll
     end
     local charName = GetUnitName("player")
-    if not _G["GamePadHelper_SavedVars"].mapSearchBookmarks then
-        _G["GamePadHelper_SavedVars"].mapSearchBookmarks = {}
+    if not sv.mapSearchBookmarks then
+        sv.mapSearchBookmarks = {}
     end
-    if not _G["GamePadHelper_SavedVars"].mapSearchBookmarks[charName] then
-        _G["GamePadHelper_SavedVars"].mapSearchBookmarks[charName] = {}
+    if not sv.mapSearchBookmarks[charName] then
+        sv.mapSearchBookmarks[charName] = {}
     end
-    return _G["GamePadHelper_SavedVars"].mapSearchBookmarks[charName]
+    return sv.mapSearchBookmarks[charName]
 end
 
 local function GetRecentArray()
-    if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
-    if not _G["GamePadHelper_SavedVars"].mapSearchRecent then
-        _G["GamePadHelper_SavedVars"].mapSearchRecent = {}
+    local sv = GetSavedVars()
+    if not sv then return {} end
+    if not sv.mapSearchRecent then
+        sv.mapSearchRecent = {}
     end
-    return _G["GamePadHelper_SavedVars"].mapSearchRecent
+    return sv.mapSearchRecent
 end
 
 local function MakeSavedCandidate(c, key)
@@ -2163,8 +2164,8 @@ local function BuildKeybindDescriptor()
                 end
                 local td = listObject and listObject:GetTargetData()
                 if td and td.candidate then
-                    if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
-                    _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(td.candidate)
+                    local sv = GetSavedVars()
+                    if sv then sv.lastSelectedPOI = MakeSavedCandidate(td.candidate) end
                     CenterMapOnCandidate(td.candidate)
                     local keybindName = ZO_Keybindings_GetBindingStringFromAction("UI_SHORTCUT_QUINARY") or GetString(SI_GPH_TELEPORT)
                     pendingNarration = BuildCandidateNarrationText(td.candidate, td.isBookmark) .. ". " .. zo_strformat(SI_GPH_MAPSEARCH_SHOWN_ON_MAP, keybindName)
@@ -2290,9 +2291,8 @@ local function BuildKeybindDescriptor()
                 local td = listObject and listObject:GetTargetData()
                 if not td or not td.candidate then return end
                 local c = td.candidate
-
-                if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
-                _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(c)
+                local sv = GetSavedVars()
+                if sv then sv.lastSelectedPOI = MakeSavedCandidate(c) end
 
                 if c.isLocked then
                     local collectibleData
@@ -2452,8 +2452,8 @@ function GPH_MapSearch_SelectCurrent()
     if editControl and editControl:HasFocus() then editControl:LoseFocus() end
     local td = listObject and listObject:GetTargetData()
     if td and td.candidate then
-        if not _G["GamePadHelper_SavedVars"] then _G["GamePadHelper_SavedVars"] = {} end
-        _G["GamePadHelper_SavedVars"].lastSelectedPOI = MakeSavedCandidate(td.candidate)
+        local sv = GetSavedVars()
+        if sv then sv.lastSelectedPOI = MakeSavedCandidate(td.candidate) end
         CenterMapOnCandidate(td.candidate)
     end
 end
@@ -2713,8 +2713,8 @@ local function SanitizeSavedMapSearchData()
     if type(_G["GamePadHelper_SavedVars"].lastSelectedPOI) == "table" then
         SanitizeSavedMapSearchCandidate(_G["GamePadHelper_SavedVars"].lastSelectedPOI)
     end
-    if type(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide) == "table" then
-        for _, c in ipairs(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAccountWide) do
+    if type(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAll) == "table" then
+        for _, c in ipairs(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAll) do
             SanitizeSavedMapSearchCandidate(c)
         end
     end
