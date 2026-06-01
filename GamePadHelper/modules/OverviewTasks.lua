@@ -34,6 +34,10 @@ local SERVER_RESET_HOURS = {
     ["EU Megaserver"] = 3, ["XB1live-eu"] = 3, ["PS4live-eu"] = 3,
     ["NA Megaserver"] = 10, ["PTS"] = 10,
 }
+local SERVER_UTC_OFFSETS = {
+    ["EU Megaserver"] = 1, ["XB1live-eu"] = 1, ["PS4live-eu"] = 1,
+    ["NA Megaserver"] = -6, ["PTS"] = -6,
+}
 local tasksCacheText = nil
 local tasksCacheTimeMs = 0
 local tasksCacheDirty = true
@@ -647,10 +651,20 @@ end
 
 local function GetLocalClockText()
     if not os or not os.date then return nil end
-    local ok, localTime = pcall(os.date, "%H:%M")
-    if ok and localTime and localTime ~= "" then
-        return localTime
-    end
+    local ok, result = pcall(os.date, "%H:%M")
+    if ok and result and result ~= "" then return result end
+    return nil
+end
+
+local function GetServerClockText()
+    if not os or not os.date or not GetTimeStamp then return nil end
+    local worldName = GetWorldName and GetWorldName() or ""
+    local offset = SERVER_UTC_OFFSETS[worldName]
+    if not offset then return nil end
+    local ok, result = pcall(function()
+        return os.date("!%H:%M", GetTimeStamp() + offset * 3600)
+    end)
+    if ok and result and result ~= "" then return result end
     return nil
 end
 
@@ -658,8 +672,17 @@ local function BuildRightTooltipDescription()
     local tasksDescription = ""
 
     local localTime = GetLocalClockText()
-    if localTime then
-        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LOCAL_TIME) .. "|r |cFFFFFF" .. localTime .. "|r\n\n"
+    local serverTime = GetServerClockText()
+    if localTime or serverTime then
+        local timeLine = ""
+        if localTime then
+            timeLine = "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LOCAL_TIME) .. "|r |cFFFFFF" .. localTime .. "|r"
+        end
+        if serverTime then
+            if timeLine ~= "" then timeLine = timeLine .. "  " end
+            timeLine = timeLine .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_SERVER_TIME) .. "|r |cFFFFFF" .. serverTime .. "|r"
+        end
+        tasksDescription = tasksDescription .. timeLine .. "\n\n"
     end
 
     local totalCount, totalMinTime, urgentZoneName = GetScryableAntiquitiesInfo()
@@ -711,9 +734,9 @@ local function BuildRightTooltipDescription()
     end
 
     local writStatusByKey = GetBoolSetting("overviewDailyWritEnabled", true) and GetDailyWritStatusByKey() or nil
+    local showResearch = GetBoolSetting("overviewResearchEnabled", true)
 
     for _, craftingType in ipairs(CRAFTING) do
-        local researchableTraits, researchableItems, _, availableSlots = GetResearchInfo(craftingType)
         local craftText = zo_strformat("<<C:1>>", GetCraftingSkillName(craftingType))
         local writKey = CRAFTING_TYPE_TO_WRIT_KEY[craftingType]
         local writEntry = writStatusByKey and writKey and writStatusByKey[writKey]
@@ -723,30 +746,32 @@ local function BuildRightTooltipDescription()
             table.insert(entryLines, "  " .. writEntry.label .. " - " .. writEntry.status)
         end
 
-        if GetNumSmithingResearchLines(craftingType) == 0 then
-            local hasSkill = false
-            if craftingType == CRAFTING_TYPE_PROVISIONING or craftingType == CRAFTING_TYPE_ENCHANTING or craftingType == CRAFTING_TYPE_ALCHEMY then
-                local targetSkillName = zo_strlower(zo_strformat("<<1>>", GetCraftingSkillName(craftingType) or ""))
-                for skillCategory = 1, GetNumSkillTypes() do
-                    for skillLine = 1, GetNumSkillLines(skillCategory) do
-                        local skillLineName = SafeGetSkillLineName(skillCategory, skillLine)
-                        if skillLineName then
-                            if targetSkillName ~= "" and zo_strlower(zo_strformat("<<1>>", skillLineName)):find(targetSkillName, 1, true) then
-                                hasSkill = true
-                                break
+        if showResearch then
+            local researchableTraits, researchableItems, _, availableSlots = GetResearchInfo(craftingType)
+            if GetNumSmithingResearchLines(craftingType) == 0 then
+                local hasSkill = false
+                if craftingType == CRAFTING_TYPE_PROVISIONING or craftingType == CRAFTING_TYPE_ENCHANTING or craftingType == CRAFTING_TYPE_ALCHEMY then
+                    local targetSkillName = zo_strlower(zo_strformat("<<1>>", GetCraftingSkillName(craftingType) or ""))
+                    for skillCategory = 1, GetNumSkillTypes() do
+                        for skillLine = 1, GetNumSkillLines(skillCategory) do
+                            local skillLineName = SafeGetSkillLineName(skillCategory, skillLine)
+                            if skillLineName then
+                                if targetSkillName ~= "" and zo_strlower(zo_strformat("<<1>>", skillLineName)):find(targetSkillName, 1, true) then
+                                    hasSkill = true
+                                    break
+                                end
                             end
                         end
+                        if hasSkill then break end
                     end
-                    if hasSkill then break end
                 end
+                if not hasSkill then
+                    table.insert(entryLines, "  " .. GetString(SI_GPH_OVERVIEW_VISIT_STATION))
+                end
+            elseif researchableTraits > 0 and availableSlots > 0 then
+                local slotText = availableSlots > 0 and string.format(" |c00FF00%d|r %s", availableSlots, zo_strformat(GetString(SI_GPH_OVERVIEW_AVAILABLE_SLOTS), zo_strformat("<<1[slot/slots/slots]>>", availableSlots), "")) or ""
+                table.insert(entryLines, string.format("  |cFFFFFF%d|r/|cFFFFFF%d|r %s%s", researchableTraits, researchableItems, GetString(SI_GPH_OVERVIEW_RESEARCHABLE), slotText))
             end
-
-            if not hasSkill then
-                table.insert(entryLines, "  " .. GetString(SI_GPH_OVERVIEW_VISIT_STATION))
-            end
-        elseif researchableTraits > 0 and availableSlots > 0 then
-            local slotText = availableSlots > 0 and string.format(" |c00FF00%d|r %s", availableSlots, zo_strformat(GetString(SI_GPH_OVERVIEW_AVAILABLE_SLOTS), zo_strformat("<<1[slot/slots/slots]>>", availableSlots), "")) or ""
-            table.insert(entryLines, string.format("  |cFFFFFF%d|r/|cFFFFFF%d|r %s%s", researchableTraits, researchableItems, GetString(SI_GPH_OVERVIEW_RESEARCHABLE), slotText))
         end
 
         if #entryLines > 0 then

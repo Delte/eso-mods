@@ -44,6 +44,7 @@ local defaults = {
     inventoryCovetousCountessEnabled = true,
     overviewEnabled = true,
     overviewDailyWritEnabled = true,
+    overviewResearchEnabled = true,
     overviewCompanionEnabled = true,
     tooltipPoisonEnabled = true,
     tooltipFontEnabled = true,
