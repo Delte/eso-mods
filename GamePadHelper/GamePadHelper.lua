@@ -46,6 +46,7 @@ local defaults = {
     overviewDailyWritEnabled = true,
     overviewResearchEnabled = true,
     overviewCompanionEnabled = true,
+    overviewServerTimeEnabled = true,
     tooltipPoisonEnabled = true,
     tooltipFontEnabled = true,
     tooltipEnchantmentEnabled = true,

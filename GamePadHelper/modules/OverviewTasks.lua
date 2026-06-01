@@ -672,7 +672,7 @@ local function BuildRightTooltipDescription()
     local tasksDescription = ""
 
     local localTime = GetLocalClockText()
-    local serverTime = GetServerClockText()
+    local serverTime = GetBoolSetting("overviewServerTimeEnabled", true) and GetServerClockText() or nil
     if localTime or serverTime then
         local timeLine = ""
         if localTime then

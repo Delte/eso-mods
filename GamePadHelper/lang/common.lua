@@ -237,6 +237,8 @@
     SI_GPH_SETTING_OVERVIEW_COMPANION_TOOLTIP = "Shows companion rapport recommendations in the overview.",
     SI_GPH_SETTING_OVERVIEW_RESEARCH_NAME = "Research",
     SI_GPH_SETTING_OVERVIEW_RESEARCH_TOOLTIP = "Shows trait research status under each crafting type in the overview.",
+    SI_GPH_SETTING_OVERVIEW_SERVER_TIME_NAME = "Server Time",
+    SI_GPH_SETTING_OVERVIEW_SERVER_TIME_TOOLTIP = "Shows the current server time next to local time in the overview.",
     SI_GPH_SETTING_RELOAD_UI_NAME = "Reload UI",
     SI_GPH_SETTING_RELOAD_UI_TOOLTIP = "Reloads the user interface. Required after changing loot offset settings.",
     SI_GPH_SETTING_RESET_SETTINGS_NAME = "Reset Settings",
