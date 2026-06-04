@@ -42,6 +42,7 @@ local tasksCacheText = nil
 local tasksCacheHorseLines = nil
 local tasksCacheMapLines = nil
 local tasksCacheCompanionData = nil
+local tasksCacheCraftingLines = nil
 local tasksCacheTimeMs = 0
 local tasksCacheDirty = true
 local EnsureCompanionTrackerState
@@ -740,12 +741,6 @@ local function TrimTrailingEmptyLines(lines)
     while #lines > 0 and lines[#lines] == "" do
         table.remove(lines)
     end
-end
-
-local function AddDividerSection(tooltip)
-    local dividerSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
-    dividerSection:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, tooltip:GetStyle("dividerLine"))
-    tooltip:AddSection(dividerSection)
 end
 
 local function AddTitledDividerSection(tooltip, title, iconMarkup)

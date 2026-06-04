@@ -285,31 +285,7 @@
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(stack of <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> stacks)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n|cFFFF00Yellow|r: Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank\n|cFFFFFFWhite|r: Equipped item uses ESO's default magnifying glass icon; details are shown in the tooltip",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.12 is ready:
-
-• |cFFFF00Overview Tasks Redesign|r - the daily reminders panel is fully rebuilt. Each category (Time, Horse Training, Maps, Crafting, Companion) now has its own titled divider with icon. All entries use structured sections instead of a plain text block.
-
-• |cFFFF00Companion Panel|r - now shows companion XP progress bar, rapport gradient bar, rapport level, and rapport description in addition to daily activities.
-
-• |cFFFF00Quest Panel Toggle|r - the quest left panel has its own toggle, independent of the tasks panel. Show either, both, or neither.
-
-• |cFFFF00Local Time Toggle|r - the local clock can now be toggled independently from server time.
-
-• |cFFFF00Hide Completed Writs|r - daily writ entries can be hidden from the overview once completed.
-
-• |cFFFF00Inventory Trait Fix|r - icons now appear more reliably during inventory navigation.
-
-• |cFFFF00Settings Reorganized|r - settings grouped into labeled sections: Automation, Fishing, Map Search, Overview, Tooltips and UI, Loot.",
-
-• |cFFFF00Quest Panel Toggle|r - the quest left panel now has its own toggle, independent of the main Overview toggle. Show just quests, just tasks, both, or neither.
-
-• |cFFFF00Local Time Toggle|r - the local clock in the Overview can now be toggled on or off independently from server time.
-
-• |cFFFF00Quest Panel Visual Update|r - quest title now shows with a divider header and icon. Section order updated: Hints, active tasks, optional steps, completed tasks.
-
-• |cFFFF00Inventory Trait Fix|r - icons now appear more reliably during inventory navigation using a multi-pass refresh.
-
-• |cFFFF00Settings Reorganized|r - settings grouped into labeled sections: Automation, Fishing, Map Search, Overview, Tooltips and UI, Loot.",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.12 is ready:\n\n• |cFFFF00Overview Tasks Redesign|r - the daily reminders panel is fully rebuilt. Each category (Time, Horse Training, Maps, Crafting, Companion) now has its own titled divider with icon.\n\n• |cFFFF00Companion Panel|r - now shows companion XP progress bar, rapport gradient bar, rapport level, and rapport description in addition to daily activities.\n\n• |cFFFF00Quest Panel Toggle|r - the quest left panel has its own toggle, independent of the tasks panel. Show either, both, or neither.\n\n• |cFFFF00Local Time Toggle|r - the local clock can now be toggled independently from server time.\n\n• |cFFFF00Hide Completed Writs|r - daily writ entries can be hidden from the overview once completed.\n\n• |cFFFF00Inventory Trait Fix|r - icons now appear more reliably during inventory navigation.\n\n• |cFFFF00Settings Reorganized|r - settings grouped into labeled sections: Automation, Fishing, Map Search, Overview, Tooltips and UI, Loot.",
     SI_GPH_WHATS_NEW_CONFIRM = "Got It",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — What's New",
 }
