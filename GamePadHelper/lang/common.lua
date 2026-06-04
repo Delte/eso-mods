@@ -133,34 +133,31 @@
     SI_GPH_MAPSEARCH_ZONE_LOCKED = "This zone is locked - you don't own the required content",
     SI_GPH_OVERVIEW_AVAILABLE = "Available",
     SI_GPH_OVERVIEW_AVAILABLE_SLOTS = "<<1>> <<2>> available",
-    SI_GPH_OVERVIEW_COMPLETED_LABEL = "Completed:",
-    SI_GPH_OVERVIEW_CRAFTING = "Crafting:",
-    SI_GPH_OVERVIEW_HINTS_LABEL = "Hints:",
+    SI_GPH_OVERVIEW_COMPLETED_LABEL = "Completed",
+    SI_GPH_OVERVIEW_HINTS_LABEL = "Hints",
     SI_GPH_OVERVIEW_HORSE_TRAINING = "Horse Training:",
     SI_GPH_OVERVIEW_IN_ZONE = " in <<1>>",
     SI_GPH_OVERVIEW_LOCAL_TIME = "Local:",
     SI_GPH_OVERVIEW_SERVER_TIME = "Server:",
+    SI_GPH_OVERVIEW_TIME = "Time",
     SI_GPH_OVERVIEW_LEAD_EXPIRES = "Lead<<1>> expires in <<2>>",
-    SI_GPH_OVERVIEW_LEADS = "Leads:",
-    SI_GPH_OVERVIEW_MAPS = "maps",
-    SI_GPH_OVERVIEW_OPTIONAL_LABEL = "Optional:",
+    SI_GPH_OVERVIEW_MAPS = "<<1[Map/Maps]>>",
+    SI_GPH_OVERVIEW_OPTIONAL_LABEL = "Optional",
     SI_GPH_OVERVIEW_QUEST = "Quest",
     SI_GPH_OVERVIEW_RESEARCHABLE = "Researchable",
-    SI_GPH_OVERVIEW_SCRYABLE = "scryable",
+    SI_GPH_OVERVIEW_SCRYABLE = "<<1[Scryable Lead/Scryable Leads]>>",
     SI_GPH_OVERVIEW_SURVEY = "Survey",
     SI_GPH_OVERVIEW_TASKS = "Tasks",
     SI_GPH_OVERVIEW_KEYBIND_PREV_QUEST = "Prev Quest",
     SI_GPH_OVERVIEW_KEYBIND_NEXT_QUEST = "Next Quest",
     SI_GPH_OVERVIEW_TASKS_AVAILABLE = "Access daily tasks, achievements, and other activities.",
-    SI_GPH_OVERVIEW_TASKS_LABEL = "Tasks:",
+    SI_GPH_OVERVIEW_TASKS_LABEL = "Tasks",
     SI_GPH_OVERVIEW_COMPANION_LABEL = "Companion:",
-    SI_GPH_OVERVIEW_COMPANION_RAPPORT_LABEL = "Rapport:",
     SI_GPH_OVERVIEW_COMPANION_BEST_DAILIES = "Best Rapport Dailies",
     SI_GPH_OVERVIEW_COMPANION_NO_CONFIG = "No rapport recommendations configured for this companion yet.",
     SI_GPH_OVERVIEW_COMPANION_STATUS_DONE = "Done",
     SI_GPH_OVERVIEW_COMPANION_STATUS_IN_PROGRESS = "In Progress",
     SI_GPH_OVERVIEW_COMPANION_STATUS_NOT_DONE = "Not Done",
-    SI_GPH_OVERVIEW_COMPANION_TRACKING_NOTE = "(Tracking uses exact quest IDs and resets at daily reset.)",
     SI_GPH_OVERVIEW_COMPANION_ACTIVITY_FIGHTERS_DAILY = "Fighters Guild Daily",
     SI_GPH_OVERVIEW_COMPANION_ACTIVITY_MAGES_DAILY = "Mages Guild Daily",
     SI_GPH_OVERVIEW_COMPANION_ACTIVITY_HEIST_DAILY = "Thieves Guild Heist",
@@ -174,11 +171,11 @@
     SI_GPH_OVERVIEW_COMPANION_ACTIVITY_ENCHANTER_WRIT = "Enchanter Writ",
     SI_GPH_OVERVIEW_COMPANION_ACTIVITY_NORTHERN_GRAHTWOOD_DEFENCE = "Northern Grahtwood Defence Force Daily",
     SI_GPH_OVERVIEW_COMPANION_ACTIVITY_TALES_TRIBUTE = "Tales of Tribute Daily",
-    SI_GPH_OVERVIEW_TREASURE = "Treasure:",
+    SI_GPH_OVERVIEW_TREASURE = "Treasure",
     SI_GPH_OVERVIEW_URGENT = "URGENT:",
     SI_GPH_OVERVIEW_VISIT_STATION = "Visit crafting station",
     SI_GPH_OVERVIEW_DAILY_WRIT = "Daily Writ",
-    SI_GPH_OVERVIEW_WRIT = "Writ",
+    SI_GPH_OVERVIEW_WRIT = "<<1[Master Writ/Master Writs]>>",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "Hide Low Level Recipes",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "Hides Recipes under CP160",
     SI_GPH_RELOAD_BODY = "Changes require a UI reload. Reload now?",
@@ -233,10 +230,18 @@
     SI_GPH_SETTING_OVERVIEW_TOOLTIP = "Adds quest, crafting, antiquity, and treasure-map information to the gamepad main menu tooltips.",
     SI_GPH_SETTING_OVERVIEW_DAILY_WRIT_NAME = "Daily Writ",
     SI_GPH_SETTING_OVERVIEW_DAILY_WRIT_TOOLTIP = "Shows daily writ status under each crafting type in the overview.",
+    SI_GPH_SETTING_OVERVIEW_HIDE_COMPLETED_DAILY_WRIT_NAME = "Hide Completed Daily Writs",
+    SI_GPH_SETTING_OVERVIEW_HIDE_COMPLETED_DAILY_WRIT_TOOLTIP = "Removes the daily writ line from the overview after that writ has been completed.",
     SI_GPH_SETTING_OVERVIEW_COMPANION_NAME = "Companion Rapport",
     SI_GPH_SETTING_OVERVIEW_COMPANION_TOOLTIP = "Shows companion rapport recommendations in the overview.",
     SI_GPH_SETTING_OVERVIEW_RESEARCH_NAME = "Research",
     SI_GPH_SETTING_OVERVIEW_RESEARCH_TOOLTIP = "Shows trait research status under each crafting type in the overview.",
+    SI_GPH_SETTING_OVERVIEW_QUEST_NAME = "Quest Panel",
+    SI_GPH_SETTING_OVERVIEW_QUEST_TOOLTIP = "Shows the active quest in the overview left panel.",
+    SI_GPH_SETTING_OVERVIEW_HORSE_NAME = "Horse Training",
+    SI_GPH_SETTING_OVERVIEW_HORSE_TOOLTIP = "Shows the horse training section in the overview when training is available.",
+    SI_GPH_SETTING_OVERVIEW_LOCAL_TIME_NAME = "Local Time",
+    SI_GPH_SETTING_OVERVIEW_LOCAL_TIME_TOOLTIP = "Shows the local clock in the overview.",
     SI_GPH_SETTING_OVERVIEW_SERVER_TIME_NAME = "Server Time",
     SI_GPH_SETTING_OVERVIEW_SERVER_TIME_TOOLTIP = "Shows the current server time next to local time in the overview.",
     SI_GPH_SETTING_RELOAD_UI_NAME = "Reload UI",
@@ -260,8 +265,8 @@
     SI_GPH_SETTINGS_HEADER_FISHING = "Fishing",
     SI_GPH_SETTINGS_HEADER_LOOT = "Loot",
     SI_GPH_SETTINGS_HEADER_MAP_SEARCH = "Map Search",
+    SI_GPH_SETTINGS_HEADER_OVERVIEW = "Overview",
     SI_GPH_SETTINGS_HEADER_TOOLTIPS_UI = "Tooltips and UI",
-    SI_GPH_SETTINGS_HEADER_UI_ENHANCEMENTS = "UI Enhancements",
     SI_GPH_TELEPORT = "Teleport",
     SI_GPH_TELEPORTING_TO = "Teleporting to <<1>>...",
     SI_GPH_TELEPORT_NO_TARGET = "No players or houses found to port to",
@@ -280,7 +285,31 @@
     SI_GPH_TOOLTIPPRICE_STACK_OF = "(stack of <<1>>)",
     SI_GPH_TOOLTIPPRICE_STACKS = "(<<1>> stacks)",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\nTrait color meaning:\n|c2DC50EGreen|r: Only copy with this trait you have access\n|cFFFF00Yellow|r: Another copy with the same trait exists in your inventory\n|cFF4444Red|r: Another copy with the same trait exists in your bank\n|cFFFFFFWhite|r: Equipped item uses ESO's default magnifying glass icon; details are shown in the tooltip",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.11 is ready:\n\n• |cFFFF00City Service Pins|r - guild traders, guild halls, banks, and other city services are now searchable in Map Search with teleport to the correct city wayshrine.\n\n• |cFFFF00Daily Quest Givers|r - key daily quest NPCs are searchable by name or category (Mages Guild, Fighters Guild, Undaunted, Thieves Guild, zone dailies, and more).\n\n• |cFFFF00Teleport Improvements|r - teleporting from city service and daily quest results targets the correct city wayshrine. World map zone teleport now also includes friends for free travel.\n\n• |cFFFF00Daily Reset Fix|r - daily tracker now resets correctly using server-aware reset hours for EU and NA, including a login check for resets that occurred while offline.\n\n• |cFFFF00Survey and Writ Counter Fix|r - fixed survey reports and master writs not showing in the Overview for some users.",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.12 is ready:
+
+• |cFFFF00Overview Tasks Redesign|r - the daily reminders panel is fully rebuilt. Each category (Time, Horse Training, Maps, Crafting, Companion) now has its own titled divider with icon. All entries use structured sections instead of a plain text block.
+
+• |cFFFF00Companion Panel|r - now shows companion XP progress bar, rapport gradient bar, rapport level, and rapport description in addition to daily activities.
+
+• |cFFFF00Quest Panel Toggle|r - the quest left panel has its own toggle, independent of the tasks panel. Show either, both, or neither.
+
+• |cFFFF00Local Time Toggle|r - the local clock can now be toggled independently from server time.
+
+• |cFFFF00Hide Completed Writs|r - daily writ entries can be hidden from the overview once completed.
+
+• |cFFFF00Inventory Trait Fix|r - icons now appear more reliably during inventory navigation.
+
+• |cFFFF00Settings Reorganized|r - settings grouped into labeled sections: Automation, Fishing, Map Search, Overview, Tooltips and UI, Loot.",
+
+• |cFFFF00Quest Panel Toggle|r - the quest left panel now has its own toggle, independent of the main Overview toggle. Show just quests, just tasks, both, or neither.
+
+• |cFFFF00Local Time Toggle|r - the local clock in the Overview can now be toggled on or off independently from server time.
+
+• |cFFFF00Quest Panel Visual Update|r - quest title now shows with a divider header and icon. Section order updated: Hints, active tasks, optional steps, completed tasks.
+
+• |cFFFF00Inventory Trait Fix|r - icons now appear more reliably during inventory navigation using a multi-pass refresh.
+
+• |cFFFF00Settings Reorganized|r - settings grouped into labeled sections: Automation, Fishing, Map Search, Overview, Tooltips and UI, Loot.",
     SI_GPH_WHATS_NEW_CONFIRM = "Got It",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — What's New",
 }

@@ -7,8 +7,8 @@ local CRAFTING = {
     -- researchable (alphabetical)
     CRAFTING_TYPE_BLACKSMITHING,
     CRAFTING_TYPE_CLOTHIER,
-    CRAFTING_TYPE_JEWELRYCRAFTING,
     CRAFTING_TYPE_WOODWORKING,
+    CRAFTING_TYPE_JEWELRYCRAFTING,
     -- no research (alphabetical)
     CRAFTING_TYPE_ALCHEMY,
     CRAFTING_TYPE_ENCHANTING,
@@ -39,10 +39,16 @@ local SERVER_UTC_OFFSETS = {
     ["NA Megaserver"] = -6, ["PTS"] = -6,
 }
 local tasksCacheText = nil
+local tasksCacheHorseLines = nil
+local tasksCacheMapLines = nil
+local tasksCacheCompanionData = nil
 local tasksCacheTimeMs = 0
 local tasksCacheDirty = true
 local EnsureCompanionTrackerState
 local EnsureDailyWritTrackerState
+local RAPPORT_GRADIENT_START = ZO_ColorDef:New("722323")
+local RAPPORT_GRADIENT_END = ZO_ColorDef:New("009966")
+local RAPPORT_GRADIENT_MIDDLE = ZO_ColorDef:New("9D840D")
 
 local DAILY_WRIT_GROUPS = {
     { id = "blacksmith", displayQuestId = 5377, questIds = { 5368, 5377, 5392 } },
@@ -78,6 +84,10 @@ end
 function Tasks.InvalidateCache()
     tasksCacheDirty = true
     tasksCacheText = nil
+    tasksCacheHorseLines = nil
+    tasksCacheMapLines = nil
+    tasksCacheCompanionData = nil
+    tasksCacheCraftingLines = nil
     tasksCacheTimeMs = 0
 end
 
@@ -98,18 +108,6 @@ local function GetSecondsUntilReset()
     return SECONDS_IN_DAY
 end
 
-local function RefreshTasksTooltipIfVisible()
-    local sv = _G["GamePadHelper_SavedVars"]
-    if not (sv and sv.overviewEnabled and SCENE_MANAGER and SCENE_MANAGER:IsShowing("mainMenuGamepad")) then
-        return
-    end
-
-    local state = _G["GPH_Overview"]
-    local rightTooltip = (state and state.isChatFaded) and GAMEPAD_RIGHT_TOOLTIP or GAMEPAD_QUAD3_TOOLTIP
-    GAMEPAD_TOOLTIPS:ClearTooltip(rightTooltip)
-    Tasks.ShowRightTooltip(rightTooltip)
-end
-
 local function ScheduleDailyResetRefresh()
     if not EVENT_MANAGER then return end
     local secondsUntilReset = GetSecondsUntilReset()
@@ -119,7 +117,6 @@ local function ScheduleDailyResetRefresh()
         EnsureCompanionTrackerState()
         EnsureDailyWritTrackerState()
         Tasks.InvalidateCache()
-        RefreshTasksTooltipIfVisible()
         ScheduleDailyResetRefresh()
     end)
 end
@@ -293,7 +290,7 @@ local function IsQuestIdInActivity(questId, activity)
     return false
 end
 
-local function GetActiveCompanionRapportOverviewLines()
+local function GetActiveCompanionOverviewData()
     if not HasActiveCompanion or not HasActiveCompanion() then return nil end
     local companionId = GetActiveCompanionDefId and GetActiveCompanionDefId() or nil
     if not companionId then return nil end
@@ -302,26 +299,29 @@ local function GetActiveCompanionRapportOverviewLines()
     local profileKey = GetCompanionProfileKey(companionId, companionName)
     local activities = profileKey and COMPANION_RAPPORT_RECOMMENDATIONS[profileKey] or nil
     local lines = {}
+    local data = {
+        name = zo_strformat("<<C:1>>", companionName ~= "" and companionName or GetString(SI_GENERIC_ACTIVE_COMPANION_NAME)),
+        lines = lines,
+    }
 
-    table.insert(lines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPANION_LABEL) .. "|r " .. zo_strformat("<<C:1>>", companionName ~= "" and companionName or GetString(SI_GENERIC_ACTIVE_COMPANION_NAME)))
+    if ZO_COMPANION_MANAGER and ZO_COMPANION_MANAGER.GetLevelInfo then
+        data.level, data.currentXpInLevel, data.totalXpInLevel, data.isMaxLevel = ZO_COMPANION_MANAGER:GetLevelInfo()
+    end
 
     local rapportValue = GetActiveCompanionRapport and GetActiveCompanionRapport() or nil
     local rapportLevel = GetActiveCompanionRapportLevel and GetActiveCompanionRapportLevel() or nil
+    data.rapportValue = rapportValue
+    data.rapportLevel = rapportLevel
     if rapportLevel then
-        local rapportLevelText = GetString("SI_COMPANIONRAPPORTLEVEL", rapportLevel)
-        if rapportValue then
-            table.insert(lines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPANION_RAPPORT_LABEL) .. "|r |cFFFFFF" .. tostring(rapportValue) .. "|r (" .. zo_strformat("<<C:1>>", rapportLevelText) .. ")")
-        else
-            table.insert(lines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPANION_RAPPORT_LABEL) .. "|r " .. zo_strformat("<<C:1>>", rapportLevelText))
-        end
+        data.rapportLevelText = zo_strformat("<<C:1>>", GetString("SI_COMPANIONRAPPORTLEVEL", rapportLevel))
+        data.rapportDescription = GetActiveCompanionRapportLevelDescription and GetActiveCompanionRapportLevelDescription(rapportLevel) or nil
     end
 
     if not activities or #activities == 0 then
         table.insert(lines, "|cAAAAAA" .. GetString(SI_GPH_OVERVIEW_COMPANION_NO_CONFIG) .. "|r")
-        return lines
+        return data
     end
 
-    table.insert(lines, "")
     table.insert(lines, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_COMPANION_BEST_DAILIES) .. "|r")
 
     local tracker = EnsureCompanionTrackerState()
@@ -346,8 +346,7 @@ local function GetActiveCompanionRapportOverviewLines()
         table.insert(lines, string.format("  %s - %s", activityLabel, status))
     end
 
-    table.insert(lines, "|c888888" .. GetString(SI_GPH_OVERVIEW_COMPANION_TRACKING_NOTE) .. "|r")
-    return lines
+    return data
 end
 
 function Tasks.OnQuestRemovedForCompanionTracker(_, completed, questIndex, questName, zoneIndex, poiIndex, questId)
@@ -668,10 +667,241 @@ local function GetServerClockText()
     return nil
 end
 
-local function BuildRightTooltipDescription()
-    local tasksDescription = ""
+local function GetMissingRidingTrainingLines()
+    if not STABLE_MANAGER or not STABLE_MANAGER.GetStats then
+        return nil
+    end
 
-    local localTime = GetLocalClockText()
+    local ridingTypes = {
+        { trainingType = RIDING_TRAIN_SPEED, icon = "EsoUI/Art/Mounts/Gamepad/gp_ridingskill_speed.dds" },
+        { trainingType = RIDING_TRAIN_CARRYING_CAPACITY, icon = "EsoUI/Art/Mounts/Gamepad/gp_ridingskill_capacity.dds" },
+        { trainingType = RIDING_TRAIN_STAMINA, icon = "EsoUI/Art/Mounts/Gamepad/gp_ridingskill_stamina.dds" },
+    }
+
+    local lines = {}
+
+    for _, ridingTypeData in ipairs(ridingTypes) do
+        local bonus, maxBonus = STABLE_MANAGER:GetStats(ridingTypeData.trainingType)
+        if bonus and maxBonus and bonus < maxBonus then
+            local title = GetString("SI_RIDINGTRAINTYPE", ridingTypeData.trainingType)
+            local icon = "|t32:32:" .. ridingTypeData.icon .. "|t"
+            local valueText = string.format("|cFFFFFF%d|r/|cFFFFFF%d|r", bonus, maxBonus)
+            table.insert(lines, "  " .. icon .. " " .. title .. " " .. valueText)
+        end
+    end
+
+    return lines
+end
+
+local function GetDisplayTitle(text)
+    text = zo_strformat("<<C:1>>", text or "")
+    return text:gsub("[%s:：]+$", "")
+end
+
+local function GetCraftingOverviewTitle()
+    local title = GetString and GetString("SI_QUESTTYPE", QUEST_TYPE_CRAFTING)
+    if title and title ~= "" then
+        return zo_strformat("<<C:1>>", title)
+    end
+    return "Crafting"
+end
+
+local function GetTimeOverviewTitle()
+    return GetString(SI_GPH_OVERVIEW_TIME)
+end
+
+local function GetHorseOverviewTitle()
+    return GetDisplayTitle(GetString(SI_GPH_OVERVIEW_HORSE_TRAINING))
+end
+
+local function GetMapsOverviewTitle()
+    return zo_strformat(GetString(SI_GPH_OVERVIEW_MAPS), 2)
+end
+
+local function GetCompanionOverviewTitle()
+    return GetDisplayTitle(GetString(SI_GPH_OVERVIEW_COMPANION_LABEL))
+end
+
+local SECTION_TITLE_ICONS = {
+    time = "|t48:48:/esoui/art/tutorial/timer_icon.dds|t",
+    horse = "|t64:64:/esoui/art/icons/servicetooltipicons/gamepad/gp_servicetooltipicon_stablemaster.dds|t",
+    maps = "|t48:48:EsoUI/Art/TradingHouse/Gamepad/gp_tradinghouse_trophy_treasure_map.dds|t",
+    companion = "|t48:48:EsoUI/Art/Journal/Gamepad/gp_questtypeicon_companion.dds|t",
+    crafting = "|t64:64:/esoui/art/icons/servicetooltipicons/gamepad/gp_servicetooltipicon_buildstation.dds|t",
+}
+
+local function AddIconLines(section, lines, style)
+    for _, displayLine in ipairs(lines) do
+        section:AddLine(displayLine, style)
+    end
+end
+
+local function TrimTrailingEmptyLines(lines)
+    while #lines > 0 and lines[#lines] == "" do
+        table.remove(lines)
+    end
+end
+
+local function AddDividerSection(tooltip)
+    local dividerSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+    dividerSection:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, tooltip:GetStyle("dividerLine"))
+    tooltip:AddSection(dividerSection)
+end
+
+local function AddTitledDividerSection(tooltip, title, iconMarkup)
+    local dividerSection = tooltip:AcquireSection(tooltip:GetStyle("bodyHeader"))
+    local titleText = "|cDAA520" .. title .. "|r"
+    if iconMarkup and iconMarkup ~= "" then
+        titleText = iconMarkup .. " " .. titleText
+    end
+    dividerSection:AddLine(titleText, tooltip:GetStyle("title"))
+    dividerSection:AddTexture(ZO_GAMEPAD_HEADER_DIVIDER_TEXTURE, tooltip:GetStyle("dividerLine"))
+    tooltip:AddSection(dividerSection)
+end
+
+local function AddBlockSpacingSection(tooltip)
+    local spacingSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+    spacingSection:AddLine("", tooltip:GetStyle("bodyDescription"))
+    tooltip:AddSection(spacingSection)
+end
+
+local function AddCompanionOverviewSection(tooltip, companionData)
+    if not companionData then
+        return
+    end
+
+    local nameSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+    nameSection:AddLine("|cDAA520" .. companionData.name .. "|r", tooltip:GetStyle("title"))
+    tooltip:AddSection(nameSection)
+
+    if companionData.level then
+        local xpProgressSection = tooltip:AcquireSection(tooltip:GetStyle("companionXpProgressSection"))
+        local xpPair = xpProgressSection:AcquireStatValuePair(tooltip:GetStyle("statValuePair"))
+        xpPair:SetStat(GetString(SI_STAT_GAMEPAD_EXPERIENCE_LABEL), tooltip:GetStyle("statValuePairStat"))
+
+        local xpBar = tooltip:AcquireStatusBar(tooltip:GetStyle("companionXpBar"))
+        local enlightenedBar = xpBar.GetNamedChild and xpBar:GetNamedChild("EnlightenedBar")
+        if enlightenedBar then
+            enlightenedBar:SetHidden(true)
+        end
+
+        if companionData.isMaxLevel then
+            xpPair:SetValue(GetString(SI_EXPERIENCE_LIMIT_REACHED), tooltip:GetStyle("statValuePairValueSmall"))
+            xpBar:SetMinMax(0, 1)
+            xpBar:SetValue(1)
+        elseif companionData.totalXpInLevel and companionData.totalXpInLevel > 0 then
+            local percentageXp = zo_floor((companionData.currentXpInLevel or 0) / companionData.totalXpInLevel * 100)
+            xpPair:SetValue(zo_strformat(SI_EXPERIENCE_CURRENT_MAX_PERCENT, ZO_CommaDelimitNumber(companionData.currentXpInLevel or 0), ZO_CommaDelimitNumber(companionData.totalXpInLevel), percentageXp), tooltip:GetStyle("statValuePairValueSmall"))
+            xpBar:SetMinMax(0, companionData.totalXpInLevel)
+            xpBar:SetValue(companionData.currentXpInLevel or 0)
+        end
+
+        xpProgressSection:AddStatValuePair(xpPair)
+        tooltip:AddSection(xpProgressSection)
+        tooltip:AddStatusBar(xpBar)
+    end
+
+    if companionData.rapportLevelText then
+        local rapportStatusSection = tooltip:AcquireSection(tooltip:GetStyle("companionOverviewStatValueSection"))
+        local rapportPair = rapportStatusSection:AcquireStatValuePair(tooltip:GetStyle("statValuePair"))
+        rapportPair:SetStat(GetString(SI_COMPANION_RAPPORT_STATUS), tooltip:GetStyle("statValuePairStat"))
+        rapportPair:SetValue(companionData.rapportLevelText, tooltip:GetStyle("statValuePairValueSmall"))
+        rapportStatusSection:AddStatValuePair(rapportPair)
+        tooltip:AddSection(rapportStatusSection)
+    end
+
+    if companionData.rapportValue then
+        local rapportBarSection = tooltip:AcquireSection(tooltip:GetStyle("companionRapportBarSection"))
+        local rapportBarControl = tooltip:AcquireCustomControl(tooltip:GetStyle("companionRapportBar"))
+        local rapportBar = ZO_SlidingStatusBar:New(rapportBarControl)
+        rapportBar:SetGradientColors(RAPPORT_GRADIENT_START, RAPPORT_GRADIENT_END, RAPPORT_GRADIENT_MIDDLE)
+        rapportBar:SetMinMax(GetMinimumRapport(), GetMaximumRapport())
+        rapportBar.indicatorOffsetY = -8
+
+        -- The stock companion rapport bar style is tuned for ESO's wider overview tooltip.
+        -- Fit it to this narrower custom panel while keeping the pointer visible.
+        local tooltipWidth = tooltip:GetWidth() or 420
+        rapportBarControl:SetWidth(math.max(335, tooltipWidth + 5))
+        local valuePointer = rapportBarControl:GetNamedChild("ValuePointer")
+        if valuePointer then
+            valuePointer:SetHidden(false)
+            valuePointer:SetDimensions(24, 24)
+        end
+        rapportBar:SetValue(companionData.rapportValue, true)
+
+        rapportBarSection:AddCustomControl(rapportBarControl)
+        tooltip:AddSection(rapportBarSection)
+    end
+
+    if companionData.rapportDescription and companionData.rapportDescription ~= "" then
+        local rapportBodySection = tooltip:AcquireSection(tooltip:GetStyle("companionOverviewBodySection"))
+        rapportBodySection:AddLine(companionData.rapportDescription, tooltip:GetStyle("companionOverviewDescription"))
+        tooltip:AddSection(rapportBodySection)
+    end
+
+    if companionData.lines and #companionData.lines > 0 then
+        AddBlockSpacingSection(tooltip)
+        local dailiesSection = tooltip:AcquireSection(tooltip:GetStyle("bodySection"))
+        AddIconLines(dailiesSection, companionData.lines, tooltip:GetStyle("bodyDescription"))
+        tooltip:AddSection(dailiesSection)
+    end
+end
+
+function ZO_Tooltip:LayoutTasksTooltip(title, timeText, horseLines, mapLines, companionData, craftingLines)
+    local style = self:GetStyle("bodyDescription")
+
+    if timeText and timeText ~= "" then
+        AddTitledDividerSection(self, GetTimeOverviewTitle(), SECTION_TITLE_ICONS.time)
+        local s = self:AcquireSection(self:GetStyle("bodySection"))
+        s:AddLine(timeText, style)
+        self:AddSection(s)
+        if (horseLines and #horseLines > 0) or (mapLines and #mapLines > 0) or companionData or (craftingLines and #craftingLines > 0) then
+            AddBlockSpacingSection(self)
+        end
+    end
+
+    if horseLines and #horseLines > 0 then
+        AddTitledDividerSection(self, GetHorseOverviewTitle(), SECTION_TITLE_ICONS.horse)
+        local s = self:AcquireSection(self:GetStyle("bodySection"))
+        AddIconLines(s, horseLines, style)
+        self:AddSection(s)
+        if (mapLines and #mapLines > 0) or companionData or (craftingLines and #craftingLines > 0) then
+            AddBlockSpacingSection(self)
+        end
+    end
+
+    if mapLines and #mapLines > 0 then
+        AddTitledDividerSection(self, GetMapsOverviewTitle(), SECTION_TITLE_ICONS.maps)
+        local s = self:AcquireSection(self:GetStyle("bodySection"))
+        AddIconLines(s, mapLines, style)
+        self:AddSection(s)
+        if companionData or (craftingLines and #craftingLines > 0) then
+            AddBlockSpacingSection(self)
+        end
+    end
+
+    if companionData then
+        AddTitledDividerSection(self, GetCompanionOverviewTitle(), SECTION_TITLE_ICONS.companion)
+        AddCompanionOverviewSection(self, companionData)
+        if craftingLines and #craftingLines > 0 then
+            AddBlockSpacingSection(self)
+        end
+    end
+
+    if craftingLines and #craftingLines > 0 then
+        AddTitledDividerSection(self, GetCraftingOverviewTitle(), SECTION_TITLE_ICONS.crafting)
+        local s = self:AcquireSection(self:GetStyle("bodySection"))
+        AddIconLines(s, craftingLines, style)
+        self:AddSection(s)
+    end
+end
+
+local function BuildRightTooltipDescription()
+    local timeText = ""
+    local horseLines = {}
+    local mapLines = {}
+
+    local localTime = GetBoolSetting("overviewLocalTimeEnabled", true) and GetLocalClockText() or nil
     local serverTime = GetBoolSetting("overviewServerTimeEnabled", true) and GetServerClockText() or nil
     if localTime or serverTime then
         local timeLine = ""
@@ -679,70 +909,82 @@ local function BuildRightTooltipDescription()
             timeLine = "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LOCAL_TIME) .. "|r |cFFFFFF" .. localTime .. "|r"
         end
         if serverTime then
-            if timeLine ~= "" then timeLine = timeLine .. "  " end
+            if timeLine ~= "" then timeLine = timeLine .. "\n" end
             timeLine = timeLine .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_SERVER_TIME) .. "|r |cFFFFFF" .. serverTime .. "|r"
         end
-        tasksDescription = tasksDescription .. timeLine .. "\n\n"
+        timeText = timeLine
     end
 
     local totalCount, totalMinTime, urgentZoneName = GetScryableAntiquitiesInfo()
     local isUrgent = totalMinTime and (totalMinTime / 86400) <= 3
     if isUrgent then
         local zoneText = urgentZoneName and zo_strformat(GetString(SI_GPH_OVERVIEW_IN_ZONE), "|cFFFF00" .. urgentZoneName .. "|r") or ""
-        tasksDescription = tasksDescription .. "|cCC4C4C" .. GetString(SI_GPH_OVERVIEW_URGENT) .. "|r\n   " .. zo_strformat(GetString(SI_GPH_OVERVIEW_LEAD_EXPIRES), zoneText, FormatTimeRemaining(totalMinTime)) .. "\n\n"
+        if timeText ~= "" then
+            timeText = timeText .. "\n\n"
+        end
+        timeText = timeText .. "|cCC4C4C" .. GetString(SI_GPH_OVERVIEW_URGENT) .. "|r\n   " .. zo_strformat(GetString(SI_GPH_OVERVIEW_LEAD_EXPIRES), zoneText, FormatTimeRemaining(totalMinTime))
     end
 
     local horseTrainingTimeRemaining = GetTimeUntilCanBeTrained()
     local speedBonus, maxSpeedBonus, staminaBonus, maxStaminaBonus, inventoryBonus, maxInventoryBonus = STABLE_MANAGER:GetStats()
-    if horseTrainingTimeRemaining == 0 and ((speedBonus < maxSpeedBonus) or (staminaBonus < maxStaminaBonus) or (inventoryBonus < maxInventoryBonus)) then
-        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_HORSE_TRAINING) .. "|r " .. GetString(SI_GPH_OVERVIEW_AVAILABLE) .. "\n\n"
+    if GetBoolSetting("overviewHorseEnabled", true) and horseTrainingTimeRemaining == 0 and ((speedBonus < maxSpeedBonus) or (staminaBonus < maxStaminaBonus) or (inventoryBonus < maxInventoryBonus)) then
+        table.insert(horseLines, "|c66FF66" .. GetString(SI_GPH_OVERVIEW_AVAILABLE) .. "|r")
+        local ridingLines = GetMissingRidingTrainingLines()
+        if ridingLines and #ridingLines > 0 then
+            for _, line in ipairs(ridingLines) do
+                table.insert(horseLines, line)
+            end
+        end
     end
 
     local treasureCount, totalSurveyCount, totalWritCount = CountAllInventoryItems()
+
+    local hasCrafting = false
+
+    local writStatusByKey = GetBoolSetting("overviewDailyWritEnabled", true) and GetDailyWritStatusByKey() or nil
+    local hideCompletedDailyWrits = GetBoolSetting("overviewHideCompletedDailyWritEnabled", true)
+    local showResearch = GetBoolSetting("overviewResearchEnabled", true)
+
+    local allCraftingLines = {}
+
+    local ICON_LEADS    = "|t32:32:EsoUI/Art/TreeIcons/gamepad/GP_antiquities_indexIcon_scryable.dds|t"
+    local ICON_TREASURE = "|t32:32:EsoUI/Art/TradingHouse/Gamepad/gp_tradinghouse_trophy_treasure_map.dds|t"
+    local ICON_SURVEY   = "|t32:32:EsoUI/Art/TradingHouse/Gamepad/gp_tradinghouse_trophy_scroll.dds|t"
+    local ICON_CRAFTING = "|t32:32:EsoUI/Art/TradingHouse/Gamepad/gp_tradinghouse_master_writ.dds|t"
 
     if totalCount > 0 then
         local totalTimeString = ""
         if totalMinTime and not isUrgent and totalMinTime < (30 * 86400) then
             totalTimeString = " (" .. FormatTimeRemaining(totalMinTime) .. ")"
         end
-        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LEADS) .. "|r |cFFFFFF" .. totalCount .. "|r " .. GetString(SI_GPH_OVERVIEW_SCRYABLE) .. totalTimeString .. "\n"
+        local label = zo_strformat(GetString(SI_GPH_OVERVIEW_SCRYABLE), totalCount)
+        table.insert(mapLines, ICON_LEADS .. " |cFFFFFF" .. totalCount .. "|r " .. label .. totalTimeString)
     end
 
     if treasureCount > 0 then
-        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TREASURE) .. "|r |cFFFFFF" .. treasureCount .. "|r " .. GetString(SI_GPH_OVERVIEW_MAPS) .. "\n"
+        local mapLabel = GetString(SI_GPH_OVERVIEW_TREASURE) .. " " .. zo_strformat(GetString(SI_GPH_OVERVIEW_MAPS), treasureCount)
+        table.insert(mapLines, ICON_TREASURE .. " |cFFFFFF" .. treasureCount .. "|r " .. mapLabel)
     end
 
-    if totalCount > 0 or treasureCount > 0 then
-        tasksDescription = tasksDescription .. "\n\n"
+    if totalSurveyCount > 0 then
+        local mapLabel = GetString(SI_GPH_OVERVIEW_SURVEY) .. " " .. zo_strformat(GetString(SI_GPH_OVERVIEW_MAPS), totalSurveyCount)
+        table.insert(mapLines, ICON_SURVEY .. " |cFFFFFF" .. totalSurveyCount .. "|r " .. mapLabel)
     end
 
-    local hasCrafting = false
-
-    if totalSurveyCount > 0 or totalWritCount > 0 then
-        local craftingCountersText = ""
-        if totalSurveyCount > 0 then
-            craftingCountersText = craftingCountersText .. " |cFFFFFF" .. totalSurveyCount .. "|r " .. GetString(SI_GPH_OVERVIEW_SURVEY)
-        end
-        if totalSurveyCount > 0 and totalWritCount > 0 then
-            craftingCountersText = craftingCountersText .. " -"
-        end
-        if totalWritCount > 0 then
-            craftingCountersText = craftingCountersText .. " |cFFFFFF" .. totalWritCount .. "|r " .. GetString(SI_GPH_OVERVIEW_WRIT)
-        end
-        tasksDescription = tasksDescription .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_CRAFTING) .. "|r" .. craftingCountersText .. "\n\n"
+    if totalWritCount > 0 then
+        local label = zo_strformat(GetString(SI_GPH_OVERVIEW_WRIT), totalWritCount)
+        table.insert(allCraftingLines, ICON_CRAFTING .. " |cFFFFFF" .. totalWritCount .. "|r " .. label)
+        table.insert(allCraftingLines, "")
         hasCrafting = true
     end
 
-    local writStatusByKey = GetBoolSetting("overviewDailyWritEnabled", true) and GetDailyWritStatusByKey() or nil
-    local showResearch = GetBoolSetting("overviewResearchEnabled", true)
-
     for _, craftingType in ipairs(CRAFTING) do
-        local craftText = zo_strformat("<<C:1>>", GetCraftingSkillName(craftingType))
+        local craftName = zo_strformat("<<C:1>>", GetCraftingSkillName(craftingType))
         local writKey = CRAFTING_TYPE_TO_WRIT_KEY[craftingType]
         local writEntry = writStatusByKey and writKey and writStatusByKey[writKey]
         local entryLines = {}
 
-        if writEntry and not writEntry.isDone then
+        if writEntry and (not writEntry.isDone or not hideCompletedDailyWrits) then
             table.insert(entryLines, "  " .. writEntry.label .. " - " .. writEntry.status)
         end
 
@@ -769,48 +1011,52 @@ local function BuildRightTooltipDescription()
                     table.insert(entryLines, "  " .. GetString(SI_GPH_OVERVIEW_VISIT_STATION))
                 end
             elseif researchableTraits > 0 and availableSlots > 0 then
-                local slotText = availableSlots > 0 and string.format(" |c00FF00%d|r %s", availableSlots, zo_strformat(GetString(SI_GPH_OVERVIEW_AVAILABLE_SLOTS), zo_strformat("<<1[slot/slots/slots]>>", availableSlots), "")) or ""
-                table.insert(entryLines, string.format("  |cFFFFFF%d|r/|cFFFFFF%d|r %s%s", researchableTraits, researchableItems, GetString(SI_GPH_OVERVIEW_RESEARCHABLE), slotText))
+                local slotText = string.format(" |c00FF00%d|r %s", availableSlots, zo_strformat(GetString(SI_GPH_OVERVIEW_AVAILABLE_SLOTS), zo_strformat("<<1[slot/slots/slots]>>", availableSlots), ""))
+                table.insert(entryLines, "  " .. string.format("|cFFFFFF%d|r/|cFFFFFF%d|r %s%s", researchableTraits, researchableItems, GetString(SI_GPH_OVERVIEW_RESEARCHABLE), slotText))
             end
         end
 
         if #entryLines > 0 then
             hasCrafting = true
-            tasksDescription = tasksDescription .. "|cDAA520" .. craftText .. ":|r\n" .. table.concat(entryLines, "\n") .. "\n\n"
+            table.insert(allCraftingLines, "|cDAA520" .. craftName .. "|r")
+            for _, line in ipairs(entryLines) do
+                table.insert(allCraftingLines, line)
+            end
+            table.insert(allCraftingLines, "")
         end
     end
 
-    if hasCrafting then
-        tasksDescription = tasksDescription .. "\n"
+    local companionData = GetBoolSetting("overviewCompanionEnabled", true) and GetActiveCompanionOverviewData() or nil
+
+    TrimTrailingEmptyLines(horseLines)
+    TrimTrailingEmptyLines(mapLines)
+    TrimTrailingEmptyLines(allCraftingLines)
+
+    if timeText == "" and not companionData and #horseLines == 0 and #mapLines == 0 and #allCraftingLines == 0 then
+        timeText = GetString(SI_GPH_OVERVIEW_TASKS_AVAILABLE)
     end
 
-    local companionLines = GetBoolSetting("overviewCompanionEnabled", true) and GetActiveCompanionRapportOverviewLines() or nil
-    if companionLines and #companionLines > 0 then
-        if tasksDescription ~= "" then
-            tasksDescription = tasksDescription .. "\n"
-        end
-        tasksDescription = tasksDescription .. table.concat(companionLines, "\n")
-    end
-
-    if tasksDescription == "" then
-        tasksDescription = GetString(SI_GPH_OVERVIEW_TASKS_AVAILABLE)
-    end
-
-    return tasksDescription
+    return timeText, horseLines, mapLines, companionData, allCraftingLines
 end
 
 function Tasks.ShowRightTooltip(rightTooltip)
     local nowMs = GetNowMs()
-    local tasksDescription = tasksCacheText
+    local timeText, horseLines, mapLines, companionData, craftingLines =
+        tasksCacheText, tasksCacheHorseLines, tasksCacheMapLines,
+        tasksCacheCompanionData, tasksCacheCraftingLines
 
-    if tasksCacheDirty or not tasksDescription or (nowMs - tasksCacheTimeMs) >= TASKS_CACHE_TTL_MS then
-        tasksDescription = BuildRightTooltipDescription()
-        tasksCacheText = tasksDescription
+    if tasksCacheDirty or not timeText or (nowMs - tasksCacheTimeMs) >= TASKS_CACHE_TTL_MS then
+        timeText, horseLines, mapLines, companionData, craftingLines = BuildRightTooltipDescription()
+        tasksCacheText = timeText
+        tasksCacheHorseLines = horseLines
+        tasksCacheMapLines = mapLines
+        tasksCacheCompanionData = companionData
+        tasksCacheCraftingLines = craftingLines
         tasksCacheTimeMs = nowMs
         tasksCacheDirty = false
     end
 
-    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(rightTooltip, "|cDAA520" .. GetString(SI_GPH_OVERVIEW_TASKS) .. "|r", tasksDescription)
+    GAMEPAD_TOOLTIPS:LayoutTasksTooltip(rightTooltip, nil, timeText, horseLines, mapLines, companionData, craftingLines)
 end
 
 local function RegisterCacheInvalidationEvent(namespace, eventCode)

@@ -1,5 +1,5 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
-[B]Version 1.06.11[/B] | API 101049 | by olegbl, quelron[/CENTER]
+[B]Version 1.06.12[/B] | API 101049 | by olegbl, quelron[/CENTER]
 
 [CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
 Built only for gamepad and console UI.[/CENTER]
@@ -13,21 +13,19 @@ Built only for gamepad and console UI.[/CENTER]
 [*][B]Market prices[/B] - price data is shown when supported sources are installed, including [URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL]. Console price data provided by [URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher[/URL] / TSC Price Data API packages.
 [/LIST]
 
-[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.11[/B][/COLOR][/SIZE]
+[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.12[/B][/COLOR][/SIZE]
 
 [LIST]
-[*][B]Set bonus tooltip[/B] - selecting a crafting station result now shows the full crafted set bonuses in the right-side movable tooltip panel, with no truncation regardless of screen text size.
-[*][B]Guild trader names[/B] - wayshrines and guild trader POI results now display the names of your guilds occupying nearby kiosks, with a count of all traders at that location.
-[*][B]Travel service destinations[/B] - ferry, caravan, and silt strider NPCs are now individual searchable entries showing their destination routes (e.g. "Vulkhel Guard; Davon's Watch").
-[*][B]Ashlander activity labels[/B] - Sharp-as-Night's Ald'ruhn Hunt and Ald'ruhn Relic daily activity labels are renamed to Ashlander Hunt Daily and Ashlander Relic Daily across all languages.
-[*][B]Map Search crafted sets[/B] - crafting station results now show the crafted set name, required trait count, and localized set bonuses from ESO item set data.
-[*][B]Special crafting locations[/B] - Map Search includes service-pin crafting stations such as Eyevea and The Earth Forge that are not exposed as standard POIs.
-[*][B]City service pins[/B] - Map Search now includes searchable city-level services: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other city services. Teleports to the correct city wayshrine.
-[*][B]Daily quest givers[/B] - key daily quest NPCs are now searchable by name or quest category (Mages Guild, Fighters Guild, Undaunted, Thieves Guild, zone boss/delve dailies, and more) with their city locations.
-[*][B]Teleport improvements[/B] - teleporting from a city service or daily quest giver result navigates to the correct city wayshrine. Post-teleport announcement confirms the destination.
-[*][B]Teleporter friends[/B] - world map zone teleport now includes friends when looking for free travel options, alongside group and guild members.
-[*][B]Overview daily reset fix[/B] - daily tracker now resets correctly using server-aware day numbers (EU/NA reset hours) and checks on login.
-[*][B]Overview survey/writ counter fix[/B] - fixed survey reports and master writs not showing for some users.
+[*][B]Overview tasks redesign[/B] - the daily reminders panel is completely rebuilt. Each category (Time, Horse Training, Maps, Crafting, Companion) now renders as a titled section with a divider header and matching icon.
+[*][B]Horse training detail[/B] - when training is available, the panel shows individual riding skill progress (Speed, Carrying Capacity, Stamina) with icons and current/max values.
+[*][B]Maps section[/B] - antiquity leads, treasure maps, and surveys each have inline icons. Survey maps moved here from the old crafting counter.
+[*][B]Companion panel redesign[/B] - now shows companion XP progress bar, rapport gradient bar, rapport level, and rapport description in addition to daily activities.
+[*][B]Quest panel toggle[/B] - the quest left panel now has its own toggle, independent of the tasks panel. Show either, both, or neither.
+[*][B]Local time toggle[/B] - the local clock can now be toggled independently from server time.
+[*][B]Hide completed daily writs[/B] - completed writ entries can be hidden from the crafting section.
+[*][B]Quest panel visual update[/B] - quest title uses a divider header with tracked-quest icon. Section order: Hints, active tasks, optional steps, completed tasks.
+[*][B]Inventory Trait fix[/B] - icons appear more reliably during inventory navigation using a multi-pass refresh.
+[*][B]Settings reorganized[/B] - grouped into labeled sections: Automation, Fishing, Map Search, Overview, Tooltips and UI, Loot.
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]Features[/B][/COLOR][/SIZE]
@@ -125,10 +123,13 @@ Built only for gamepad and console UI.[/CENTER]
 [B][COLOR="#DAA520"]Overview Panel[/COLOR][/B] [Default: ON]
 [LIST]
 [*]Adds a two-column root menu overview with quest details and daily reminders.
-[*]Quest details include background, active step, tasks, completed tasks, optional steps, and hints.
-[*]Daily reminders include horse training, crafting research, surveys, writs, antiquity leads, and treasure maps.
-[*]Daily crafting writ tracker: [B]Default ON[/B]. Tracks all seven professions.
-[*]Companion rapport dailies: [B]Default ON[/B]. Supports Bastian, Mirri, Ember, Isobel, Azandar, Sharp-as-Night, Tanlorin, and Zerith-var.
+[*]Left panel — quest details (toggle: [B]Quest Panel[/B], independent of right panel): background, active step, hints, tasks, optional steps, and completed tasks. Quest title uses a divider header with tracked-quest icon.
+[*]Right panel — daily reminders (toggle: [B]Overview[/B]): each category is a titled section with divider header and icon.
+[*][B]Time[/B] — local time and server time, each individually toggleable.
+[*][B]Horse Training[/B] — availability notice with per-skill progress (Speed, Carrying Capacity, Stamina) and current/max values.
+[*][B]Maps[/B] — antiquity scryable leads with expiration timers, treasure maps, and surveys. Each entry has an inline icon.
+[*][B]Crafting[/B] — master writ count, daily writ status per profession (Done/In Progress/Not Done), trait research slots and researchable item counts. Completed writs can be hidden.
+[*][B]Companion[/B] — companion XP bar, rapport gradient bar, rapport level and description, and best rapport-gaining daily activities.
 [/LIST]
 
 [B][COLOR="#DAA520"]Tooltip Improvements[/COLOR][/B]
@@ -173,6 +174,20 @@ This addon is provided as-is, without warranty or support of any kind. Bug repor
 [URL="https://github.com/olegbl/eso-mods/tree/main/GamePadHelper"]GamePadHelper GitHub Repository[/URL]
 
 [SIZE="4"][COLOR="#3399FF"][B]Update Shortage[/B][/COLOR][/SIZE]
+
+1.06.12
+[LIST]
+[*][GamePadHelper] [OverviewTasks] Complete visual redesign — each category (Time, Horse, Maps, Crafting, Companion) now uses a titled section with divider header and icon.
+[*][GamePadHelper] [OverviewTasks] Horse training section now shows individual Speed, Carrying Capacity, and Stamina skill progress with icons.
+[*][GamePadHelper] [OverviewTasks] Maps section added — antiquity leads, treasure maps, and surveys with inline icons. Survey maps moved from crafting counter.
+[*][GamePadHelper] [OverviewTasks] Companion section now shows XP bar, rapport gradient bar, rapport level, and rapport description.
+[*][GamePadHelper] [OverviewTasks] Added Quest Panel toggle — independent of the Overview tasks toggle.
+[*][GamePadHelper] [OverviewTasks] Added Local Time toggle — independent of server time toggle.
+[*][GamePadHelper] [OverviewTasks] Added Hide Completed Daily Writs toggle.
+[*][GamePadHelper] [OverviewQuest] Quest title now uses divider header with tracked-quest icon. Section order: Hints, Tasks, Optional, Completed.
+[*][GamePadHelper] [InventoryTrait] Multi-pass refresh (50/200/500ms) for more reliable icon display. Removed broken pre-hooks.
+[*][GamePadHelper] [Settings] Reorganized into labeled sections: Automation, Fishing, Map Search, Overview, Tooltips and UI, Loot.
+[/LIST]
 
 1.06.11
 [LIST]

@@ -18,16 +18,28 @@ local function GetRightTooltip()
     return State.isChatFaded and GAMEPAD_RIGHT_TOOLTIP or GAMEPAD_QUAD3_TOOLTIP
 end
 
+local function IsAnyOverviewActive(sv)
+    return (sv.overviewQuestEnabled ~= false) or sv.overviewEnabled
+end
+
 local function ShowTooltips()
     local sv = _G["GamePadHelper_SavedVars"]
-    if not sv or not sv.overviewEnabled then return end
+    if not sv or not IsAnyOverviewActive(sv) then return end
 
     Quest.HideControls()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
-    State.ownsLeftPanel = Quest.ShowLeftTooltip(State)
-    Tasks.ShowRightTooltip(GetRightTooltip())
+
+    if sv.overviewQuestEnabled ~= false then
+        State.ownsLeftPanel = Quest.ShowLeftTooltip(State)
+    else
+        State.ownsLeftPanel = false
+    end
+
+    if sv.overviewEnabled then
+        Tasks.ShowRightTooltip(GetRightTooltip())
+    end
 end
 
 local function HideTooltips()
@@ -44,7 +56,7 @@ local function QueueOverviewRefresh()
     zo_callLater(function()
         State.deferredRefreshQueued = false
         local sv = _G["GamePadHelper_SavedVars"]
-        if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
+        if sv and IsAnyOverviewActive(sv) and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
             ShowTooltips()
         end
     end, 1)
@@ -52,7 +64,7 @@ end
 
 local function RefreshOverviewIfVisible()
     local sv = _G["GamePadHelper_SavedVars"]
-    if sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
+    if sv and IsAnyOverviewActive(sv) and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
         ShowTooltips()
         QueueOverviewRefresh()
     end

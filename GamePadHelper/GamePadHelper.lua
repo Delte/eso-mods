@@ -1,5 +1,5 @@
 local ADDON_NAME = "GamePadHelper"
-local ANNOUNCE_VERSION = 10611
+local ANNOUNCE_VERSION = 10612
 
 -- Make ADDON_NAME globally accessible for submodules
 _G["ADDON_NAME"] = ADDON_NAME
@@ -43,9 +43,13 @@ local defaults = {
     inventoryTraitEnabled = true,
     inventoryCovetousCountessEnabled = true,
     overviewEnabled = true,
+    overviewQuestEnabled = true,
+    overviewHorseEnabled = true,
     overviewDailyWritEnabled = true,
+    overviewHideCompletedDailyWritEnabled = true,
     overviewResearchEnabled = true,
     overviewCompanionEnabled = true,
+    overviewLocalTimeEnabled = true,
     overviewServerTimeEnabled = true,
     tooltipPoisonEnabled = true,
     tooltipFontEnabled = true,
