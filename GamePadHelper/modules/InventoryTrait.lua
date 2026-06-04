@@ -162,6 +162,17 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     end
 end
 
+local function ZO_SharedGamepadEntry_OnSetup_Before(self, data, ...)
+    local sv = _G["GamePadHelper_SavedVars"]
+    if not sv or not sv.inventoryTraitEnabled then return end
+    if IsInCraftBagTab() then return end
+    if type(data) ~= "table" then return end
+    if data.ignoreTraitInformation then
+        data.ignoreTraitInformation = false
+    end
+end
+
+ZO_PreHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_Before)
 ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_After)
 
 EVENT_MANAGER:RegisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED, function()
