@@ -172,32 +172,8 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     end
 end
 
--- Some scroll lists capture a reference to ZO_SharedGamepadEntry_OnSetup before
--- our hooks are installed (e.g. the deconstruct screen). This patches those
--- cached references to use the current (hooked) version at lookup time.
-local function ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before(self, dataIndex)
-    local sv = _G["GamePadHelper_SavedVars"]
-    if not sv or not sv.inventoryTraitEnabled then return end
-    if IsInCraftBagTab() then return end
-
-    local templateName = self.templateList[dataIndex]
-    if not templateName then return end
-
-    if templateName ~= "ZO_GamepadItemSubEntryTemplate"
-        and templateName ~= "ZO_GamepadItemSubEntryTemplateWithHeader"
-        then return end
-
-    local dataType = self.dataTypes[templateName]
-    if not dataType then return end
-
-    if dataType.setupFunction == ZO_SharedGamepadEntry_OnSetup then return end
-
-    dataType.setupFunction = ZO_SharedGamepadEntry_OnSetup
-end
-
 ZO_PreHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_Before)
 ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_After)
-ZO_PreHook(ZO_ParametricScrollList, "GetSetupFunctionForDataIndex", ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before)
 
 EVENT_MANAGER:RegisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED, function()
     EVENT_MANAGER:UnregisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED)
