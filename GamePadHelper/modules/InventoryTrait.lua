@@ -126,10 +126,6 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
         return
     end
 
-    if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
-        ZO_MultiIcon_Initialize(icon)
-    end
-
     if not LibTraitResearch then return end
     local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal
     if LibTraitResearch.GetItemLinkTraitResearchStateForSlot and bagId ~= nil and slotIndex ~= nil then
@@ -139,6 +135,9 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     end
 
     if canBeResearched then
+        if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
+            ZO_MultiIcon_Initialize(icon)
+        end
         if researchIcon and not icon:HasIcon(researchIcon) then
             icon:AddIcon(researchIcon)
         end
