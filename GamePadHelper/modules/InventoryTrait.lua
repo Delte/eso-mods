@@ -1,5 +1,4 @@
 
-
 -- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
 local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
 
@@ -84,6 +83,16 @@ local function QueueInventoryRowsRefresh()
     end
 end
 
+local function ZO_SharedGamepadEntry_OnSetup_Before(self, data, ...)
+    local sv = _G["GamePadHelper_SavedVars"]
+    if not sv or not sv.inventoryTraitEnabled then return end
+    if IsInCraftBagTab() then return end
+    if type(data) ~= "table" then return end
+    if data.ignoreTraitInformation then
+        data.ignoreTraitInformation = false
+    end
+end
+
 local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.inventoryTraitEnabled then return end
@@ -126,6 +135,10 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
         return
     end
 
+    if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
+        ZO_MultiIcon_Initialize(icon)
+    end
+
     if not LibTraitResearch then return end
     local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal
     if LibTraitResearch.GetItemLinkTraitResearchStateForSlot and bagId ~= nil and slotIndex ~= nil then
@@ -135,9 +148,6 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     end
 
     if canBeResearched then
-        if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
-            ZO_MultiIcon_Initialize(icon)
-        end
         if researchIcon and not icon:HasIcon(researchIcon) then
             icon:AddIcon(researchIcon)
         end
@@ -162,18 +172,32 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     end
 end
 
-local function ZO_SharedGamepadEntry_OnSetup_Before(self, data, ...)
+-- Some scroll lists capture a reference to ZO_SharedGamepadEntry_OnSetup before
+-- our hooks are installed (e.g. the deconstruct screen). This patches those
+-- cached references to use the current (hooked) version at lookup time.
+local function ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before(self, dataIndex)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.inventoryTraitEnabled then return end
     if IsInCraftBagTab() then return end
-    if type(data) ~= "table" then return end
-    if data.ignoreTraitInformation then
-        data.ignoreTraitInformation = false
-    end
+
+    local templateName = self.templateList[dataIndex]
+    if not templateName then return end
+
+    if templateName ~= "ZO_GamepadItemSubEntryTemplate"
+        and templateName ~= "ZO_GamepadItemSubEntryTemplateWithHeader"
+        then return end
+
+    local dataType = self.dataTypes[templateName]
+    if not dataType then return end
+
+    if dataType.setupFunction == ZO_SharedGamepadEntry_OnSetup then return end
+
+    dataType.setupFunction = ZO_SharedGamepadEntry_OnSetup
 end
 
 ZO_PreHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_Before)
 ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_After)
+ZO_PreHook(ZO_ParametricScrollList, "GetSetupFunctionForDataIndex", ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before)
 
 EVENT_MANAGER:RegisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED, function()
     EVENT_MANAGER:UnregisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED)
@@ -188,4 +212,3 @@ EVENT_MANAGER:RegisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED, functi
     RegisterRefreshEvent("_ResearchStarted", EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
     RegisterRefreshEvent("_ResearchCompleted", EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED)
 end)
-
