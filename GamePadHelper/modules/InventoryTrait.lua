@@ -83,10 +83,17 @@ local function QueueInventoryRowsRefresh()
     end
 end
 
+local gphDialogSetupPending = false
+
+local function IsDialogContext()
+    return gphDialogSetupPending or (ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog())
+end
+
 local function ZO_SharedGamepadEntry_OnSetup_Before(self, data, ...)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.inventoryTraitEnabled then return end
     if IsInCraftBagTab() then return end
+    if IsDialogContext() then return end
     if type(data) ~= "table" then return end
     if data.ignoreTraitInformation then
         data.ignoreTraitInformation = false
@@ -97,6 +104,7 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     local sv = _G["GamePadHelper_SavedVars"]
     if not sv or not sv.inventoryTraitEnabled then return end
     if IsInCraftBagTab() then return end
+    if IsDialogContext() then return end
 
     if type(data) ~= "table" then return end
 
@@ -172,8 +180,41 @@ local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
     end
 end
 
+-- Some scroll lists capture a direct reference to ZO_SharedGamepadEntry_OnSetup
+-- before our addon loads (e.g. the deconstruct screen), bypassing our hooks.
+-- This patches those cached references at lookup time.
+-- Guard: skip when a dialog is showing so we don't taint dialog button closures,
+-- which would block private functions like RequestMoveItem in the callback chain.
+local function ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before(self, dataIndex)
+    local sv = _G["GamePadHelper_SavedVars"]
+    if not sv or not sv.inventoryTraitEnabled then return end
+    if IsInCraftBagTab() then return end
+    if IsDialogContext() then return end
+
+    local templateName = self.templateList[dataIndex]
+    if not templateName then return end
+
+    if templateName ~= "ZO_GamepadItemSubEntryTemplate"
+        and templateName ~= "ZO_GamepadItemSubEntryTemplateWithHeader"
+        then return end
+
+    local dataType = self.dataTypes[templateName]
+    if not dataType then return end
+
+    if dataType.setupFunction == ZO_SharedGamepadEntry_OnSetup then return end
+
+    dataType.setupFunction = ZO_SharedGamepadEntry_OnSetup
+end
+
+-- ZO_Dialogs_IsShowingDialog returns false during dialog SETUP (before it's "showing").
+-- This flag covers the entire synchronous execution of ShowGamepadDialog so our hooks
+-- don't run during setup and don't taint the DIALOG_PRIMARY keybind closure.
+ZO_PreHook("ZO_Dialogs_ShowGamepadDialog", function() gphDialogSetupPending = true end)
+ZO_PostHook("ZO_Dialogs_ShowGamepadDialog", function() gphDialogSetupPending = false end)
+
 ZO_PreHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_Before)
 ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_After)
+ZO_PreHook(ZO_ParametricScrollList, "GetSetupFunctionForDataIndex", ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before)
 
 EVENT_MANAGER:RegisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED, function()
     EVENT_MANAGER:UnregisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED)
