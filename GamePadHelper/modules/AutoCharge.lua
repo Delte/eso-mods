@@ -13,29 +13,13 @@ local function GetSlotName(equipSlot)
 end
 
 local function FindSoulGem()
-    -- Find the best soul gem in inventory
-    local bestGem = nil
-    local bestBagId, bestSlotIndex = nil, nil
-
     local bagId = BAG_BACKPACK
     for slotIndex = 0, GetBagSize(bagId) - 1 do
-        local itemLink = GetItemLink(bagId, slotIndex)
-        if itemLink and itemLink ~= "" then
-            local itemType = GetItemLinkItemType(itemLink)
-            if itemType == ITEMTYPE_SOUL_GEM then
-                local soulGemType, gemLevel, isFilledSoulGem = GetSoulGemInfo(bagId, slotIndex)
-                if isFilledSoulGem then
-                    if not bestGem or gemLevel > bestGem then
-                        bestGem = gemLevel
-                        bestBagId = bagId
-                        bestSlotIndex = slotIndex
-                    end
-                end
-            end
+        if IsItemSoulGem(SOUL_GEM_TYPE_FILLED, bagId, slotIndex) then
+            return bagId, slotIndex
         end
     end
-
-    return bestBagId, bestSlotIndex
+    return nil, nil
 end
 
 local WEAPON_SLOTS = {
@@ -75,10 +59,7 @@ local function AutoCharge()
 end
 
 local function OnCombatStateChanged(event, inCombat)
-    -- Check for weapon charge when leaving combat
-    if not inCombat then
-        zo_callLater(AutoCharge, 1000)
-    end
+    AutoCharge()
 end
 
 local function OnAddonLoaded(event, name)

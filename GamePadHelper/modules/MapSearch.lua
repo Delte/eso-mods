@@ -96,7 +96,6 @@ local zoneQuestCounts = nil
 
 local cityServicesCache = nil  -- { locations=[], tradersByNodeIndex={} }, populated on first use
 local traderGuildMap    = nil  -- trader/guild tooltip data, built with city cache
-local CITY_SCAN_CACHE_VERSION = 14
 local clickableSubMapCache = nil
 local craftingPOIIndex = {}  -- "zoneId:pxKey:pyKey" -> poiIndex, built during PreScan
 
@@ -960,6 +959,7 @@ local function ScanCurrentMapLocations(scan)
 end
 
 local function ScanCityServices()
+    local apiVersion = GetAPIVersion and GetAPIVersion() or 0
     local originalMapId = GetCurrentMapId and GetCurrentMapId() or nil
     local locations = {}
     local tradersByNodeIndex = {}
@@ -1039,14 +1039,15 @@ local function ScanCityServices()
     return {
         locations = locations,
         tradersByNodeIndex = tradersByNodeIndex,
-        version = CITY_SCAN_CACHE_VERSION,
+        apiVersion = apiVersion,
     }
 end
 
 local function LoadCityScanFromSavedVars()
     local mapData = _G["GamePadHelperMapData"]
+    local apiVersion = GetAPIVersion and GetAPIVersion() or 0
     if mapData and mapData.cityScanCache
-        and mapData.cityScanCache.version == CITY_SCAN_CACHE_VERSION
+        and mapData.cityScanCache.apiVersion == apiVersion
         and mapData.cityScanCache.locations
         and mapData.cityScanCache.tradersByNodeIndex then
         cityServicesCache = mapData.cityScanCache
@@ -1124,8 +1125,9 @@ local function BuildTraderOwnershipLookup()
 end
 
 local function GetCityServices()
+    local apiVersion = GetAPIVersion and GetAPIVersion() or 0
     if not cityServicesCache
-        or cityServicesCache.version ~= CITY_SCAN_CACHE_VERSION
+        or cityServicesCache.apiVersion ~= apiVersion
         or not cityServicesCache.locations
         or not cityServicesCache.tradersByNodeIndex then
         cityServicesCache = ScanCityServices()
@@ -1216,6 +1218,8 @@ local function BuildCandidates()
 
     local nameToZoneId = scannedData.nameToZoneId
     local list = {}
+    local cityServiceSetEntryCache = {}
+    local cityServiceTraderNamesCache = {}
     local ownedHouseByKey = {}
     local ownedHouseByName = {}
     local wayshrineNames = {}
@@ -1311,8 +1315,30 @@ local function BuildCandidates()
     local seenCustom = {}
     local function AddCityServiceCandidate(service, zoneName, displayName, searchAliases, placeName, category, detailLabel, entryType)
         if not displayName or displayName == "" then return end
-        local setEntry = GetCraftingSetLocationEntry(service.zoneId, displayName)
-        local traderNames = GetTraderNamesFromService(service, displayName)
+        local metadataCacheKey = table.concat({
+            tostring(service.zoneId or ""),
+            displayName,
+            tostring(service.isTrader or false),
+        }, "|")
+
+        local setEntry = cityServiceSetEntryCache[metadataCacheKey]
+        if setEntry == nil then
+            setEntry = GetCraftingSetLocationEntry(service.zoneId, displayName) or false
+            cityServiceSetEntryCache[metadataCacheKey] = setEntry
+        end
+        if setEntry == false then
+            setEntry = nil
+        end
+
+        local traderNames = cityServiceTraderNamesCache[metadataCacheKey]
+        if traderNames == nil then
+            traderNames = GetTraderNamesFromService(service, displayName) or false
+            cityServiceTraderNamesCache[metadataCacheKey] = traderNames
+        end
+        if traderNames == false then
+            traderNames = nil
+        end
+
         entryType = entryType or (service.isTrader and TYPE_TRADER)
             or (IsTravelService(service, displayName, category, detailLabel) and TYPE_TRAVEL)
             or TYPE_CUSTOM
@@ -2735,14 +2761,11 @@ local function OnAddonLoaded(_, name)
     if name ~= "GamePadHelper" then return end
     EVENT_MANAGER:UnregisterForEvent("MapSearch", EVENT_ADD_ON_LOADED)
     SanitizeSavedMapSearchData()
+    LoadCityScanFromSavedVars()
 
     EVENT_MANAGER:RegisterForEvent("MapSearch_PreScan", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent("MapSearch_PreScan", EVENT_PLAYER_ACTIVATED)
         if not scannedData then PreScan() end
-        LoadCityScanFromSavedVars()
-        zo_callLater(function()
-            if not candidates then candidates = BuildCandidates() end
-        end, 3000)
     end)
 
     EVENT_MANAGER:RegisterForEvent("MapSearch_RecallNodeReset", EVENT_PLAYER_ACTIVATED, function()
@@ -3007,9 +3030,6 @@ _G["GamePadHelper_ClearCityCache"] = function()
     lastSearchTerm = nil
     local mapData = _G["GamePadHelperMapData"]
     if mapData then mapData.cityScanCache = nil end
-    zo_callLater(function()
-        if not candidates then candidates = BuildCandidates() end
-    end, 500)
 end
 
 EVENT_MANAGER:RegisterForEvent("MapSearch", EVENT_ADD_ON_LOADED, OnAddonLoaded)

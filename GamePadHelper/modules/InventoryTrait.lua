@@ -1,231 +1,463 @@
-
 -- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
 local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
-
-local REFRESH_NAMESPACE = "GPH_InventoryTrait_Refresh"
-local refreshPending = false
-local REFRESH_DELAYS_MS = { 50, 200, 500 }
-
-local function IsInCraftBagTab()
-    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.header then
-        local tabBar = GAMEPAD_INVENTORY.header.tabBar
-        if tabBar then
-            local selectedData = tabBar:GetSelectedData()
-            if selectedData and selectedData.text == GetString(SI_GAMEPAD_INVENTORY_CRAFT_BAG_HEADER) then
-                return true
-            end
-        end
-    end
-    return false
-end
+local MultiIcon = _G["GamePadHelper_MultiIcon"]
 
 local function GetItemLinkFromData(data)
     if type(data) ~= "table" then
         return nil
     end
 
-    local itemLink
-    local bagId = data.bagId
-    local slotIndex = data.slotIndex
+    local bagId = data.bagId or data.bag
+    local slotIndex = data.slotIndex or data.index
+
     if (bagId == nil or slotIndex == nil) and type(data.dataSource) == "table" then
-        bagId = data.dataSource.bagId
-        slotIndex = data.dataSource.slotIndex
+        bagId = data.dataSource.bagId or data.dataSource.bag or bagId
+        slotIndex = data.dataSource.slotIndex or data.dataSource.index or slotIndex
+    end
+
+    if (bagId == nil or slotIndex == nil) and type(data.itemData) == "table" then
+        bagId = data.itemData.bagId or data.itemData.bag or bagId
+        slotIndex = data.itemData.slotIndex or data.itemData.index or slotIndex
     end
 
     if bagId ~= nil and slotIndex ~= nil then
-        itemLink = GetItemLink(bagId, slotIndex)
-    elseif data.lootId ~= nil then
-        itemLink = GetLootItemLink(data.lootId)
+        return GetItemLink(bagId, slotIndex), bagId, slotIndex
     end
-    return itemLink, bagId, slotIndex
+
+    if data.lootId ~= nil then
+        return GetLootItemLink(data.lootId), nil, nil
+    end
+
+    return nil
 end
 
-local function RefreshList(list)
-    if not list or not list.RefreshVisible then return false end
-
-    local selectedIndex = list.GetSelectedIndex and list:GetSelectedIndex() or nil
-    if selectedIndex and selectedIndex > 0 and list.SetSelectedIndex then
-        list:SetSelectedIndex(selectedIndex, true)
+local function EnsureResearchLabel(control, icon)
+    local label = control:GetNamedChild("StatusIndicatorLabel")
+    if label ~= nil then
+        return label
     end
-    list:RefreshVisible()
-    return true
+
+    label = CreateControl("$(parent)StatusIndicatorLabel", control, CT_LABEL)
+    label:SetFont("ZoFontGamepad18")
+    label:SetInheritScale(false)
+    label:SetMaxLineCount(1)
+    label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_TOP)
+    label:SetDrawLayer(DL_OVERLAY)
+    label:SetDrawTier(DT_HIGH)
+    label:ClearAnchors()
+    label:SetAnchor(TOPLEFT, icon, BOTTOMLEFT, 0, 2)
+    label:SetAnchor(TOPRIGHT, icon, BOTTOMRIGHT, 0, 2)
+    return label
 end
 
-local function RefreshVisibleInventoryRows()
-    local sv = _G["GamePadHelper_SavedVars"]
-    if not sv or not sv.inventoryTraitEnabled then return end
-    if IsInCraftBagTab() then return end
-    if not GAMEPAD_INVENTORY then return end
-
-    local refreshed = false
-    refreshed = RefreshList(GAMEPAD_INVENTORY.activeList) or refreshed
-    refreshed = RefreshList(GAMEPAD_INVENTORY.itemList) or refreshed
-    refreshed = RefreshList(GAMEPAD_INVENTORY.list) or refreshed
-    refreshed = RefreshList(GAMEPAD_INVENTORY.currentList) or refreshed
-
-    if not refreshed and GAMEPAD_INVENTORY.RefreshList then
-        GAMEPAD_INVENTORY:RefreshList()
+local function ClearTraitDecoration(icon, label, researchIcon)
+    if icon.RemoveIcon and researchIcon and icon:HasIcon(researchIcon) then
+        icon:RemoveIcon(researchIcon)
     end
-end
-
-local function QueueInventoryRowsRefresh()
-    local sv = _G["GamePadHelper_SavedVars"]
-    if not sv or not sv.inventoryTraitEnabled or refreshPending then return end
-
-    refreshPending = true
-    for index, delayMs in ipairs(REFRESH_DELAYS_MS) do
-        zo_callLater(function()
-            RefreshVisibleInventoryRows()
-            if index == #REFRESH_DELAYS_MS then
-                refreshPending = false
-            end
-        end, delayMs)
+    if icon.RemoveIconColor and researchIcon then
+        icon:RemoveIconColor(researchIcon)
+    end
+    if label then
+        label:SetHidden(true)
     end
 end
 
-local gphDialogSetupPending = false
-
-local function IsDialogContext()
-    return gphDialogSetupPending or (ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog())
-end
-
-local function ZO_SharedGamepadEntry_OnSetup_Before(self, data, ...)
-    local sv = _G["GamePadHelper_SavedVars"]
-    if not sv or not sv.inventoryTraitEnabled then return end
-    if IsInCraftBagTab() then return end
-    if IsDialogContext() then return end
-    if type(data) ~= "table" then return end
-    if data.ignoreTraitInformation then
-        data.ignoreTraitInformation = false
-    end
-end
-
-local function ZO_SharedGamepadEntry_OnSetup_After(self, data, ...)
-    local sv = _G["GamePadHelper_SavedVars"]
-    if not sv or not sv.inventoryTraitEnabled then return end
-    if IsInCraftBagTab() then return end
-    if IsDialogContext() then return end
-
-    if type(data) ~= "table" then return end
-
-    local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
-    if not itemLink then return end
-
-    local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
-    local icon = self:GetNamedChild("StatusIndicator")
-    if not icon then return end
-
-    local researchLabel = self:GetNamedChild("StatusIndicatorLabel")
-    if researchLabel == nil then
-        researchLabel = CreateControl("$(parent)StatusIndicatorLabel", self, CT_LABEL)
-        researchLabel:SetFont("ZoFontGamepad18")
-        researchLabel:SetInheritScale(false)
-        researchLabel:SetMaxLineCount(1)
-        researchLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-        researchLabel:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
-        researchLabel:SetVerticalAlignment(TEXT_ALIGN_TOP)
-        researchLabel:SetDrawLayer(DL_OVERLAY)
-        researchLabel:SetDrawTier(DT_HIGH)
-        researchLabel:ClearAnchors()
-        researchLabel:SetAnchor(TOPLEFT, icon, BOTTOMLEFT, 0, 2)
-        researchLabel:SetAnchor(TOPRIGHT, icon, BOTTOMRIGHT, 0, 2)
-    end
-
-    researchLabel:SetHidden(true)
-
-    if bagId == BAG_WORN then
-        if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
-            ZO_MultiIcon_Initialize(icon)
-        end
-        if researchIcon and icon.HasIcon and icon:HasIcon(researchIcon) and icon.SetIconColor then
-            icon:SetIconColor(researchIcon, 1, 1, 1, 1)
-        end
+local function RefreshMultiIcon(icon)
+    if not icon or not icon.iconData or not icon.Hide or not icon.Show then
         return
     end
 
-    if not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
+    local wasHidden = icon:IsHidden()
+    if not wasHidden then
+        icon:Hide()
+    end
+    icon:Show()
+end
+
+local function GetTraitResearchState(itemLink, bagId, slotIndex)
+    if not itemLink or not LibTraitResearch then
+        return nil
+    end
+
+    if LibTraitResearch.GetItemLinkTraitResearchStateForSlot and bagId ~= nil and slotIndex ~= nil then
+        return LibTraitResearch:GetItemLinkTraitResearchStateForSlot(itemLink, bagId, slotIndex)
+    end
+
+    return LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
+end
+
+local function BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
+    if duplicateRemoteItems > 0 and duplicateLocalItems > 0 then
+        return colorRemote:Colorize(duplicateRemoteItems) .. " " .. colorLocal:Colorize(duplicateLocalItems)
+    elseif duplicateRemoteItems > 0 then
+        return colorRemote:Colorize(duplicateRemoteItems)
+    elseif duplicateLocalItems > 0 then
+        return colorLocal:Colorize(duplicateLocalItems)
+    end
+
+    return nil
+end
+
+local function ApplyTraitOverrideData(data)
+    local sv = _G["GamePadHelper_SavedVars"]
+    if not sv or not sv.inventoryTraitEnabled or type(data) ~= "table" then
+        return
+    end
+
+    local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
+    if not itemLink then
+        return
+    end
+
+    local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal =
+        GetTraitResearchState(itemLink, bagId, slotIndex)
+
+    if not canBeResearched then
+        data.gphTraitLabelText = nil
+        return
+    end
+
+    data.gphTraitLabelText = BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
+
+    if not data.overrideStatusIndicatorIcons then
+        return
+    end
+
+    local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
+    if not researchIcon then
+        return
+    end
+
+    local traitNarration = GetString("SI_ITEMTRAITINFORMATION", ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
+    local traitIconFound = false
+    for _, iconData in ipairs(data.overrideStatusIndicatorIcons) do
+        if iconData.iconTexture == researchIcon then
+            iconData.iconTint = colorOverall
+            iconData.iconNarration = traitNarration
+            traitIconFound = true
+        end
+    end
+
+    if not traitIconFound then
+        table.insert(data.overrideStatusIndicatorIcons,
+        {
+            iconTexture = researchIcon,
+            iconTint = colorOverall,
+            iconNarration = traitNarration,
+        })
+    end
+end
+
+local function SharedGamepadEntry_OnSetup_After(control, data)
+    local sv = _G["GamePadHelper_SavedVars"]
+    if not sv or not sv.inventoryTraitEnabled then
+        return
+    end
+
+    local icon = control:GetNamedChild("StatusIndicator")
+    if not icon then
+        return
+    end
+
+    if MultiIcon then
+        MultiIcon.Initialize(icon)
+    elseif not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
         ZO_MultiIcon_Initialize(icon)
     end
 
-    if not LibTraitResearch then return end
-    local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal
-    if LibTraitResearch.GetItemLinkTraitResearchStateForSlot and bagId ~= nil and slotIndex ~= nil then
-        canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchStateForSlot(itemLink, bagId, slotIndex)
-    else
-        canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal = LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
+    local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
+    local label = EnsureResearchLabel(control, icon)
+    label:SetHidden(true)
+
+    local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
+    if not itemLink then
+        ClearTraitDecoration(icon, label, researchIcon)
+        RefreshMultiIcon(icon)
+        return
     end
 
-    if canBeResearched then
-        if researchIcon and not icon:HasIcon(researchIcon) then
-            icon:AddIcon(researchIcon)
-        end
-        local duplicateRemoteText = colorRemote:Colorize(duplicateRemoteItems)
-        local duplicateLocalText = colorLocal:Colorize(duplicateLocalItems)
+    if not LibTraitResearch then
+        ClearTraitDecoration(icon, label, researchIcon)
+        RefreshMultiIcon(icon)
+        return
+    end
 
-        if icon.SetIconColor then
-            icon:SetIconColor(researchIcon, colorOverall:UnpackRGBA())
+    local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal =
+        GetTraitResearchState(itemLink, bagId, slotIndex)
+
+    if not canBeResearched then
+        ClearTraitDecoration(icon, label, researchIcon)
+        RefreshMultiIcon(icon)
+        return
+    end
+
+    if researchIcon and not icon:HasIcon(researchIcon) then
+        icon:AddIcon(researchIcon)
+    end
+
+    if icon.SetIconColor and researchIcon then
+        icon:SetIconColor(researchIcon, colorOverall:UnpackRGBA())
+    end
+    icon:Show()
+
+    local duplicateLabelText = data.gphTraitLabelText or BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
+    if duplicateLabelText then
+        label:SetText(duplicateLabelText)
+        label:SetHidden(false)
+    end
+
+    RefreshMultiIcon(icon)
+end
+
+ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", SharedGamepadEntry_OnSetup_After)
+
+local function WrapCustomExtraDataFunction(inventory)
+    if not inventory or inventory.gphTraitExtraDataWrapped or type(inventory.customExtraDataFunction) ~= "function" then
+        return
+    end
+
+    local originalCustomExtraDataFunction = inventory.customExtraDataFunction
+    inventory.customExtraDataFunction = function(bagId, slotIndex, data)
+        originalCustomExtraDataFunction(bagId, slotIndex, data)
+        ApplyTraitOverrideData(data)
+    end
+    inventory.gphTraitExtraDataWrapped = true
+end
+
+local function PatchDeconstructionSetupFunctionForInventory(inventory)
+    if not inventory or not inventory.list then
+        return false
+    end
+
+    local list = inventory.list
+    if not list.SetDataTemplateSetupFunction or not list.dataTypes then
+        return false
+    end
+
+    local function WrapTemplate(templateName)
+        local dataType = list.dataTypes[templateName]
+        if not dataType or type(dataType.setupFunction) ~= "function" then
+            return false
+        end
+        if dataType.gphTraitWrapped then
+            return false
         end
 
-        researchLabel:SetHidden(duplicateRemoteItems == 0 and duplicateLocalItems == 0)
-
-        if duplicateRemoteItems > 0 and duplicateLocalItems > 0 then
-            researchLabel:SetText(duplicateRemoteText.." "..duplicateLocalText)
-        elseif duplicateRemoteItems > 0 then
-            researchLabel:SetText(duplicateRemoteText)
-        elseif duplicateLocalItems > 0 then
-            researchLabel:SetText(duplicateLocalText)
+        local originalSetup = dataType.setupFunction
+        local wrappedSetup = function(control, data, selected, ...)
+            originalSetup(control, data, selected, ...)
+            SharedGamepadEntry_OnSetup_After(control, data)
         end
-    else
-        researchLabel:SetHidden(true)
+
+        list:SetDataTemplateSetupFunction(templateName, wrappedSetup)
+        dataType.gphTraitWrapped = true
+        return true
+    end
+
+    local patched = false
+    patched = WrapTemplate("ZO_GamepadItemSubEntryTemplate") or patched
+    patched = WrapTemplate("ZO_GamepadItemSubEntryTemplateWithHeader") or patched
+    patched = WrapTemplate("ZO_GamepadItemSubEntry") or patched
+    return patched
+end
+
+local deconstructionHooksInstalled = false
+local bagHooksInstalled = false
+
+local function HookBagInventoryList(inventoryList)
+    if not inventoryList or inventoryList.gphTraitWrapped then
+        return
+    end
+
+    if inventoryList.list and inventoryList.list.SetDataTemplateSetupFunction and inventoryList.list.dataTypes then
+        local function WrapTemplate(templateName)
+            local dataType = inventoryList.list.dataTypes[templateName]
+            if not dataType or type(dataType.setupFunction) ~= "function" or dataType.gphTraitWrapped then
+                return
+            end
+
+            local originalSetup = dataType.setupFunction
+            inventoryList.list:SetDataTemplateSetupFunction(templateName, function(control, data, selected, ...)
+                originalSetup(control, data, selected, ...)
+                SharedGamepadEntry_OnSetup_After(control, data)
+            end)
+            dataType.gphTraitWrapped = true
+        end
+
+        WrapTemplate("ZO_GamepadItemSubEntryTemplate")
+        WrapTemplate("ZO_GamepadItemSubEntryTemplateWithHeader")
+        WrapTemplate("ZO_GamepadItemSubEntry")
+    end
+
+    local originalSetupItemEntry = inventoryList.SetupItemEntry
+    inventoryList.SetupItemEntry = function(self, entry, itemData, ...)
+        local result = originalSetupItemEntry(self, entry, itemData, ...)
+        if entry then
+            ApplyTraitOverrideData(entry)
+            if type(entry.itemData) == "table" then
+                entry.itemData.gphTraitLabelText = entry.gphTraitLabelText
+            end
+        end
+        return result
+    end
+
+    inventoryList.gphTraitWrapped = true
+end
+
+local function DecorateDeconstructionVisibleControls(inventory)
+    if not inventory or not inventory.list or not inventory.list.GetAllVisibleControls then
+        return
+    end
+
+    local visibleControls = inventory.list:GetAllVisibleControls()
+    if not visibleControls then
+        return
+    end
+
+    for control in pairs(visibleControls) do
+        local data = control.dataEntry and control.dataEntry.data
+        if not data then
+            local dataIndex = control.dataIndex
+            if dataIndex and inventory.list.dataList then
+                data = inventory.list.dataList[dataIndex]
+            end
+        end
+
+        if data then
+            ApplyTraitOverrideData(data)
+            SharedGamepadEntry_OnSetup_After(control, data)
+        end
     end
 end
 
--- Some scroll lists capture a direct reference to ZO_SharedGamepadEntry_OnSetup
--- before our addon loads (e.g. the deconstruct screen), bypassing our hooks.
--- This patches those cached references at lookup time.
--- Guard: skip when a dialog is showing so we don't taint dialog button closures,
--- which would block private functions like RequestMoveItem in the callback chain.
-local function ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before(self, dataIndex)
-    local sv = _G["GamePadHelper_SavedVars"]
-    if not sv or not sv.inventoryTraitEnabled then return end
-    if IsInCraftBagTab() then return end
-    if IsDialogContext() then return end
+local function QueueDeconstructionVisibleRefresh(inventory)
+    if not inventory then
+        return
+    end
 
-    local templateName = self.templateList[dataIndex]
-    if not templateName then return end
+    if inventory.gphTraitRefreshQueued then
+        return
+    end
 
-    if templateName ~= "ZO_GamepadItemSubEntryTemplate"
-        and templateName ~= "ZO_GamepadItemSubEntryTemplateWithHeader"
-        then return end
+    inventory.gphTraitRefreshQueued = true
 
-    local dataType = self.dataTypes[templateName]
-    if not dataType then return end
+    local function RunPass(delay)
+        zo_callLater(function()
+            if inventory.list then
+                DecorateDeconstructionVisibleControls(inventory)
+            end
+            if delay == 200 then
+                inventory.gphTraitRefreshQueued = false
+            end
+        end, delay)
+    end
 
-    if dataType.setupFunction == ZO_SharedGamepadEntry_OnSetup then return end
-
-    dataType.setupFunction = ZO_SharedGamepadEntry_OnSetup
+    RunPass(0)
+    RunPass(50)
+    RunPass(200)
 end
 
--- ZO_Dialogs_IsShowingDialog returns false during dialog SETUP (before it's "showing").
--- This flag covers the entire synchronous execution of ShowGamepadDialog so our hooks
--- don't run during setup and don't taint the DIALOG_PRIMARY keybind closure.
-ZO_PreHook("ZO_Dialogs_ShowGamepadDialog", function() gphDialogSetupPending = true end)
-ZO_PostHook("ZO_Dialogs_ShowGamepadDialog", function() gphDialogSetupPending = false end)
+local function HookDeconstructionInventory(inventory)
+    if not inventory then
+        return
+    end
 
-ZO_PreHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_Before)
-ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", ZO_SharedGamepadEntry_OnSetup_After)
-ZO_PreHook(ZO_ParametricScrollList, "GetSetupFunctionForDataIndex", ZO_ParametricScrollList_GetSetupFunctionForDataIndex_Before)
+    WrapCustomExtraDataFunction(inventory)
 
-EVENT_MANAGER:RegisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED, function()
-    EVENT_MANAGER:UnregisterForEvent(REFRESH_NAMESPACE, EVENT_PLAYER_ACTIVATED)
-    local function RegisterRefreshEvent(suffix, eventCode)
-        if eventCode then
-            EVENT_MANAGER:RegisterForEvent(REFRESH_NAMESPACE .. suffix, eventCode, QueueInventoryRowsRefresh)
+    if not inventory.gphTraitRefreshWrapped then
+        local originalPerformFullRefresh = inventory.PerformFullRefresh
+        inventory.PerformFullRefresh = function(self, ...)
+            WrapCustomExtraDataFunction(self)
+            PatchDeconstructionSetupFunctionForInventory(self)
+            local result = originalPerformFullRefresh(self, ...)
+            DecorateDeconstructionVisibleControls(self)
+            QueueDeconstructionVisibleRefresh(self)
+            return result
+        end
+        inventory.gphTraitRefreshWrapped = true
+    end
+
+    if inventory.list and not inventory.list.gphTraitRefreshWrapped then
+        local originalRefreshVisible = inventory.list.RefreshVisible
+        inventory.list.RefreshVisible = function(listSelf, ...)
+            local result = originalRefreshVisible(listSelf, ...)
+            DecorateDeconstructionVisibleControls(inventory)
+            QueueDeconstructionVisibleRefresh(inventory)
+            return result
+        end
+        inventory.list.gphTraitRefreshWrapped = true
+    end
+
+    PatchDeconstructionSetupFunctionForInventory(inventory)
+    DecorateDeconstructionVisibleControls(inventory)
+    QueueDeconstructionVisibleRefresh(inventory)
+end
+
+local function TryInstallDeconstructionHooks()
+    if deconstructionHooksInstalled then
+        return true
+    end
+
+    if not ZO_UniversalDeconstructionPanel_Gamepad or not ZO_GamepadSmithingExtraction then
+        return false
+    end
+
+    ZO_PostHook(ZO_UniversalDeconstructionPanel_Gamepad, "InitializeInventory", function(self)
+        HookDeconstructionInventory(self.inventory)
+    end)
+
+    ZO_PostHook(ZO_GamepadSmithingExtraction, "InitializeInventory", function(self)
+        HookDeconstructionInventory(self.inventory)
+    end)
+
+    if UNIVERSAL_DECONSTRUCTION_GAMEPAD
+        and UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel
+        and UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel.inventory
+    then
+        HookDeconstructionInventory(UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel.inventory)
+    end
+
+    if SMITHING_GAMEPAD and SMITHING_GAMEPAD.deconstructionPanel and SMITHING_GAMEPAD.deconstructionPanel.inventory then
+        HookDeconstructionInventory(SMITHING_GAMEPAD.deconstructionPanel.inventory)
+    end
+
+    deconstructionHooksInstalled = true
+    return true
+end
+
+local function TryInstallBagHooks()
+    if bagHooksInstalled then
+        return true
+    end
+
+    if not GAMEPAD_INVENTORY then
+        return false
+    end
+
+    if GAMEPAD_INVENTORY.itemList then
+        HookBagInventoryList(GAMEPAD_INVENTORY.itemList)
+    end
+
+    if GAMEPAD_INVENTORY.vengeanceItemList then
+        HookBagInventoryList(GAMEPAD_INVENTORY.vengeanceItemList)
+    end
+
+    bagHooksInstalled = GAMEPAD_INVENTORY.itemList ~= nil or GAMEPAD_INVENTORY.vengeanceItemList ~= nil
+    return bagHooksInstalled
+end
+
+EVENT_MANAGER:RegisterForEvent("GPH_InventoryTrait_Initialize", EVENT_PLAYER_ACTIVATED, function()
+    EVENT_MANAGER:UnregisterForEvent("GPH_InventoryTrait_Initialize", EVENT_PLAYER_ACTIVATED)
+
+    local function TryLater()
+        local installedDeconstruction = TryInstallDeconstructionHooks()
+        local installedBag = TryInstallBagHooks()
+        if not installedDeconstruction or not installedBag then
+            zo_callLater(TryLater, 1000)
         end
     end
 
-    RegisterRefreshEvent("_SlotUpdate", EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
-    RegisterRefreshEvent("_FullUpdate", EVENT_INVENTORY_FULL_UPDATE)
-    RegisterRefreshEvent("_ResearchStarted", EVENT_SMITHING_TRAIT_RESEARCH_STARTED)
-    RegisterRefreshEvent("_ResearchCompleted", EVENT_SMITHING_TRAIT_RESEARCH_COMPLETED)
+    TryLater()
 end)

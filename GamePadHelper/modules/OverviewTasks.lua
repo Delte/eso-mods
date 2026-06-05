@@ -38,7 +38,7 @@ local SERVER_UTC_OFFSETS = {
     ["EU Megaserver"] = 1, ["XB1live-eu"] = 1, ["PS4live-eu"] = 1,
     ["NA Megaserver"] = -6, ["PTS"] = -6,
 }
-local tasksCacheText = nil
+local tasksCacheTimeText = nil
 local tasksCacheHorseLines = nil
 local tasksCacheMapLines = nil
 local tasksCacheCompanionData = nil
@@ -84,7 +84,7 @@ end
 
 function Tasks.InvalidateCache()
     tasksCacheDirty = true
-    tasksCacheText = nil
+    tasksCacheTimeText = nil
     tasksCacheHorseLines = nil
     tasksCacheMapLines = nil
     tasksCacheCompanionData = nil
@@ -1037,12 +1037,11 @@ end
 function Tasks.ShowRightTooltip(rightTooltip)
     local nowMs = GetNowMs()
     local timeText, horseLines, mapLines, companionData, craftingLines =
-        tasksCacheText, tasksCacheHorseLines, tasksCacheMapLines,
-        tasksCacheCompanionData, tasksCacheCraftingLines
+        tasksCacheTimeText, tasksCacheHorseLines, tasksCacheMapLines, tasksCacheCompanionData, tasksCacheCraftingLines
 
-    if tasksCacheDirty or not timeText or (nowMs - tasksCacheTimeMs) >= TASKS_CACHE_TTL_MS then
+    if tasksCacheDirty or tasksCacheTimeText == nil or (nowMs - tasksCacheTimeMs) >= TASKS_CACHE_TTL_MS then
         timeText, horseLines, mapLines, companionData, craftingLines = BuildRightTooltipDescription()
-        tasksCacheText = timeText
+        tasksCacheTimeText = timeText
         tasksCacheHorseLines = horseLines
         tasksCacheMapLines = mapLines
         tasksCacheCompanionData = companionData

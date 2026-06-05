@@ -1,0 +1,34 @@
+[CENTER][SIZE="5"][COLOR="#3399FF"][B]LibCovetousCountess[/B][/COLOR][/SIZE]
+[B]Version 1.02[/B] | API 101049 | by olegbl[/CENTER]
+
+[CENTER]A helper library for Elder Scrolls Online that determines whether a treasure item is useful for The Covetous Countess Thieves Guild quest.[/CENTER]
+
+[SIZE="4"][COLOR="#3399FF"][B]What It Does[/B][/COLOR][/SIZE]
+
+[LIST]
+[*]Checks whether a treasure item is useful for the currently active Covetous Countess quest step.
+[*]Checks whether a treasure item is useful for any Covetous Countess quest step.
+[*]Keeps current quest-state information available for addon use.
+[/LIST]
+
+[SIZE="4"][COLOR="#3399FF"][B]API[/B][/COLOR][/SIZE]
+
+[CODE]
+local isUsefulForActiveQuest, isUsefulForAnyQuest = LibCovetousCountess:IsItemUseful(itemLink)
+
+LibCovetousCountess:UpdateQuestInfo()
+[/CODE]
+
+[SIZE="4"][COLOR="#3399FF"][B]Use Cases[/B][/COLOR][/SIZE]
+
+[LIST]
+[*]Inventory treasure highlighting
+[*]Quest helper icons
+[*]Tooltip usefulness hints for Thieves Guild treasure items
+[/LIST]
+
+[SIZE="4"][COLOR="#3399FF"][B]Support[/B][/COLOR][/SIZE]
+
+This library is provided as-is, without warranty or support of any kind, express or implied.
+
+[URL="https://github.com/olegbl/eso-mods/tree/main/LibCovetousCountess"]LibCovetousCountess GitHub Repository[/URL]

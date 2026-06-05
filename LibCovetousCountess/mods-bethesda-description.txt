@@ -1,0 +1,12 @@
+LibCovetousCountess is a helper library for Elder Scrolls Online that determines whether a treasure item is useful for The Covetous Countess Thieves Guild quest.
+
+It can:
+- check whether a treasure is useful for the currently active quest step
+- check whether a treasure is useful for any Covetous Countess quest step
+- refresh internal quest-state tracking for addon use
+
+Example API:
+- LibCovetousCountess:IsItemUseful(itemLink)
+- LibCovetousCountess:UpdateQuestInfo()
+
+This library is intended for addon authors and is provided as-is.

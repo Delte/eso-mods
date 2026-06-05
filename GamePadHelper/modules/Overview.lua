@@ -13,6 +13,7 @@ State.deferredRefreshQueued = false
 State.questIndexOverride = nil
 State.keybindDescriptor = nil
 State.ownsLeftPanel = false
+State.whatsNewShownThisSession = false
 
 local function GetRightTooltip()
     return State.isChatFaded and GAMEPAD_RIGHT_TOOLTIP or GAMEPAD_QUAD3_TOOLTIP
@@ -30,6 +31,7 @@ local function ShowTooltips()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
+    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD_2_3_TOOLTIP)
 
     if sv.overviewQuestEnabled ~= false then
         State.ownsLeftPanel = Quest.ShowLeftTooltip(State)
@@ -46,6 +48,7 @@ local function HideTooltips()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD3_TOOLTIP)
+    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_QUAD_2_3_TOOLTIP)
     Quest.HideControls()
     State.ownsLeftPanel = false
 end

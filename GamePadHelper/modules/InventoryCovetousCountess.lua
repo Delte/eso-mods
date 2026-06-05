@@ -1,5 +1,6 @@
 ﻿-- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
 local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
+local MultiIcon = _G["GamePadHelper_MultiIcon"]
 
 local COLOR_USEFUL_ACTIVE = ZO_ColorDef:New(1, 1, 0)
 local COLOR_USEFUL_INACTIVE = ZO_ColorDef:New(1, 1, 1)
@@ -9,13 +10,38 @@ local function GetItemLinkFromData(data)
         return nil
     end
 
-    local itemLink
-    if data.bagId ~= nil and data.slotIndex ~= nil then
-        itemLink = GetItemLink(data.bagId, data.slotIndex)
-    elseif data.lootId ~= nil then
-        itemLink = GetLootItemLink(data.lootId)
+    local bagId = data.bagId or data.bag
+    local slotIndex = data.slotIndex or data.index
+
+    if (bagId == nil or slotIndex == nil) and type(data.dataSource) == "table" then
+        bagId = data.dataSource.bagId or data.dataSource.bag or bagId
+        slotIndex = data.dataSource.slotIndex or data.dataSource.index or slotIndex
     end
-    return itemLink
+
+    if (bagId == nil or slotIndex == nil) and type(data.itemData) == "table" then
+        bagId = data.itemData.bagId or data.itemData.bag or bagId
+        slotIndex = data.itemData.slotIndex or data.itemData.index or slotIndex
+    end
+
+    if bagId ~= nil and slotIndex ~= nil then
+        return GetItemLink(bagId, slotIndex)
+    elseif data.lootId ~= nil then
+        return GetLootItemLink(data.lootId)
+    end
+
+    return nil
+end
+
+local function RefreshMultiIcon(icon)
+    if not icon or not icon.iconData or not icon.Hide or not icon.Show then
+        return
+    end
+
+    local wasHidden = icon:IsHidden()
+    if not wasHidden then
+        icon:Hide()
+    end
+    icon:Show()
 end
 
 local function SharedGamepadEntry_OnSetup_After(control, data, ...)
@@ -40,7 +66,9 @@ local function SharedGamepadEntry_OnSetup_After(control, data, ...)
     end
 
     -- sometimes MultiIcon is not initialized properly for some reason
-    if not statusIndicator.SetIconColor then
+    if MultiIcon then
+        MultiIcon.Initialize(statusIndicator)
+    elseif not statusIndicator.SetIconColor then
         ZO_MultiIcon_Initialize(statusIndicator)
     end
 
@@ -69,6 +97,8 @@ local function SharedGamepadEntry_OnSetup_After(control, data, ...)
             statusIndicator:SetIconColor(researchIcon, COLOR_USEFUL_INACTIVE:UnpackRGBA())
         end
     end
+
+    RefreshMultiIcon(statusIndicator)
 end
 
 ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", SharedGamepadEntry_OnSetup_After)

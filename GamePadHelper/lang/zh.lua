@@ -271,7 +271,7 @@ local strings = {
     SI_GPH_TOOLTIPPRICE_STACK_OF = "（堆叠<<1>>）",
     SI_GPH_TOOLTIPPRICE_STACKS = "（<<1>>堆叠）",
     SI_GPH_TRAIT_COLOR_LEGEND = "\n\n特质颜色含义：\n|c2DC50E绿色|r：只能复制具有此特质的副本\n|cFFFF00黄色|r：您的库存中存在具有相同特质的另一个副本\n|cFF4444红色|r：具有相同特质的另一个副本在您的银行中存在\n|cFFFFFF白色|r：装备的物品使用ESO的默认放大镜图标；详细信息显示在工具提示中",
-    SI_GPH_WHATS_NEW_BODY = "|c3399FFGamePadHelper|r 1.06.12 已就绪：\n\n• |cFFFF00概览重新设计|r - 每日提醒面板已完全重建。每个类别（时间、马匹训练、地图、制作、伙伴）现在都有自己的带图标的分节标题。\n\n• |cFFFF00伙伴面板|r - 现在除日常活动外，还显示伙伴的经验进度条、好感度渐变条、好感度等级和描述。\n\n• |cFFFF00任务面板开关|r - 左侧任务面板现在有自己的开关，独立于每日任务面板。可以显示其中一个、两个或都不显示。\n\n• |cFFFF00本地时间开关|r - 本地时钟现在可以独立于服务器时间进行开关切换。\n\n• |cFFFF00隐藏已完成委托|r - 已完成的每日委托条目可以从概览中隐藏。\n\n• |cFFFF00物品栏特性修复|r - 在物品栏导航时图标现在显示更可靠。\n\n• |cFFFF00设置重新整理|r - 设置现在按分组排列：自动化、钓鱼、地图搜索、概览、提示框和界面、战利品。",
+    SI_GPH_WHATS_NEW_BODY = "|c3399FF新内容|r\n\n• |cFFFF00通知菜单条目|r - 更新说明现在会显示在手柄界面的通知菜单中，不再使用自动弹窗。\n\n• |cFFFF00物品栏特性刷新|r - 背包、银行和拆解界面的特性图标现在会更可靠地更新颜色、数量和图标切换。\n\n• |cFFFF00私有 Multi-Icon 辅助|r - GamePadHelper 不再依赖 LibMultiIcon。如果你还保留着旧版本使用的独立库，请将其删除或禁用。\n\n• |cFFFF00地图搜索缓存|r - 城市服务扫描数据现在会在 ReloadUI 和重新登录之间复用，只有在 ESO API 更新或手动清除缓存后才会重新扫描。\n\n• |cFFFF00自动充能重做|r - 现在使用普通魂石在战斗中和战斗外均可为武器充能。",
     SI_GPH_WHATS_NEW_CONFIRM = "知道了",
     SI_GPH_WHATS_NEW_TITLE = "GamePadHelper — 新功能",
 }
