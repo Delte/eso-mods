@@ -14,6 +14,7 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
 - **Inventory Trait refresh** - bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably.
 - **Private Multi-Icon helper** - GamePadHelper no longer depends on `LibMultiIcon`. If you installed the standalone library for older builds, remove or disable it.
 - **Map Search cache reuse** - city service scan data is now reused across `ReloadUI` and relogin, and refreshes only after ESO API updates or when the cache is cleared.
+- **Auto Charge rework** - weapons now recharge in and out of combat using regular soul gems.
 
 ## Installation
 
@@ -33,7 +34,7 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
 - **Dungeon Finder** - shows pledge quest names in the finder list.
 - **Fishing** - vibration, reel alert, automatic bait selection, and fallback bait support.
 - **Auto Repair** - repairs equipped gear at merchants.
-- **Auto Charge** - recharges weapons after combat using filled soul gems.
+- **Auto Charge** - recharges weapons in and out of combat using regular soul gems.
 - **Antiquarian's Eye** - auto-slots and uses the collectible when appropriate.
 - **Provisioning Filter** - hides low-level recipes below CP160.
 - **Gear Comparison** - shows side-by-side item comparison panels.

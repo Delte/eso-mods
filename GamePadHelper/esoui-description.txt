@@ -1,7 +1,17 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
 [B]Version 1.06.13[/B] | API 101049 | by olegbl, quelron[/CENTER]
 
-[CENTER]A modular collection of quality-of-life improvements for Elder Scrolls Online, built specifically for gamepad and console UI.[/CENTER]
+[CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
+Built only for gamepad and console UI.[/CENTER]
+
+[SIZE="4"][COLOR="#3399FF"][B]Highlights[/B][/COLOR][/SIZE]
+
+[LIST]
+[*][B]Fully modular[/B] - every feature can be enabled or disabled from the in-game settings panel without reloading the UI.
+[*][B]Gamepad friendly[/B] - improves map navigation, tooltips, inventory scanning, fishing, dungeon pledges, and daily tracking.
+[*][B]Multilanguage support[/B] - supports all 7 official ESO client languages: EN, DE, FR, ES, RU, JP, ZH.
+[*][B]Market prices[/B] - price data is shown when supported sources are installed, including [URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL]. Console price data provided by [URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher[/URL] / TSC Price Data API packages.
+[/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.13[/B][/COLOR][/SIZE]
 
@@ -15,50 +25,141 @@
 
 [SIZE="4"][COLOR="#3399FF"][B]Features[/B][/COLOR][/SIZE]
 
+[B][COLOR="#DAA520"]Fishing[/COLOR][/B] [Default: ON]
 [LIST]
-[*][B]Overview Panel[/B] - quest details on the left and daily reminders on the right.
-[*][B]Map Search[/B] - search wayshrines, zones, houses, city services, daily quest givers, and travel NPCs.
-[*][B]Teleporter[/B] - world map teleport hotkey and chat jump options.
-[*][B]Dungeon Finder[/B] - shows pledge quest names in the finder list.
-[*][B]Fishing[/B] - vibration, reel alert, automatic bait selection, and fallback bait support.
-[*][B]Auto Repair[/B] - repairs equipped gear at merchants.
-[*][B]Auto Weapon Charge[/B] - recharges weapons in and out of combat.
-[*][B]Antiquarian's Eye[/B] - auto-slots and uses the collectible when appropriate.
-[*][B]Provisioning Filter[/B] - hides low-level recipes below CP160.
-[*][B]Gear Comparison[/B] - side-by-side item comparison panels.
-[*][B]Loot Offset[/B] - moves the loot history panel upward to avoid chat overlap.
-[*][B]Tooltip Price / Enchantment / Poison / Trait / Font[/B] - cleaner tooltip presentation for gamepad.
+[*]Controller vibration when a fish bites.
+[*]On-screen "Reel in!" alert.
+[*]Automatic bait selection for foul, saltwater, lake, and river fishing holes.
+[*]Alternative bait fallback: [B]Default ON[/B].
 [/LIST]
 
-[SIZE="4"][COLOR="#3399FF"][B]Inventory Trait Colors[/B][/COLOR][/SIZE]
-
+[B][COLOR="#DAA520"]Auto Repair[/COLOR][/B] [Default: ON]
 [LIST]
-[*][COLOR="#00FF00"]Green[/COLOR] - only accessible copy with this trait; safe to research.
+[*]Automatically repairs equipped items when opening a merchant store, as long as repair is available and costs gold.
+[/LIST]
+
+[B][COLOR="#DAA520"]Auto Weapon Charge[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Automatically recharges equipped weapons in and out of combat.
+[*]Uses regular soul gems.
+[*]Charge threshold: [B]Default 25%[/B].
+[/LIST]
+
+[B][COLOR="#DAA520"]Antiquarian's Eye[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Automatically slots and activates the Antiquarian's Eye collectible when you are not moving and not in combat.
+[*]Unslots it when activation would be blocked.
+[/LIST]
+
+[B][COLOR="#DAA520"]Teleporter[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Adds a world map hotkey to teleport to the hovered zone. Prioritizes free travel: jumps to a group member, friend, or guild member in the zone if available, otherwise uses the nearest wayshrine.
+[*]Adds chat context menu jump options for friends, guild members, and group members.
+[/LIST]
+
+[B][COLOR="#DAA520"]Dungeon Finder[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Replaces dungeon names in the Dungeon Finder list with their matching pledge quest names.
+[/LIST]
+
+[B][COLOR="#DAA520"]Map Search[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Adds a GPH Search tab to the gamepad world map info panel.
+[*]Search wayshrines, zones, houses, and named points of interest.
+[*]Separate tabs for Search, Bookmarks, Recent destinations, Houses, and Zones.
+[*]Zones can show quest, survey report, treasure map, and antiquity lead counts when detected.
+[*]Wayshrines and guild trader POIs show nearby trader counts and your guild names occupying those kiosks.
+[*]Crafting stations show crafted set names, required trait counts, and full set bonuses in the right-side tooltip panel.
+[*]Special crafted set service pins such as Eyevea and The Earth Forge are included when available.
+[*]City service pins are searchable: guild traders, Mages/Fighters/Undaunted/Thieves Guild halls, banks, and other services, with teleport to the correct city wayshrine.
+[*]Daily quest givers are searchable by name or quest category across all zones.
+[*]Travel service NPCs (ferry, caravan, silt strider) are individual searchable entries with destination routes.
+[*]Includes fuzzy ranked results, per-character or account-wide bookmarks, map panning, ping markers, and nearest-wayshrine travel.
+[*]Supports gamepad screen narration for result name, category, ownership, discovery or lock status, and crafted set details when available.
+[*]Map pin: [B]Default ON[/B].
+[*]Set destination: [B]Default ON[/B].
+[*]Post-teleport announcement: [B]Default ON[/B].
+[*]Group by location: [B]Default OFF[/B].
+[/LIST]
+
+[B][COLOR="#DAA520"]Provisioning Hide Low-Level Recipes[/COLOR][/B] [Default: OFF]
+[LIST]
+[*]Adds a filter to hide low-level recipes below CP160.
+[/LIST]
+
+[B][COLOR="#DAA520"]Gear Comparison[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Shows currently equipped item and new item stat-change panels side by side.
+[/LIST]
+
+[B][COLOR="#DAA520"]Inventory Covetous Countess[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Marks treasures useful for The Covetous Countess quest.
+[*]Green icon means useful for the current active quest step.
+[*]White icon means useful for the quest, but not the current active step.
+[/LIST]
+
+[B][COLOR="#DAA520"]Inventory Trait[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Shows an icon next to items whose trait can be researched by the current character.
+[*][COLOR="#00FF00"]Green[/COLOR] - only copy with this trait you have access to; safe to research.
 [*][COLOR="#FFFF00"]Yellow[/COLOR] - another copy with the same trait exists in your inventory.
 [*][COLOR="#FF0000"]Red[/COLOR] - another copy with the same trait exists in your bank.
+[*]Displays duplicate counts and excludes locked items from duplicate counting.
 [/LIST]
 
-[SIZE="4"][COLOR="#3399FF"][B]Important[/B][/COLOR][/SIZE]
+[B][COLOR="#DAA520"]Loot Offset[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Moves the loot history panel upward so it does not overlap chat.
+[*]Offset amount: [B]Default 0[/B].
+[*]Requires a UI reload after toggling.
+[/LIST]
+
+[B][COLOR="#DAA520"]Overview Panel[/COLOR][/B] [Default: ON]
+[LIST]
+[*]Adds a two-column root menu overview with quest details and daily reminders.
+[*]Left panel - quest details (toggle: [B]Quest Panel[/B], independent of right panel): background, active step, hints, tasks, optional steps, and completed tasks.
+[*]Right panel - daily reminders (toggle: [B]Overview[/B]): Time, Horse Training, Maps, Crafting, and Companion sections with divider headers and icons.
+[/LIST]
+
+[B][COLOR="#DAA520"]Tooltip Improvements[/COLOR][/B]
+[LIST]
+[*][B]Tooltip Enchantment[/B] [Default: ON] - reformats enchantment information for readability.
+[*][B]Tooltip Font[/B] [Default: ON] - applies a cleaner item tooltip font for gamepad play.
+[*][B]Tooltip Poison[/B] [Default: ON] - reformats applied poison information.
+[*][B]Tooltip Price[/B] [Default: ON] - reformats price information and shows supported market pricing data.
+[*][B]Tooltip Trait[/B] [Default: ON] - reformats trait information and uses the same research color coding as Inventory Trait.
+[/LIST]
+
+[SIZE="4"][COLOR="#3399FF"][B]Settings[/B][/COLOR][/SIZE]
+
+Open the settings panel from:
 
 [LIST]
-[*]If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.
+[*][B]Gamepad:[/B] Options > GPH Settings
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]Required Dependencies[/B][/COLOR][/SIZE]
 
+These must be installed for GamePadHelper to load:
+
 [LIST]
-[*][URL="https://www.esoui.com/downloads/info3266-LibCovetousCountess.html"]LibCovetousCountess[/URL]
-[*][URL="https://www.esoui.com/downloads/info3265-LibItemLinkDecoder.html"]LibItemLinkDecoder[/URL]
-[*][URL="https://www.esoui.com/downloads/info3264-LibTraitResearch.html"]LibTraitResearch[/URL]
+[*][URL="https://www.esoui.com/downloads/info3266-LibCovetousCountess.html"]LibCovetousCountess[/URL] - quest-step data for Inventory Covetous Countess.
+[*][URL="https://www.esoui.com/downloads/info3265-LibItemLinkDecoder.html"]LibItemLinkDecoder[/URL] - item link decoding for Tooltip Enchantment.
+[*][URL="https://www.esoui.com/downloads/info3264-LibTraitResearch.html"]LibTraitResearch[/URL] - trait research data for Inventory Trait and Tooltip Trait.
 [/LIST]
 
-[SIZE="4"][COLOR="#3399FF"][B]Optional Integrations[/B][/COLOR][/SIZE]
+[B]Important:[/B] If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.
+
+[SIZE="4"][COLOR="#3399FF"][B]Optional Dependencies[/B][/COLOR][/SIZE]
 
 [LIST]
-[*][URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL]
-[*][URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher / TSC Price Data API packages[/URL]
+[*][URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL] - optional market source for Tooltip Price.
+[*][URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher / TSC Price Data API packages[/URL] - optional console market data source for Tooltip Price.
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]Support[/B][/COLOR][/SIZE]
+
+This addon is provided as-is, without warranty or support of any kind. Bug reports and contributions are welcome on GitHub:
 
 [URL="https://github.com/olegbl/eso-mods/tree/main/GamePadHelper"]GamePadHelper GitHub Repository[/URL]

@@ -191,7 +191,7 @@
     SI_GPH_SETTING_AUTO_CHARGE_NAME = "Auto Charge",
     SI_GPH_SETTING_AUTO_CHARGE_THRESHOLD_NAME = "Charge Threshold",
     SI_GPH_SETTING_AUTO_CHARGE_THRESHOLD_TOOLTIP = "Recharge equipped weapons when their enchantment charge falls below this percentage.",
-    SI_GPH_SETTING_AUTO_CHARGE_TOOLTIP = "Automatically recharges equipped weapons when their enchantment charge drops below the selected threshold.",
+    SI_GPH_SETTING_AUTO_CHARGE_TOOLTIP = "Automatically recharges equipped weapons in and out of combat when their enchantment charge drops below the selected threshold. Uses regular soul gems.",
     SI_GPH_SETTING_AUTO_REPAIR_NAME = "Auto Repair",
     SI_GPH_SETTING_AUTO_REPAIR_TOOLTIP = "Repairs all damaged equipped gear automatically when you open a merchant. Gold is deducted at the standard repair cost.",
     SI_GPH_SETTING_DUNGEON_FINDER_NAME = "Dungeon Finder",

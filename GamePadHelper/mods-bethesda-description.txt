@@ -29,7 +29,7 @@ If you installed LibMultiIcon for older GamePadHelper builds, remove or disable 
 - Dungeon Finder
 - Fishing
 - Auto Repair
-- Auto Weapon Charge (in and out of combat)
+- Auto Weapon Charge (regular soul gems)
 - Antiquarian's Eye
 - Provisioning Filter
 - Gear Comparison
