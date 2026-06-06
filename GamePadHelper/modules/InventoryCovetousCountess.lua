@@ -65,36 +65,27 @@ local function SharedGamepadEntry_OnSetup_After(control, data, ...)
         end
     end
 
-    -- sometimes MultiIcon is not initialized properly for some reason
     if MultiIcon then
         MultiIcon.Initialize(statusIndicator)
-    elseif not statusIndicator.SetIconColor then
+    elseif not statusIndicator.HasIcon or not statusIndicator.AddIcon or not statusIndicator.SetIconColor then
         ZO_MultiIcon_Initialize(statusIndicator)
     end
 
     if isUsefulForQuest then
-        if not statusIndicator:HasIcon(researchIcon) then
-            -- animation will not kick in if MultiIcon is already shown when second icon is added
-            statusIndicator:Hide()
+        if researchIcon and not statusIndicator:HasIcon(researchIcon) then
             statusIndicator:AddIcon(researchIcon)
-            statusIndicator:Show()
         end
+        if statusIndicator.SetIconColor and researchIcon then
+            local color = isUsefulForActiveQuest and COLOR_USEFUL_ACTIVE or COLOR_USEFUL_INACTIVE
+            statusIndicator:SetIconColor(researchIcon, color:UnpackRGBA())
+        end
+        statusIndicator:Show()
     else
-        if statusIndicator.RemoveIcon then
+        if statusIndicator.RemoveIcon and researchIcon then
             statusIndicator:RemoveIcon(researchIcon)
         end
-        if statusIndicator.RemoveIconColor then
+        if statusIndicator.RemoveIconColor and researchIcon then
             statusIndicator:RemoveIconColor(researchIcon)
-        end
-    end
-
-    if isUsefulForActiveQuest then
-        if statusIndicator.SetIconColor then
-            statusIndicator:SetIconColor(researchIcon, COLOR_USEFUL_ACTIVE:UnpackRGBA())
-        end
-    elseif isUsefulForQuest then
-        if statusIndicator.SetIconColor then
-            statusIndicator:SetIconColor(researchIcon, COLOR_USEFUL_INACTIVE:UnpackRGBA())
         end
     end
 

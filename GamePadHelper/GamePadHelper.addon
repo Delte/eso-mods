@@ -22,8 +22,8 @@ modules/Styling.xml
 modules/OverviewQuest.lua
 modules/OverviewTasks.lua
 modules/Overview.lua
-modules/InventoryCovetousCountess.lua
 modules/InventoryTrait.lua
+modules/InventoryCovetousCountess.lua
 modules/TooltipEnchantment.lua
 modules/TooltipPoison.lua
 modules/TooltipTrait.lua
