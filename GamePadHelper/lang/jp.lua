@@ -167,6 +167,7 @@ local strings = {
     SI_GPH_OVERVIEW_DAILY_WRIT = "デイリー依頼",
     SI_GPH_OVERVIEW_WRIT = "依頼",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "低レベルのレシピを非表示にする",
+    SI_GPH_PROVISIONING_SHOW_LOW_LEVEL = "低レベルのレシピを表示する",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "CP160 の下のレシピを非表示にします",
     SI_GPH_RELOAD_BODY = "変更には UI の再読み込みが必要です。今すぐリロードしますか?",
     SI_GPH_RELOAD_REQUIRED_SHORT = "UI をリロードする必要があります。",

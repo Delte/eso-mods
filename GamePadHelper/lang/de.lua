@@ -167,6 +167,7 @@ local strings = {
     SI_GPH_OVERVIEW_DAILY_WRIT = "Täglicher Schriftbefehl",
     SI_GPH_OVERVIEW_WRIT = "Schriftbefehl",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "Rezepte mit niedrigem Level ausblenden",
+    SI_GPH_PROVISIONING_SHOW_LOW_LEVEL = "Rezepte mit niedrigem Level anzeigen",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "Versteckt Rezepte unter CP160",
     SI_GPH_RELOAD_BODY = "Änderungen erfordern ein Neuladen der Benutzeroberfläche. Jetzt neu laden?",
     SI_GPH_RELOAD_REQUIRED_SHORT = "Neuladen der Benutzeroberfläche erforderlich.",

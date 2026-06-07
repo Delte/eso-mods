@@ -167,6 +167,7 @@ local strings = {
     SI_GPH_OVERVIEW_DAILY_WRIT = "每日委托",
     SI_GPH_OVERVIEW_WRIT = "委托",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "隐藏低级食谱",
+    SI_GPH_PROVISIONING_SHOW_LOW_LEVEL = "显示低级食谱",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "将食谱隐藏在CP160下",
     SI_GPH_RELOAD_BODY = "更改需要重新加载 UI。现在重新加载？",
     SI_GPH_RELOAD_REQUIRED_SHORT = "需要重新加载 UI。",

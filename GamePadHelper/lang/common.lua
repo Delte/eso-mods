@@ -177,6 +177,7 @@
     SI_GPH_OVERVIEW_DAILY_WRIT = "Daily Writ",
     SI_GPH_OVERVIEW_WRIT = "<<1[Master Writ/Master Writs]>>",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "Hide Low Level Recipes",
+    SI_GPH_PROVISIONING_SHOW_LOW_LEVEL = "Show Low Level Recipes",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "Hides Recipes under CP160",
     SI_GPH_RELOAD_BODY = "Changes require a UI reload. Reload now?",
     SI_GPH_RELOAD_REQUIRED_SHORT = "Reload UI required.",

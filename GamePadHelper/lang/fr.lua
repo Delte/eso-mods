@@ -167,6 +167,7 @@ local strings = {
     SI_GPH_OVERVIEW_DAILY_WRIT = "Ordonnance quotidienne",
     SI_GPH_OVERVIEW_WRIT = "Ordonnance",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "Masquer les recettes de bas niveau",
+    SI_GPH_PROVISIONING_SHOW_LOW_LEVEL = "Afficher les recettes de bas niveau",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "Masque les recettes sous CP160",
     SI_GPH_RELOAD_BODY = "Les modifications nécessitent un rechargement de l’interface utilisateur. Recharger maintenant ?",
     SI_GPH_RELOAD_REQUIRED_SHORT = "Recharger l'interface utilisateur requis.",

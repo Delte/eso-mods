@@ -167,6 +167,7 @@ local strings = {
     SI_GPH_OVERVIEW_DAILY_WRIT = "Ежедневный заказ",
     SI_GPH_OVERVIEW_WRIT = "Заказ",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL = "Скрыть рецепты низкого уровня",
+    SI_GPH_PROVISIONING_SHOW_LOW_LEVEL = "Показать рецепты низкого уровня",
     SI_GPH_PROVISIONING_HIDE_LOW_LEVEL_TOOLTIP = "Скрывает рецепты под CP160",
     SI_GPH_RELOAD_BODY = "Изменения требуют перезагрузки пользовательского интерфейса. Перезагрузить сейчас?",
     SI_GPH_RELOAD_REQUIRED_SHORT = "Требуется перезагрузка пользовательского интерфейса.",
