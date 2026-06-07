@@ -1,4 +1,4 @@
--- AutoEye
+﻿-- AutoEye
 -- Antiquarian's Eye automation (auto-use and slot management)
 
 local ANTIQUARIANS_EYE_ID   = 8006
@@ -46,7 +46,7 @@ local function UnslotEye()
 end
 
 local function MainLoop()
-    if not _G["GamePadHelper_SavedVars"] or not _G["GamePadHelper_SavedVars"].antiquariansEyeEnabled then
+    if not _G["GamePadHelper_CharSavedVars"] or not _G["GamePadHelper_CharSavedVars"].antiquariansEyeEnabled then
         return
     end
     if not IsCollectibleBlocked(ANTIQUARIANS_EYE_ID) then

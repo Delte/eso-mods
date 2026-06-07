@@ -1,5 +1,5 @@
 ﻿local function Tooltip_AddPoisonInfo_Before(self, itemLink, equipSlot)
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.tooltipPoisonEnabled then return end
     local hasPoison, poisonCount, poisonHeader, poisonItemLink = GetItemPairedPoisonInfo(equipSlot)
     if hasPoison then

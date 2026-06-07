@@ -7,8 +7,8 @@ local GPH_NOTIFICATION_TYPE_WHATS_NEW = "GPH_WHATS_NEW"
 _G["ADDON_NAME"] = ADDON_NAME
 
 -- Ensure ESO API compatibility
-if GetAPIVersion() < 101047 then
-    d(zo_strformat(GetString(SI_GPH_API_TOO_OLD), ADDON_NAME, "101047"))
+if GetAPIVersion() < 101050 then
+    d(zo_strformat(GetString(SI_GPH_API_TOO_OLD), ADDON_NAME, "101050"))
     return
 end
 
@@ -17,8 +17,14 @@ local function IsConsole()
 end
 _G["GamePadHelper_IsConsole"] = IsConsole
 
--- Default saved variables
+-- Account-wide saved variables (only shared bookmark pool)
 local defaults = {
+    mapSearchBookmarksAll = {},
+}
+_G["GamePadHelper_Defaults"] = defaults
+
+-- Per-character saved variables (all settings)
+local charDefaults = {
     fishingEnabled = true,
     fishingAlternativeBaits = true,
     autoRepairEnabled = true,
@@ -33,17 +39,19 @@ local defaults = {
     mapSearchSetDestination = true,
     mapSearchNarratePostTeleport = true,
     mapSearchBookmarksAccountWide = false,
-    mapSearchBookmarksAll = {},
     mapSearchAutoFocusSearch = false,
     mapSearchOpenOnSearch = false,
     lootOffsetEnabled = true,
     lootOffset = 350,
     showLowLevelRecipes = false,
     tooltipTraitEnabled = true,
+    tooltipCovetousCountessEnabled = true,
+    tooltipCrowEnabled = true,
     tooltipPriceEnabled = true,
     gearComparisonEnabled = true,
     inventoryTraitEnabled = true,
     inventoryCovetousCountessEnabled = true,
+    inventoryCrowEnabled = true,
     overviewEnabled = true,
     overviewQuestEnabled = true,
     overviewHorseEnabled = true,
@@ -57,21 +65,19 @@ local defaults = {
     tooltipFontEnabled = true,
     tooltipEnchantmentEnabled = true,
     lastAnnouncedVersion = 0,
-    overviewDebug = {},
 }
-_G["GamePadHelper_Defaults"] = defaults
-local mapDataDefaults = {}
+_G["GamePadHelper_CharDefaults"] = charDefaults
 
 local savedVars
-local mapDataSavedVars
+local charVars
 
 local function ShouldShowWhatsNew()
-    return savedVars ~= nil and (savedVars.lastAnnouncedVersion or 0) < ANNOUNCE_VERSION
+    return charVars ~= nil and (charVars.lastAnnouncedVersion or 0) < ANNOUNCE_VERSION
 end
 
 local function DismissWhatsNew()
-    if savedVars then
-        savedVars.lastAnnouncedVersion = ANNOUNCE_VERSION
+    if charVars then
+        charVars.lastAnnouncedVersion = ANNOUNCE_VERSION
     end
 end
 
@@ -130,7 +136,7 @@ local function InstallWhatsNewNotificationProvider()
             customHeaderText = ADDON_NAME,
             customIcon = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new_64.dds",
             message = GetString(SI_GPH_WHATS_NEW_BODY),
-            declineText = GetString(SI_GPH_WHATS_NEW_CONFIRM),
+            declineText = GetString(SI_GAMEPAD_NOTIFICATIONS_DELETE_OPTION),
             secsSinceRequest = ZO_NormalizeSecondsSince(0),
         })
     end
@@ -156,9 +162,11 @@ local function OnAddonLoaded(event, addonName)
     EVENT_MANAGER:UnregisterForEvent(ADDON_NAME, EVENT_ADD_ON_LOADED)
 
     savedVars = ZO_SavedVars:NewAccountWide("GamePadHelperSavedVars", 1, nil, defaults)
-    mapDataSavedVars = ZO_SavedVars:NewAccountWide("GamePadHelperMapData", 1, nil, mapDataDefaults)
     _G["GamePadHelper_SavedVars"] = savedVars
-    _G["GamePadHelperMapData"] = mapDataSavedVars
+    charVars = ZO_SavedVars:New("GamePadHelperSavedVars", 1, nil, charDefaults)
+    _G["GamePadHelper_CharSavedVars"] = charVars
+    -- GamePadHelperMapData is accessed as a raw table in MapSearch.lua; never overwrite
+    -- the global with a ZO_SavedVars proxy or ESO will serialize the proxy at logout.
 
     local function TryInstallProvider()
         if InstallWhatsNewNotificationProvider() then

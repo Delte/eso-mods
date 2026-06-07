@@ -1,5 +1,5 @@
-[CENTER][SIZE="5"][COLOR="#3399FF"][B]LibItemLinkDecoder[/B][/COLOR][/SIZE]
-[B]Version 1.02[/B] | API 101049 | by olegbl[/CENTER]
+﻿[CENTER][SIZE="5"][COLOR="#3399FF"][B]LibItemLinkDecoder[/B][/COLOR][/SIZE]
+[B]Version 1.03[/B] | API 101050 | by olegbl, quelron[/CENTER]
 
 [CENTER]A helper library for Elder Scrolls Online that decodes item links into editable structured objects and re-encodes them back into valid item links.[/CENTER]
 

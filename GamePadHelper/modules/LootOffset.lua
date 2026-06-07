@@ -1,5 +1,5 @@
-local function UpdateLootHistoryOffset()
-    local savedVars = _G["GamePadHelper_SavedVars"]
+﻿local function UpdateLootHistoryOffset()
+    local savedVars = _G["GamePadHelper_CharSavedVars"]
     if not savedVars then return end
 
     local offset = savedVars.lootOffset or 0

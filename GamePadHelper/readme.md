@@ -11,7 +11,7 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
 ## What's New in 1.06.13
 
 - **Notifications entry** - `What's New` now appears in the gamepad Notifications menu instead of using an automatic popup.
-- **Inventory Trait refresh** - bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably.
+- **Inventory Trait refresh** - bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably. Equipped researchable items now show blue without a duplicate counter.
 - **Private Multi-Icon helper** - GamePadHelper no longer depends on `LibMultiIcon`. If you installed the standalone library for older builds, remove or disable it.
 - **Map Search cache reuse** - city service scan data is now reused across `ReloadUI` and relogin, and refreshes only after ESO API updates or when the cache is cleared.
 - **Auto Charge rework** - weapons now recharge in and out of combat using regular soul gems.
@@ -23,7 +23,7 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
    `Documents\Elder Scrolls Online\live\AddOns\GamePadHelper\`
 
 2. Install the required libraries listed below.
-3. If you previously installed **LibMultiIcon** for older GamePadHelper builds, remove or disable it.
+3. IMPORTANT: If you previously installed **LibMultiIcon** for older GamePadHelper builds, remove or disable it.
 4. Enable **GamePadHelper** in the AddOn Manager.
 
 ## Main Features
@@ -61,11 +61,12 @@ Highlights treasures relevant to the **Covetous Countess** quest.
 
 Shows trait research indicators in inventory, bank, and deconstruction.
 
+- **Blue** - equipped item with a researchable trait.
 - **Green** - only accessible copy with this trait; safe to research.
-- **Yellow** - another copy with the same trait exists in your inventory.
-- **Red** - another copy with the same trait exists in your bank.
+- **Yellow** - have duplicate in inventory.
+- **Red** - have duplicate in bank.
 
-Duplicate counts are shown under the icon where applicable. Locked items are excluded from duplicate counting.
+Duplicate counts are shown under non-equipped items where applicable. Locked items are excluded from duplicate counting.
 
 ## Required Libraries
 

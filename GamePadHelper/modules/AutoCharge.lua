@@ -1,4 +1,4 @@
-local function GetSlotName(equipSlot)
+﻿local function GetSlotName(equipSlot)
     if equipSlot == EQUIP_SLOT_MAIN_HAND then
         return GetString(SI_GPH_AUTOCHARGE_MAIN_HAND)
     elseif equipSlot == EQUIP_SLOT_OFF_HAND then
@@ -43,7 +43,7 @@ local WEAPON_SLOT_LOOKUP = {
 local autoChargeQueued = false
 
 local function AutoCharge()
-    local savedVars = _G["GamePadHelper_SavedVars"]
+    local savedVars = _G["GamePadHelper_CharSavedVars"]
     if not savedVars or not savedVars.autoChargeEnabled then
         return
     end

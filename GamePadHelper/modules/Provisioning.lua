@@ -7,7 +7,7 @@ local showLowLevelFilter = {
 }
 
 local function HideRecipes(recipeList)
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.showLowLevelRecipes then
         return false
     end
@@ -63,13 +63,13 @@ local function HideRecipes(recipeList)
 end
 
 local function AddCustomOptions(dialog, dialogData)
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     showLowLevelFilter.checked = sv and sv.showLowLevelRecipes
     table.insert(dialogData.filters, showLowLevelFilter)
 end
 
 local function SaveOptions()
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv then return end
     if sv.showLowLevelRecipes ~= showLowLevelFilter.checked then
         sv.showLowLevelRecipes = showLowLevelFilter.checked
@@ -88,7 +88,7 @@ local function OnAddonLoaded(event, name)
     if name ~= "GamePadHelper" then return end
     EVENT_MANAGER:UnregisterForEvent("Provisioning", EVENT_ADD_ON_LOADED)
 
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if sv then
         showLowLevelFilter.checked = sv.showLowLevelRecipes
     end

@@ -8,7 +8,7 @@ Options > GPH Settings
 ## What's New in 1.06.13
 
 - Notifications entry: What's New now appears in the gamepad Notifications menu instead of using an automatic popup.
-- Inventory Trait refresh: bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably.
+- Inventory Trait refresh: bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably. Equipped researchable items now show blue without a duplicate counter.
 - Private Multi-Icon helper: GamePadHelper no longer depends on LibMultiIcon. If you installed the standalone library for older builds, remove or disable it.
 - Map Search cache reuse: city service scan data is now reused across ReloadUI and relogin, and refreshes only after ESO API updates or when the cache is cleared.
 - Auto Charge rework: weapons now recharge in and out of combat using regular soul gems.
@@ -19,7 +19,7 @@ Options > GPH Settings
 - LibItemLinkDecoder
 - LibTraitResearch
 
-If you installed LibMultiIcon for older GamePadHelper builds, remove or disable it. GamePadHelper now includes its own private multi-icon helper.
+IMPORTANT: If you installed LibMultiIcon for older GamePadHelper builds, remove or disable it. GamePadHelper now includes its own private multi-icon helper.
 
 ## Main Features
 
@@ -38,9 +38,10 @@ If you installed LibMultiIcon for older GamePadHelper builds, remove or disable 
 
 ## Trait Icon Color Meaning
 
-- Green: only accessible copy with this trait; safe to research.
-- Yellow: another copy with the same trait exists in your inventory.
-- Red: another copy with the same trait exists in your bank.
+- Blue: equipped item with a researchable trait.
+- Green: only accessible copy with this trait.
+- Yellow: have duplicate in inventory.
+- Red: have duplicate in bank.
 
 ## Optional Integrations
 

@@ -1,4 +1,4 @@
-GPH_Overview = GPH_Overview or {}
+﻿GPH_Overview = GPH_Overview or {}
 GPH_Overview.Tasks = GPH_Overview.Tasks or {}
 
 local Tasks = GPH_Overview.Tasks
@@ -62,7 +62,7 @@ local DAILY_WRIT_GROUPS = {
 }
 
 local function GetBoolSetting(key, default)
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv then return default end
     local v = sv[key]
     if v == nil then return default end
@@ -240,7 +240,7 @@ local function GetCompanionProfileKey(companionId, companionName)
 end
 
 function EnsureCompanionTrackerState()
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv then return nil end
 
     sv[GPH_COMPANION_TRACKER_KEY] = sv[GPH_COMPANION_TRACKER_KEY] or {}
@@ -257,7 +257,7 @@ function EnsureCompanionTrackerState()
 end
 
 function EnsureDailyWritTrackerState()
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv then return nil end
 
     sv[GPH_DAILY_WRIT_TRACKER_KEY] = sv[GPH_DAILY_WRIT_TRACKER_KEY] or {}

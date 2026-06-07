@@ -1,4 +1,4 @@
-local Overview = {}
+﻿local Overview = {}
 
 GPH_Overview = GPH_Overview or {}
 
@@ -24,7 +24,7 @@ local function IsAnyOverviewActive(sv)
 end
 
 local function ShowTooltips()
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not IsAnyOverviewActive(sv) then return end
 
     Quest.HideControls()
@@ -58,7 +58,7 @@ local function QueueOverviewRefresh()
     State.deferredRefreshQueued = true
     zo_callLater(function()
         State.deferredRefreshQueued = false
-        local sv = _G["GamePadHelper_SavedVars"]
+        local sv = _G["GamePadHelper_CharSavedVars"]
         if sv and IsAnyOverviewActive(sv) and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
             ShowTooltips()
         end
@@ -66,7 +66,7 @@ local function QueueOverviewRefresh()
 end
 
 local function RefreshOverviewIfVisible()
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if sv and IsAnyOverviewActive(sv) and SCENE_MANAGER:IsShowing("mainMenuGamepad") then
         ShowTooltips()
         QueueOverviewRefresh()

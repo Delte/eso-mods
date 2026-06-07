@@ -1,3 +1,5 @@
+⚠ This library is no longer actively developed. It will not be updated beyond API 101049.
+
 LibMultiIcon is a helper library for Elder Scrolls Online that extends ZO_MultiIcon controls with per-icon colors and icon removal helpers.
 
 Version 1.03 updates the library for current ESO internals:

@@ -1,4 +1,4 @@
-local _ChatSystem = KEYBOARD_CHAT_SYSTEM or CHAT_SYSTEM
+﻿local _ChatSystem = KEYBOARD_CHAT_SYSTEM or CHAT_SYSTEM
 
 local MAP_NAME_TO_ZONE_ID = {}
 local mapSearchSuppressingTeleport = false
@@ -41,7 +41,7 @@ local function PopulateMapNameToZoneIdMapping()
 end
 
 local function GetFallbackZoneId()
-    local saved = _G["GamePadHelper_SavedVars"]
+    local saved = _G["GamePadHelper_CharSavedVars"]
     local candidate = saved and saved.lastSelectedPOI
     if type(candidate) == "table" then
         if candidate.zoneId and candidate.zoneId ~= 0 then
@@ -336,7 +336,7 @@ local function PopulateKeybindStripDescriptor()
 end
 
 local function OnWorldMapSceneShow()
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.teleporterEnabled then return end
     KEYBIND_STRIP:RemoveKeybindButtonGroup(GAMEPAD_KEYBIND_STRIP_DESCRIPTOR)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(KEYBOARD_KEYBIND_STRIP_DESCRIPTOR)
@@ -437,7 +437,7 @@ end
 
 local _keybindInitialized = nil
 local function GamepadChatInit()
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.teleporterEnabled then return false end
     if not _keybindInitialized then
         _keybindInitialized = true
@@ -616,7 +616,7 @@ local function OnAddonLoaded(_, name)
         KEYBIND_STRIP:RemoveKeybindButtonGroup(GAMEPAD_KEYBIND_STRIP_DESCRIPTOR)
     end)
     CALLBACK_MANAGER:RegisterCallback("WorldMapInfo_Gamepad_Hidden", function()
-        local sv = _G["GamePadHelper_SavedVars"]
+        local sv = _G["GamePadHelper_CharSavedVars"]
         if sv and sv.teleporterEnabled and IsInGamepadPreferredMode()
            and GAMEPAD_WORLD_MAP_SCENE:IsShowing() then
             KEYBIND_STRIP:AddKeybindButtonGroup(GAMEPAD_KEYBIND_STRIP_DESCRIPTOR)

@@ -1,8 +1,8 @@
-local ADDON_NAME = "LibMultiIcon"
-local ADDON_VERSION = 1.03
+﻿local ADDON_NAME = "LibMultiIcon"
+local ADDON_VERSION = 1.04
 
 -- Ensure ESO API compatibility
-if GetAPIVersion() < 101047 then return end
+if GetAPIVersion() > 101049 then return end
 
 LibMultiIcon = {}
 

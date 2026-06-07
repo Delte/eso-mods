@@ -1,5 +1,13 @@
 local MultiIcon = {}
 
+local function NormalizeTexture(texture)
+    if type(texture) == "string" then
+        return texture
+    end
+
+    return ""
+end
+
 local function SetColor(self, r, g, b, a)
     if self.iconColors ~= nil and self.activeTexture ~= nil then
         local color = self.iconColors[self.activeTexture]
@@ -13,7 +21,8 @@ local function SetColor(self, r, g, b, a)
 end
 
 local function SetTexture(self, texture)
-    self.activeTexture = texture
+    texture = NormalizeTexture(texture)
+    self.activeTexture = texture ~= "" and texture or nil
     self.SetTextureWithoutColor(self, texture)
 
     if self.iconColors ~= nil then
@@ -53,10 +62,10 @@ local function RemoveIcon(self, iconTexture)
 
     if removedActiveTexture then
         local nextIconData = self.iconData and self.iconData[1] or nil
-        local nextTexture = nextIconData and nextIconData.iconTexture or nil
-        self.activeTexture = nextTexture
+        local nextTexture = NormalizeTexture(nextIconData and nextIconData.iconTexture or nil)
+        self.activeTexture = nextTexture ~= "" and nextTexture or nil
 
-        if nextTexture ~= nil then
+        if nextTexture ~= "" then
             self:SetTexture(nextTexture)
             if nextIconData.iconTint ~= nil then
                 self:SetColor(nextIconData.iconTint:UnpackRGBA())

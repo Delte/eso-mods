@@ -2,7 +2,7 @@
 local COLOR_FAILED = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_GAMEPAD_TOOLTIP, GAMEPAD_TOOLTIP_COLOR_FAILED))
 
 local function Tooltip_AddEnchant_Before(self, itemLink, enchantDiffMode, equipSlot)
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.tooltipEnchantmentEnabled then return end
     enchantDiffMode = enchantDiffMode or ZO_ENCHANT_DIFF_NONE
     local enchantSection = self:AcquireSection(self:GetStyle("bodySection"))

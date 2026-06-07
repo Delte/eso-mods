@@ -1,4 +1,4 @@
-GPH_Overview = GPH_Overview or {}
+﻿GPH_Overview = GPH_Overview or {}
 GPH_Overview.Quest = GPH_Overview.Quest or {}
 
 local Quest = GPH_Overview.Quest
@@ -250,7 +250,7 @@ function Quest.ShowLeftTooltip(state)
 end
 
 function Quest.ShouldShowKeybinds(state)
-  local sv = _G["GamePadHelper_SavedVars"]
+  local sv = _G["GamePadHelper_CharSavedVars"]
   if not (sv and sv.overviewEnabled and SCENE_MANAGER:IsShowing("mainMenuGamepad")) then
     return false
   end

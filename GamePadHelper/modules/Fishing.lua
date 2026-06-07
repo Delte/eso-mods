@@ -1,4 +1,4 @@
-local cnt0 = 0
+﻿local cnt0 = 0
 
 -- Bait constants
 local BAIT_LAKE_GUTS          = 2
@@ -57,7 +57,7 @@ local function GetItemQuantity(itemId)
 end
 
 local function SelectFishingBait(interactableName)
-    local savedVars = _G["GamePadHelper_SavedVars"]
+    local savedVars = _G["GamePadHelper_CharSavedVars"]
     if not savedVars or not savedVars.fishingEnabled then return end
 
     local nameLower = zo_strlower(interactableName)
@@ -89,7 +89,7 @@ local function startVibration()
 end
 
 local function onSlotUpdate(event, bagId, slotIndex, isNew)
-    local savedVars = _G["GamePadHelper_SavedVars"]
+    local savedVars = _G["GamePadHelper_CharSavedVars"]
     if not savedVars or not savedVars.fishingEnabled then
         return
     end
@@ -142,7 +142,7 @@ local function OnAddonLoaded(event, name)
 
     if ZO_Reticle then
         ZO_PreHook(ZO_Reticle, "TryHandlingInteraction", function(interactionPossible, currentFrameTimeSeconds)
-            local savedVars = _G["GamePadHelper_SavedVars"]
+            local savedVars = _G["GamePadHelper_CharSavedVars"]
             if not savedVars or not savedVars.fishingEnabled then
                 return
             end

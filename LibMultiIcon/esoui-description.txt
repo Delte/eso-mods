@@ -1,5 +1,7 @@
-[CENTER][SIZE="5"][COLOR="#3399FF"][B]LibMultiIcon[/B][/COLOR][/SIZE]
-[B]Version 1.03[/B] | API 101049 | by olegbl[/CENTER]
+﻿[CENTER][SIZE="5"][COLOR="#3399FF"][B]LibMultiIcon[/B][/COLOR][/SIZE]
+[B]Version 1.04[/B] | API 101049 | by olegbl[/CENTER]
+
+[CENTER][COLOR="#FF6600"][B]⚠ This library is no longer actively developed. It will not be updated beyond API 101049.[/B][/COLOR][/CENTER]
 
 [CENTER]A small helper library for Elder Scrolls Online that extends [B]ZO_MultiIcon[/B] controls with per-icon colors and icon removal helpers.[/CENTER]
 

@@ -1,7 +1,7 @@
-local PRICE_ICON = ZO_Currency_GetGamepadFormattedCurrencyIcon(CURT_MONEY, 20, true)
+﻿local PRICE_ICON = ZO_Currency_GetGamepadFormattedCurrencyIcon(CURT_MONEY, 20, true)
 
 local function AutoRepairStore()
-    local savedVars = _G["GamePadHelper_SavedVars"]
+    local savedVars = _G["GamePadHelper_CharSavedVars"]
     if not savedVars or not savedVars.autoRepairEnabled then
         return
     end

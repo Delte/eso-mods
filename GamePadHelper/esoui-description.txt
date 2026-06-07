@@ -13,11 +13,13 @@ Built only for gamepad and console UI.[/CENTER]
 [*][B]Market prices[/B] - price data is shown when supported sources are installed, including [URL="https://www.esoui.com/downloads/info1245-TamrielTradeCentre.html"]TamrielTradeCentre[/URL]. Console price data provided by [URL="https://tamrielsavings.com/price-fetcher"]Tamriel Savings Co Price Fetcher[/URL] / TSC Price Data API packages.
 [/LIST]
 
+[COLOR="#FF4444"][B]Important:[/B] If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.[/COLOR]
+
 [SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.13[/B][/COLOR][/SIZE]
 
 [LIST]
 [*][B]Notifications entry[/B] - What's New now appears in the gamepad Notifications menu instead of using an automatic popup.
-[*][B]Inventory Trait refresh[/B] - bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably.
+[*][B]Inventory Trait refresh[/B] - bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably. Equipped researchable items now use blue without a duplicate counter.
 [*][B]Private Multi-Icon helper[/B] - GamePadHelper no longer depends on [B]LibMultiIcon[/B]. If you installed the standalone library for older builds, remove or disable it.
 [*][B]Map Search cache reuse[/B] - city service scan data is now reused across ReloadUI and relogin, and refreshes only after ESO API updates or when the cache is cleared.
 [*][B]Auto Charge rework[/B] - weapons now recharge in and out of combat using regular soul gems.
@@ -102,10 +104,11 @@ Built only for gamepad and console UI.[/CENTER]
 [B][COLOR="#DAA520"]Inventory Trait[/COLOR][/B] [Default: ON]
 [LIST]
 [*]Shows an icon next to items whose trait can be researched by the current character.
-[*][COLOR="#00FF00"]Green[/COLOR] - only copy with this trait you have access to; safe to research.
-[*][COLOR="#FFFF00"]Yellow[/COLOR] - another copy with the same trait exists in your inventory.
-[*][COLOR="#FF0000"]Red[/COLOR] - another copy with the same trait exists in your bank.
-[*]Displays duplicate counts and excludes locked items from duplicate counting.
+[*][COLOR="#3399FF"]Blue[/COLOR] - equipped item with a researchable trait.
+[*][COLOR="#00FF00"]Green[/COLOR] - only copy with this trait you have access.
+[*][COLOR="#FFFF00"]Yellow[/COLOR] - have duplicate in inventory.
+[*][COLOR="#FF0000"]Red[/COLOR] - have duplicate in bank.
+[*]Displays duplicate counts on non-equipped items and excludes locked items from duplicate counting.
 [/LIST]
 
 [B][COLOR="#DAA520"]Loot Offset[/COLOR][/B] [Default: ON]
@@ -149,7 +152,7 @@ These must be installed for GamePadHelper to load:
 [*][URL="https://www.esoui.com/downloads/info3264-LibTraitResearch.html"]LibTraitResearch[/URL] - trait research data for Inventory Trait and Tooltip Trait.
 [/LIST]
 
-[B]Important:[/B] If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.
+[COLOR="#FF4444"][B]Important:[/B] If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.[/COLOR]
 
 [SIZE="4"][COLOR="#3399FF"][B]Optional Dependencies[/B][/COLOR][/SIZE]
 

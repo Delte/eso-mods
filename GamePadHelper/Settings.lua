@@ -6,9 +6,11 @@ local gphLootReloadPending = false
 local gphExitHookRegistered = false
 local gphBackOverrideActive = false
 local TRAIT_COLOR_LEGEND = GetString(SI_GPH_TRAIT_COLOR_LEGEND)
+local COVETOUS_COLOR_LEGEND = GetString(SI_GPH_COVETOUS_COLOR_LEGEND)
+local CROW_COLOR_LEGEND = GetString(SI_GPH_CROW_COLOR_LEGEND)
 
 local function GetSavedVars()
-    return _G["GamePadHelper_SavedVars"]
+    return _G["GamePadHelper_CharSavedVars"]
 end
 
 local function GetBoolSetting(key, defaultValue)
@@ -56,11 +58,11 @@ end
 
 local function ResetSettingsToDefaults()
     local sv = GetSavedVars()
-    local defaults = _G["GamePadHelper_Defaults"]
+    local defaults = _G["GamePadHelper_CharDefaults"]
     if not (sv and defaults) then return end
 
     for key, value in pairs(defaults) do
-        if key ~= "lastAnnouncedVersion" and key ~= "overviewDebug" then
+        if key ~= "lastAnnouncedVersion" then
             sv[key] = CopyDefaultValue(value)
         end
     end
@@ -420,6 +422,16 @@ local function BuildSettingsData()
 
     add(BuildCheckbox(GetString(SI_GPH_SETTING_TOOLTIP_PRICE_NAME), GetString(SI_GPH_SETTING_TOOLTIP_PRICE_TOOLTIP), "tooltipPriceEnabled"))
     add(BuildCheckbox(GetString(SI_GPH_SETTING_TOOLTIP_POISON_NAME), GetString(SI_GPH_SETTING_TOOLTIP_POISON_TOOLTIP), "tooltipPoisonEnabled"))
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_TOOLTIP_COVETOUS_COUNTESS_NAME), GetString(SI_GPH_SETTING_TOOLTIP_COVETOUS_COUNTESS_TOOLTIP) .. COVETOUS_COLOR_LEGEND .. CROW_COLOR_LEGEND, function()
+        return GetBoolSetting("tooltipCovetousCountessEnabled", false)
+    end, function(v)
+        SetSetting("tooltipCovetousCountessEnabled", v)
+    end))
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_TOOLTIP_CROW_NAME), GetString(SI_GPH_SETTING_TOOLTIP_CROW_TOOLTIP) .. CROW_COLOR_LEGEND, function()
+        return GetBoolSetting("tooltipCrowEnabled", false)
+    end, function(v)
+        SetSetting("tooltipCrowEnabled", v)
+    end))
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_TOOLTIP_FONT_NAME), GetString(SI_GPH_SETTING_TOOLTIP_FONT_TOOLTIP), function()
         return GetBoolSetting("tooltipFontEnabled", false)
     end, function(v)
@@ -433,7 +445,8 @@ local function BuildSettingsData()
     add(BuildCheckbox(GetString(SI_GPH_SETTING_TOOLTIP_ENCHANTMENTS_NAME), GetString(SI_GPH_SETTING_TOOLTIP_ENCHANTMENTS_TOOLTIP), "tooltipEnchantmentEnabled"))
     add(BuildCheckbox(GetString(SI_GPH_SETTING_GEAR_COMPARISON_NAME), GetString(SI_GPH_SETTING_GEAR_COMPARISON_TOOLTIP), "gearComparisonEnabled"))
     add(BuildCheckbox(GetString(SI_GPH_SETTING_INVENTORY_TRAITS_NAME), GetString(SI_GPH_SETTING_INVENTORY_TRAITS_TOOLTIP) .. TRAIT_COLOR_LEGEND, "inventoryTraitEnabled"))
-    add(BuildCheckbox(GetString(SI_GPH_SETTING_INVENTORY_COVETOUS_COUNTESS_NAME), GetString(SI_GPH_SETTING_INVENTORY_COVETOUS_COUNTESS_TOOLTIP), "inventoryCovetousCountessEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_INVENTORY_COVETOUS_COUNTESS_NAME), GetString(SI_GPH_SETTING_INVENTORY_COVETOUS_COUNTESS_TOOLTIP) .. COVETOUS_COLOR_LEGEND .. CROW_COLOR_LEGEND, "inventoryCovetousCountessEnabled"))
+    add(BuildCheckbox(GetString(SI_GPH_SETTING_INVENTORY_CROW_NAME), GetString(SI_GPH_SETTING_INVENTORY_CROW_TOOLTIP) .. CROW_COLOR_LEGEND, "inventoryCrowEnabled"))
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_DUNGEON_FINDER_NAME), GetString(SI_GPH_SETTING_DUNGEON_FINDER_TOOLTIP), function()
         return GetBoolSetting("dungeonFinderEnabled", false)
     end, function(v)

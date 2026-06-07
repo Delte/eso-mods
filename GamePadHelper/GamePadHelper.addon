@@ -1,11 +1,11 @@
 ## Title: |c3399FFGamePadHelper|r
-## APIVersion: 101049
+## APIVersion: 101050
 ## Version: 1.06.13
 ## AddOnVersion: 10613
 ## Author: olegbl, quelron
 ## Description: |c3399FFGamePadHelper|r improves ESO's gamepad and console UI with modular quality-of-life features. Market prices can use TamrielTradeCentre and Tamriel Savings Co Price Fetcher / TSC data when available.
 ## SavedVariables: GamePadHelperSavedVars GamePadHelperMapData
-## DependsOn: LibCovetousCountess>=102 LibItemLinkDecoder>=102 LibTraitResearch>=103
+## DependsOn: LibCovetousCountess>=103 LibItemLinkDecoder>=102 LibTraitResearch>=103
 ## OptionalDependsOn: TamrielTradeCentre LibPriceCache TSCPriceDataAPIXBNA TSCPriceDataAPIPSNA TSCPriceDataAPIXBEU TSCPriceDataAPIPSEU
 
 lang/common.lua
@@ -23,7 +23,8 @@ modules/OverviewQuest.lua
 modules/OverviewTasks.lua
 modules/Overview.lua
 modules/InventoryTrait.lua
-modules/InventoryCovetousCountess.lua
+modules/InventoryCountessAndCrow.lua
+modules/TooltipCountessAndCrow.lua
 modules/TooltipEnchantment.lua
 modules/TooltipPoison.lua
 modules/TooltipTrait.lua

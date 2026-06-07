@@ -1,6 +1,7 @@
--- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
+﻿-- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
 local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
 local MultiIcon = _G["GamePadHelper_MultiIcon"]
+local EQUIPPED_RESEARCH_COLOR = ZO_ColorDef:New("3399FF")
 
 local function GetItemLinkFromData(data)
     if type(data) ~= "table" then
@@ -31,6 +32,14 @@ local function GetItemLinkFromData(data)
     return nil
 end
 
+local function IsEquippedDisplayItem(data, bagId)
+    if bagId == BAG_WORN then
+        return true
+    end
+
+    return type(data) == "table" and data.isEquipped == true
+end
+
 local function EnsureResearchLabel(control, icon)
     local label = control:GetNamedChild("StatusIndicatorLabel")
     if label ~= nil then
@@ -52,12 +61,75 @@ local function EnsureResearchLabel(control, icon)
     return label
 end
 
-local function ClearTraitDecoration(icon, label, researchIcon)
-    if icon.RemoveIcon and researchIcon and icon:HasIcon(researchIcon) then
-        icon:RemoveIcon(researchIcon)
+local function NormalizeTexture(texture)
+    if type(texture) == "string" then
+        return texture
     end
-    if icon.RemoveIconColor and researchIcon then
-        icon:RemoveIconColor(researchIcon)
+
+    return ""
+end
+
+local function SafeSetTexture(icon, texture)
+    texture = NormalizeTexture(texture)
+    if icon.SetTextureWithoutColor then
+        icon.SetTextureWithoutColor(icon, texture)
+    else
+        icon:SetTexture(texture)
+    end
+    icon.activeTexture = texture ~= "" and texture or nil
+end
+
+local function SafeRemoveIcon(icon, iconTexture)
+    if not icon or not iconTexture or not icon.iconData then
+        return
+    end
+
+    local removedActiveTexture = icon.activeTexture == iconTexture
+    local previousIconData = icon.iconData
+    icon.iconData = {}
+
+    for _, iconData in ipairs(previousIconData) do
+        if iconData.iconTexture ~= iconTexture then
+            table.insert(icon.iconData, iconData)
+        end
+    end
+
+    if removedActiveTexture then
+        local nextIconData = icon.iconData[1]
+        local nextTexture = NormalizeTexture(nextIconData and nextIconData.iconTexture or nil)
+
+        if nextTexture ~= "" then
+            if icon.SetTexture then
+                icon:SetTexture(nextTexture)
+            else
+                SafeSetTexture(icon, nextTexture)
+            end
+
+            if nextIconData and nextIconData.iconTint and icon.SetColor then
+                icon:SetColor(nextIconData.iconTint:UnpackRGBA())
+            elseif icon.SetColor then
+                icon:SetColor(1, 1, 1, 1)
+            end
+        else
+            SafeSetTexture(icon, "")
+        end
+    end
+end
+
+local function SafeRemoveIconColor(icon, iconTexture)
+    if not icon or not icon.iconColors or not iconTexture then
+        return
+    end
+
+    icon.iconColors[iconTexture] = nil
+end
+
+local function ClearTraitDecoration(icon, label, researchIcon)
+    if researchIcon and icon:HasIcon(researchIcon) then
+        SafeRemoveIcon(icon, researchIcon)
+    end
+    if researchIcon then
+        SafeRemoveIconColor(icon, researchIcon)
     end
     if label then
         label:SetHidden(true)
@@ -74,6 +146,62 @@ local function RefreshMultiIcon(icon)
         icon:Hide()
     end
     icon:Show()
+end
+
+local function GetTraitLegendDescription()
+    local lines = {}
+    local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
+    local ornateIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_ORNATE)
+    local intricateIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_INTRICATE)
+
+    local function AddResearchLine(hexColor, text)
+        if researchIcon then
+            table.insert(lines, string.format("|c%s%s|r %s", hexColor, zo_iconFormatInheritColor(researchIcon, 48, 48), text))
+        else
+            table.insert(lines, string.format("|c%s%s|r", hexColor, text))
+        end
+    end
+
+    local function AddIconLine(iconTexture, text)
+        if iconTexture then
+            table.insert(lines, string.format("%s %s", zo_iconFormat(iconTexture, 48, 48), text))
+        else
+            table.insert(lines, text)
+        end
+    end
+
+    AddResearchLine("3399FF", GetString(SI_GPH_TRAIT_LEGEND_EQUIPPED))
+    AddResearchLine("2DC50E", GetString(SI_GPH_TRAIT_LEGEND_ONLY_COPY))
+    AddResearchLine("FFFF00", GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_INVENTORY))
+    AddResearchLine("FF4444", GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_BANK))
+
+    if researchIcon then
+        table.insert(lines, string.format("|cA0A0A0%s|r  +  |cFFFFFF2|r  = %s", zo_iconFormatInheritColor(researchIcon, 48, 48), GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_COUNT)))
+    else
+        table.insert(lines, string.format("+  |cFFFFFF2|r  = %s", GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_COUNT)))
+    end
+    AddIconLine(intricateIcon, GetString("SI_ITEMTRAITINFORMATION", ITEM_TRAIT_INFORMATION_INTRICATE))
+    AddIconLine(ornateIcon, GetString("SI_ITEMTRAITINFORMATION", ITEM_TRAIT_INFORMATION_ORNATE))
+
+    return table.concat(lines, "\n")
+end
+
+local function RefreshDeconstructionTraitLegend()
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if not sv or not sv.inventoryTraitEnabled then
+        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        return
+    end
+
+    GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(
+        GAMEPAD_RIGHT_TOOLTIP,
+        GetString(SI_GPH_SETTING_INVENTORY_TRAITS_NAME),
+        GetTraitLegendDescription()
+    )
+end
+
+local function ClearDeconstructionTraitLegend()
+    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
 end
 
 local function GetTraitResearchState(itemLink, bagId, slotIndex)
@@ -101,13 +229,14 @@ local function BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplic
 end
 
 local function ApplyTraitOverrideData(data)
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.inventoryTraitEnabled or type(data) ~= "table" then
         return
     end
 
     local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
     if not itemLink then
+        data.gphTraitEquipped = nil
         return
     end
 
@@ -116,10 +245,17 @@ local function ApplyTraitOverrideData(data)
 
     if not canBeResearched then
         data.gphTraitLabelText = nil
+        data.gphTraitEquipped = nil
         return
     end
 
-    data.gphTraitLabelText = BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
+    if IsEquippedDisplayItem(data, bagId) then
+        data.gphTraitEquipped = true
+        data.gphTraitLabelText = nil
+    else
+        data.gphTraitEquipped = nil
+        data.gphTraitLabelText = BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
+    end
 
     if not data.overrideStatusIndicatorIcons then
         return
@@ -151,7 +287,7 @@ local function ApplyTraitOverrideData(data)
 end
 
 local function SharedGamepadEntry_OnSetup_After(control, data)
-    local sv = _G["GamePadHelper_SavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.inventoryTraitEnabled then
         return
     end
@@ -193,6 +329,10 @@ local function SharedGamepadEntry_OnSetup_After(control, data)
         return
     end
 
+    if data.gphTraitEquipped or IsEquippedDisplayItem(data, bagId) then
+        colorOverall = EQUIPPED_RESEARCH_COLOR
+    end
+
     if researchIcon and not icon:HasIcon(researchIcon) then
         icon:AddIcon(researchIcon)
     end
@@ -202,7 +342,10 @@ local function SharedGamepadEntry_OnSetup_After(control, data)
     end
     icon:Show()
 
-    local duplicateLabelText = data.gphTraitLabelText or BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
+    local duplicateLabelText
+    if not (data.gphTraitEquipped or IsEquippedDisplayItem(data, bagId)) then
+        duplicateLabelText = data.gphTraitLabelText or BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
+    end
     if duplicateLabelText then
         label:SetText(duplicateLabelText)
         label:SetHidden(false)
@@ -395,6 +538,32 @@ local function HookDeconstructionInventory(inventory)
     QueueDeconstructionVisibleRefresh(inventory)
 end
 
+local function HookDeconstructionTraitLegend(panel, scene)
+    if not panel or panel.gphTraitLegendWrapped then
+        return
+    end
+
+    local originalRefreshTooltip = panel.RefreshTooltip
+    panel.RefreshTooltip = function(self, ...)
+        local result = originalRefreshTooltip(self, ...)
+        RefreshDeconstructionTraitLegend()
+        return result
+    end
+
+    if scene and not panel.gphTraitLegendSceneHooked then
+        scene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+                zo_callLater(RefreshDeconstructionTraitLegend, 0)
+            elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+                ClearDeconstructionTraitLegend()
+            end
+        end)
+        panel.gphTraitLegendSceneHooked = true
+    end
+
+    panel.gphTraitLegendWrapped = true
+end
+
 local function TryInstallDeconstructionHooks()
     if deconstructionHooksInstalled then
         return true
@@ -408,8 +577,16 @@ local function TryInstallDeconstructionHooks()
         HookDeconstructionInventory(self.inventory)
     end)
 
+    ZO_PostHook(ZO_UniversalDeconstructionPanel_Gamepad, "Initialize", function(self, panelControl, floatingControl, universalDeconstructionParent, isRefinementOnly, scene)
+        HookDeconstructionTraitLegend(self, scene)
+    end)
+
     ZO_PostHook(ZO_GamepadSmithingExtraction, "InitializeInventory", function(self)
         HookDeconstructionInventory(self.inventory)
+    end)
+
+    ZO_PostHook(ZO_GamepadSmithingExtraction, "Initialize", function(self, panelControl, floatingControl, owner, isRefinementOnly, scene)
+        HookDeconstructionTraitLegend(self, scene)
     end)
 
     if UNIVERSAL_DECONSTRUCTION_GAMEPAD
@@ -417,10 +594,12 @@ local function TryInstallDeconstructionHooks()
         and UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel.inventory
     then
         HookDeconstructionInventory(UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel.inventory)
+        HookDeconstructionTraitLegend(UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel, UNIVERSAL_DECONSTRUCTION_GAMEPAD.scene)
     end
 
     if SMITHING_GAMEPAD and SMITHING_GAMEPAD.deconstructionPanel and SMITHING_GAMEPAD.deconstructionPanel.inventory then
         HookDeconstructionInventory(SMITHING_GAMEPAD.deconstructionPanel.inventory)
+        HookDeconstructionTraitLegend(SMITHING_GAMEPAD.deconstructionPanel, GAMEPAD_SMITHING_DECONSTRUCT_SCENE)
     end
 
     deconstructionHooksInstalled = true

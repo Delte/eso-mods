@@ -225,7 +225,7 @@ end
 _G["GamePadHelper_MapSearch_IsShowing"] = IsFragmentShowing
 
 local function GetSavedVars()
-    return _G["GamePadHelper_SavedVars"]
+    return _G["GamePadHelper_CharSavedVars"]
 end
 
 local function UpdateKeybinds()
@@ -334,19 +334,17 @@ local function GetBookmarksArray()
     local sv = GetSavedVars()
     if not sv then return {} end
     if sv.mapSearchBookmarksAccountWide == true then
-        if not sv.mapSearchBookmarksAll then
-            sv.mapSearchBookmarksAll = {}
+        local acct = _G["GamePadHelper_SavedVars"]
+        if not acct then return {} end
+        if not acct.mapSearchBookmarksAll then
+            acct.mapSearchBookmarksAll = {}
         end
-        return sv.mapSearchBookmarksAll
+        return acct.mapSearchBookmarksAll
     end
-    local charName = GetUnitName("player")
     if not sv.mapSearchBookmarks then
         sv.mapSearchBookmarks = {}
     end
-    if not sv.mapSearchBookmarks[charName] then
-        sv.mapSearchBookmarks[charName] = {}
-    end
-    return sv.mapSearchBookmarks[charName]
+    return sv.mapSearchBookmarks
 end
 
 local function GetRecentArray()
@@ -2730,27 +2728,26 @@ local function SanitizeSavedMapSearchCandidate(c)
 end
 
 local function SanitizeSavedMapSearchData()
-    if not _G["GamePadHelper_SavedVars"] then return end
-    if type(_G["GamePadHelper_SavedVars"].mapSearchRecent) == "table" then
-        for _, c in ipairs(_G["GamePadHelper_SavedVars"].mapSearchRecent) do
-            SanitizeSavedMapSearchCandidate(c)
-        end
-    end
-    if type(_G["GamePadHelper_SavedVars"].lastSelectedPOI) == "table" then
-        SanitizeSavedMapSearchCandidate(_G["GamePadHelper_SavedVars"].lastSelectedPOI)
-    end
-    if type(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAll) == "table" then
-        for _, c in ipairs(_G["GamePadHelper_SavedVars"].mapSearchBookmarksAll) do
-            SanitizeSavedMapSearchCandidate(c)
-        end
-    end
-    if type(_G["GamePadHelper_SavedVars"].mapSearchBookmarks) == "table" then
-        for _, bookmarks in pairs(_G["GamePadHelper_SavedVars"].mapSearchBookmarks) do
-            if type(bookmarks) == "table" then
-                for _, c in ipairs(bookmarks) do
-                    SanitizeSavedMapSearchCandidate(c)
-                end
+    local charSv = _G["GamePadHelper_CharSavedVars"]
+    local acctSv = _G["GamePadHelper_SavedVars"]
+    if charSv then
+        if type(charSv.mapSearchRecent) == "table" then
+            for _, c in ipairs(charSv.mapSearchRecent) do
+                SanitizeSavedMapSearchCandidate(c)
             end
+        end
+        if type(charSv.lastSelectedPOI) == "table" then
+            SanitizeSavedMapSearchCandidate(charSv.lastSelectedPOI)
+        end
+        if type(charSv.mapSearchBookmarks) == "table" then
+            for _, c in ipairs(charSv.mapSearchBookmarks) do
+                SanitizeSavedMapSearchCandidate(c)
+            end
+        end
+    end
+    if acctSv and type(acctSv.mapSearchBookmarksAll) == "table" then
+        for _, c in ipairs(acctSv.mapSearchBookmarksAll) do
+            SanitizeSavedMapSearchCandidate(c)
         end
     end
 end
@@ -2997,11 +2994,11 @@ local function OnAddonLoaded(_, name)
             wasOnGPHSearch = IsFragmentShowing()
         elseif newState == SCENE_SHOWING then
             zo_callLater(InsertMapSearchTab, 0)
-            if _G["GamePadHelper_SavedVars"] and _G["GamePadHelper_SavedVars"].lastSelectedPOI then
+            if _G["GamePadHelper_CharSavedVars"] and _G["GamePadHelper_CharSavedVars"].lastSelectedPOI then
                 zo_callLater(function()
-                    local poi = _G["GamePadHelper_SavedVars"].lastSelectedPOI
+                    local poi = _G["GamePadHelper_CharSavedVars"].lastSelectedPOI
                     CenterMapOnCandidate(poi)
-                    _G["GamePadHelper_SavedVars"].lastSelectedPOI = nil
+                    _G["GamePadHelper_CharSavedVars"].lastSelectedPOI = nil
                 end, 100)
             end
             if pendingWaypointDest then
