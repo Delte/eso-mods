@@ -1,15 +1,15 @@
 ﻿[CENTER][SIZE="5"][COLOR="#3399FF"][B]LibCovetousCountess[/B][/COLOR][/SIZE]
 [B]Version 1.03[/B] | API 101050 | by olegbl, quelron[/CENTER]
 
-[CENTER]A helper library for Elder Scrolls Online that determines whether a treasure item is useful for The Covetous Countess quest and whether it belongs to the Crow tribute groups.[/CENTER]
+[CENTER]A helper library for Elder Scrolls Online that determines whether a treasure item is useful for The Covetous Countess quest and whether it belongs to the Bursar of Tributes / Crow tribute groups.[/CENTER]
 
 [SIZE="4"][COLOR="#3399FF"][B]What It Does[/B][/COLOR][/SIZE]
 
 [LIST]
 [*]Checks whether a treasure item is useful for the currently active Covetous Countess quest step.
 [*]Checks whether a treasure item is useful for any Covetous Countess quest step.
-[*]Reports whether a treasure item belongs to the Crow tribute groups: leisure, tributes, or respect.
-[*]Keeps current quest-state information available for addon use.
+[*]Reports whether a treasure item belongs to the Bursar of Tributes / Crow tribute groups: leisure, tributes, or respect.
+[*]Tracks current quest-state information automatically for addon use.
 [*]Uses quest ID 5584 to identify The Covetous Countess, then reads the active step to determine the current treasure group.
 [/LIST]
 
@@ -17,10 +17,10 @@
 
 [LIST]
 [*][B]Exact localized Countess tables[/B] - Countess treasure matching now uses exact localized treasure-type tables instead of loose fragment matching.
-[*][B]Separate Crow tables[/B] - Crow treasure groups are exposed separately so addons can use different icons or behavior for leisure, tributes, and respect.
-[*][B]Crow quest ID detection[/B] - active Crow tribute groups now use exact journal quest IDs: 6107 (leisure), 6106 (tributes), and 6072 (respect).
+[*][B]Separate Bursar / Crow tables[/B] - Bursar of Tributes treasure groups are exposed separately so addons can use different icons or behavior for leisure, tributes, and respect.
+[*][B]Bursar / Crow quest ID detection[/B] - active Bursar tribute groups now use exact journal quest IDs: 6107 (leisure), 6106 (tributes), and 6072 (respect).
 [*][B]Unified usefulness API[/B] - `IsItemUseful(itemLink)` now returns active usefulness, general usefulness, and source (`countess`, `crow`, `both`, or nil).
-[*][B]Optional detailed helpers[/B] - separate Countess and Crow usefulness calls are still available for addons that want different icons or tooltip behavior.
+[*][B]Optional detailed helpers[/B] - separate Countess and Bursar / Crow usefulness calls are still available for addons that want different icons or tooltip behavior.
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]API[/B][/COLOR][/SIZE]
@@ -39,9 +39,9 @@ local isUsefulForActiveCrowGroup, isUsefulForAnyCrowGroup = LibCovetousCountess:
 [*]Inventory treasure highlighting
 [*]Quest helper icons
 [*]Tooltip usefulness hints for Thieves Guild treasure items
-[*]Separate Crow treasure icons or tooltip markers
-[*]Exact active Crow daily detection without relying only on localized step text
-[*]Simple unified API with optional detailed Countess and Crow checks
+[*]Separate Bursar / Crow treasure icons or tooltip markers
+[*]Exact active Bursar daily detection without relying only on localized step text
+[*]Simple unified API with optional detailed Countess and Bursar / Crow checks
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]Support[/B][/COLOR][/SIZE]

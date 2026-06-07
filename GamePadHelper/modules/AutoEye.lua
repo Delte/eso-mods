@@ -49,6 +49,11 @@ local function MainLoop()
     if not _G["GamePadHelper_CharSavedVars"] or not _G["GamePadHelper_CharSavedVars"].antiquariansEyeEnabled then
         return
     end
+    local isConsole = _G["GamePadHelper_IsConsole"] and _G["GamePadHelper_IsConsole"]() or false
+    if not isConsole and IsInGamepadPreferredMode and not IsInGamepadPreferredMode() then
+        UnslotEye()
+        return
+    end
     if not IsCollectibleBlocked(ANTIQUARIANS_EYE_ID) then
         SlotEye()
         local cooldown, duration = GetCollectibleCooldownAndDuration(ANTIQUARIANS_EYE_ID)

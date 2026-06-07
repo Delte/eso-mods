@@ -1,20 +1,22 @@
 # GamePadHelper
 
-**Version:** 1.06.13  
+**Version:** 1.06.14  
 **Authors:** olegbl, quelron  
-**API:** 101049
+**API:** 101050
 
 GamePadHelper is a modular collection of quality-of-life improvements for Elder Scrolls Online, built specifically for gamepad and console UI.
 
 Price data can use supported sources such as TamrielTradeCentre and Tamriel Savings Co Price Fetcher / TSC data packages when available.
 
-## What's New in 1.06.13
+## What's New in 1.06.14
 
-- **Notifications entry** - `What's New` now appears in the gamepad Notifications menu instead of using an automatic popup.
-- **Inventory Trait refresh** - bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably. Equipped researchable items now show blue without a duplicate counter.
-- **Private Multi-Icon helper** - GamePadHelper no longer depends on `LibMultiIcon`. If you installed the standalone library for older builds, remove or disable it.
-- **Map Search cache reuse** - city service scan data is now reused across `ReloadUI` and relogin, and refreshes only after ESO API updates or when the cache is cleared.
-- **Auto Charge rework** - weapons now recharge in and out of combat using regular soul gems.
+- **API 101050 update** - updated for the latest ESO patch.
+- **Per-character settings** - GamePadHelper settings and Map Search state now save per character, while the shared bookmark pool remains available when enabled.
+- **Trait indicator refresh** - equipped researchable items now use a blue state, non-equipped items keep green/yellow/red duplicate logic, and tooltip trait explanations were refreshed to match.
+- **Deconstruction trait legend** - deconstruction screens now show a right-side icon legend for research, duplicate counts, ornate, and intricate markers.
+- **Countess and Bursar split** - The Covetous Countess and Bursar of Tributes now have separate inventory and tooltip toggles.
+- **Shared quest icon styling** - Countess and Bursar now use the same quest icon, with green for active Countess items and blue for active Bursar items.
+- **Quest-aware treasure checks** - Countess and Bursar treasure detection now follows the updated LibCovetousCountess logic and active quest detection.
 
 ## Installation
 
@@ -23,7 +25,7 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
    `Documents\Elder Scrolls Online\live\AddOns\GamePadHelper\`
 
 2. Install the required libraries listed below.
-3. IMPORTANT: If you previously installed **LibMultiIcon** for older GamePadHelper builds, remove or disable it.
+3. IMPORTANT: If you previously installed **LibMultiIcon** for older GamePadHelper builds, remove or disable it. GamePadHelper now includes its own private multi-icon helper.
 4. Enable **GamePadHelper** in the AddOn Manager.
 
 ## Main Features
@@ -50,27 +52,29 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
 
 ## Inventory Features
 
-### Inventory Covetous Countess
+### Inventory Countess and Bursar
 
-Highlights treasures relevant to the **Covetous Countess** quest.
+Highlights treasures relevant to **The Covetous Countess** and **Bursar of Tributes** quests.
 
-- **Green icon** - useful for the current active quest step.
-- **White icon** - useful for the quest, but not the current active step.
+- **Countess green icon** - useful for the current active Countess quest.
+- **Bursar blue icon** - useful for the current active Bursar quest.
+- **White icon** - useful, but not for the current active quest.
 
 ### Inventory Trait
 
 Shows trait research indicators in inventory, bank, and deconstruction.
 
 - **Blue** - equipped item with a researchable trait.
-- **Green** - only accessible copy with this trait; safe to research.
+- **Green** - only accessible copy with this trait.
 - **Yellow** - have duplicate in inventory.
 - **Red** - have duplicate in bank.
 
 Duplicate counts are shown under non-equipped items where applicable. Locked items are excluded from duplicate counting.
+Deconstruction screens also show a right-side legend panel that explains research colors, sample duplicate counts, and ornate/intricate markers.
 
 ## Required Libraries
 
-- **LibCovetousCountess** - quest-step data for Inventory Covetous Countess.
+- **LibCovetousCountess** - Countess and Bursar treasure-quest data.
 - **LibItemLinkDecoder** - raw item link decoding for Tooltip Enchantment.
 - **LibTraitResearch** - trait research data for Inventory Trait and Tooltip Trait.
 

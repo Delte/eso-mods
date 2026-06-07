@@ -1,14 +1,14 @@
 local ADDON_NAME = "GamePadHelper"
-local ANNOUNCE_VERSION = 10613
-local ANNOUNCE_VERSION_STRING = "1.06.13"
+local ANNOUNCE_VERSION = 10614
+local ANNOUNCE_VERSION_STRING = "1.06.14"
 local GPH_NOTIFICATION_TYPE_WHATS_NEW = "GPH_WHATS_NEW"
 
 -- Make ADDON_NAME globally accessible for submodules
 _G["ADDON_NAME"] = ADDON_NAME
 
 -- Ensure ESO API compatibility
-if GetAPIVersion() < 101050 then
-    d(zo_strformat(GetString(SI_GPH_API_TOO_OLD), ADDON_NAME, "101050"))
+if GetAPIVersion() < 101049 then
+    d(zo_strformat(GetString(SI_GPH_API_TOO_OLD), ADDON_NAME, "101049"))
     return
 end
 

@@ -148,44 +148,6 @@ local function RefreshMultiIcon(icon)
     icon:Show()
 end
 
-local function GetTraitLegendDescription()
-    local lines = {}
-    local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
-    local ornateIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_ORNATE)
-    local intricateIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_INTRICATE)
-
-    local function AddResearchLine(hexColor, text)
-        if researchIcon then
-            table.insert(lines, string.format("|c%s%s|r %s", hexColor, zo_iconFormatInheritColor(researchIcon, 48, 48), text))
-        else
-            table.insert(lines, string.format("|c%s%s|r", hexColor, text))
-        end
-    end
-
-    local function AddIconLine(iconTexture, text)
-        if iconTexture then
-            table.insert(lines, string.format("%s %s", zo_iconFormat(iconTexture, 48, 48), text))
-        else
-            table.insert(lines, text)
-        end
-    end
-
-    AddResearchLine("3399FF", GetString(SI_GPH_TRAIT_LEGEND_EQUIPPED))
-    AddResearchLine("2DC50E", GetString(SI_GPH_TRAIT_LEGEND_ONLY_COPY))
-    AddResearchLine("FFFF00", GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_INVENTORY))
-    AddResearchLine("FF4444", GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_BANK))
-
-    if researchIcon then
-        table.insert(lines, string.format("|cA0A0A0%s|r  +  |cFFFFFF2|r  = %s", zo_iconFormatInheritColor(researchIcon, 48, 48), GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_COUNT)))
-    else
-        table.insert(lines, string.format("+  |cFFFFFF2|r  = %s", GetString(SI_GPH_TRAIT_LEGEND_DUPLICATE_COUNT)))
-    end
-    AddIconLine(intricateIcon, GetString("SI_ITEMTRAITINFORMATION", ITEM_TRAIT_INFORMATION_INTRICATE))
-    AddIconLine(ornateIcon, GetString("SI_ITEMTRAITINFORMATION", ITEM_TRAIT_INFORMATION_ORNATE))
-
-    return table.concat(lines, "\n")
-end
-
 local function RefreshDeconstructionTraitLegend()
     local sv = _G["GamePadHelper_CharSavedVars"]
     if not sv or not sv.inventoryTraitEnabled then
@@ -196,7 +158,7 @@ local function RefreshDeconstructionTraitLegend()
     GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(
         GAMEPAD_RIGHT_TOOLTIP,
         GetString(SI_GPH_SETTING_INVENTORY_TRAITS_NAME),
-        GetTraitLegendDescription()
+        GetString(SI_GPH_TRAIT_COLOR_LEGEND)
     )
 end
 

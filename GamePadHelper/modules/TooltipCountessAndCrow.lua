@@ -65,7 +65,7 @@ local function OnAddonLoaded(event, name)
             local covetousSection = self:AcquireSection(self:GetStyle("bodySection"))
             local iconColor = isUsefulForActiveQuest and COLOR_COUNTESS_ACTIVE or COLOR_USEFUL_INACTIVE
             local title = string.format("%s (%s)", GetString(SI_GPH_TOOLTIP_COVETOUS_TITLE), iconColor:Colorize(QUEST_ICON))
-            local descriptionStringId = isUsefulForActiveQuest and SI_GPH_TOOLTIP_COVETOUS_ACTIVE or SI_GPH_TOOLTIP_COVETOUS_INACTIVE
+            local descriptionStringId = isUsefulForActiveQuest and SI_GPH_TOOLTIP_TREASURE_ACTIVE or SI_GPH_TOOLTIP_TREASURE_INACTIVE
 
             covetousSection:AddLine(title, self:GetStyle("bodyHeader"))
             covetousSection:AddLine(GetString(descriptionStringId), self:GetStyle("bodyDescription"))
@@ -76,7 +76,7 @@ local function OnAddonLoaded(event, name)
             local crowSection = self:AcquireSection(self:GetStyle("bodySection"))
             local iconColor = isUsefulForActiveCrowGroup and COLOR_CROW_ACTIVE or COLOR_USEFUL_INACTIVE
             local title = string.format("%s (%s)", GetString(SI_GPH_TOOLTIP_CROW_TITLE), iconColor:Colorize(QUEST_ICON))
-            local descriptionStringId = isUsefulForActiveCrowGroup and SI_GPH_TOOLTIP_CROW_ACTIVE or SI_GPH_TOOLTIP_CROW_INACTIVE
+            local descriptionStringId = isUsefulForActiveCrowGroup and SI_GPH_TOOLTIP_TREASURE_ACTIVE or SI_GPH_TOOLTIP_TREASURE_INACTIVE
 
             crowSection:AddLine(title, self:GetStyle("bodyHeader"))
             crowSection:AddLine(GetString(descriptionStringId), self:GetStyle("bodyDescription"))

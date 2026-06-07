@@ -1012,12 +1012,3 @@ for _, sceneName in ipairs(craftingScenes) do
     end
 end
 
--- Try to register for main menu gamepad scene
-local mainMenuScene = SCENE_MANAGER:GetScene("mainMenuGamepad")
-if mainMenuScene then
-    mainMenuScene:RegisterCallback("StateChange", function(scene, oldState, newState)
-        if newState == SCENE_SHOWING then
-            InitializeCraftingHooks()
-        end
-    end)
-end

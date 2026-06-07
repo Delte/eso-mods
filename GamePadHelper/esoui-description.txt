@@ -1,5 +1,5 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
-[B]Version 1.06.13[/B] | API 101049 | by olegbl, quelron[/CENTER]
+[B]Version 1.06.14[/B] | API 101050 | by olegbl, quelron[/CENTER]
 
 [CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
 Built only for gamepad and console UI.[/CENTER]
@@ -15,14 +15,16 @@ Built only for gamepad and console UI.[/CENTER]
 
 [COLOR="#FF4444"][B]Important:[/B] If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.[/COLOR]
 
-[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.13[/B][/COLOR][/SIZE]
+[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.14[/B][/COLOR][/SIZE]
 
 [LIST]
-[*][B]Notifications entry[/B] - What's New now appears in the gamepad Notifications menu instead of using an automatic popup.
-[*][B]Inventory Trait refresh[/B] - bag, bank, and deconstruction trait icons now update colors, counts, and icon switching more reliably. Equipped researchable items now use blue without a duplicate counter.
-[*][B]Private Multi-Icon helper[/B] - GamePadHelper no longer depends on [B]LibMultiIcon[/B]. If you installed the standalone library for older builds, remove or disable it.
-[*][B]Map Search cache reuse[/B] - city service scan data is now reused across ReloadUI and relogin, and refreshes only after ESO API updates or when the cache is cleared.
-[*][B]Auto Charge rework[/B] - weapons now recharge in and out of combat using regular soul gems.
+[*][B]API 101050 update[/B]: updated for the latest ESO patch.
+[*][B]Per-character settings[/B] - GamePadHelper settings and Map Search save data now store per character, while the shared bookmark pool remains available when enabled.
+[*][B]Trait indicator refresh[/B] - equipped researchable items now use a blue state, non-equipped items keep green/yellow/red duplicate logic, and tooltip trait explanations were refreshed to match.
+[*][B]Deconstruction trait legend[/B] - deconstruction screens now show a right-side icon legend for research, duplicate counts, ornate, and intricate markers.
+[*][B]Countess and Bursar split[/B] - Covetous Countess and Bursar of Tributes now have separate inventory and tooltip toggles.
+[*][B]Shared quest icon styling[/B] - Countess and Bursar now use the same quest icon, with green for active Countess items and blue for active Bursar items.
+[*][B]Updated treasure checks[/B] - Countess and Bursar treasure detection now follows the updated LibCovetousCountess logic and active quest detection.
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]Features[/B][/COLOR][/SIZE]
@@ -94,11 +96,12 @@ Built only for gamepad and console UI.[/CENTER]
 [*]Shows currently equipped item and new item stat-change panels side by side.
 [/LIST]
 
-[B][COLOR="#DAA520"]Inventory Covetous Countess[/COLOR][/B] [Default: ON]
+[B][COLOR="#DAA520"]Inventory Countess and Bursar[/COLOR][/B] [Default: ON]
 [LIST]
-[*]Marks treasures useful for The Covetous Countess quest.
-[*]Green icon means useful for the current active quest step.
-[*]White icon means useful for the quest, but not the current active step.
+[*]Marks treasures useful for The Covetous Countess and Bursar of Tributes quests.
+[*][COLOR="#00FF00"]Green[/COLOR] icon means useful for the current active Countess quest.
+[*][COLOR="#3399FF"]Blue[/COLOR] icon means useful for the current active Bursar quest.
+[*][COLOR="#FFFFFF"]White[/COLOR] icon means useful, but not for the current active quest.
 [/LIST]
 
 [B][COLOR="#DAA520"]Inventory Trait[/COLOR][/B] [Default: ON]
@@ -109,6 +112,7 @@ Built only for gamepad and console UI.[/CENTER]
 [*][COLOR="#FFFF00"]Yellow[/COLOR] - have duplicate in inventory.
 [*][COLOR="#FF0000"]Red[/COLOR] - have duplicate in bank.
 [*]Displays duplicate counts on non-equipped items and excludes locked items from duplicate counting.
+[*]Adds a right-side legend panel in deconstruction screens showing research colors, sample duplicate counts, and ornate/intricate icon meanings.
 [/LIST]
 
 [B][COLOR="#DAA520"]Loot Offset[/COLOR][/B] [Default: ON]
@@ -147,7 +151,7 @@ Open the settings panel from:
 These must be installed for GamePadHelper to load:
 
 [LIST]
-[*][URL="https://www.esoui.com/downloads/info3266-LibCovetousCountess.html"]LibCovetousCountess[/URL] - quest-step data for Inventory Covetous Countess.
+[*][URL="https://www.esoui.com/downloads/info3266-LibCovetousCountess.html"]LibCovetousCountess[/URL] - Countess and Bursar treasure-quest data.
 [*][URL="https://www.esoui.com/downloads/info3265-LibItemLinkDecoder.html"]LibItemLinkDecoder[/URL] - item link decoding for Tooltip Enchantment.
 [*][URL="https://www.esoui.com/downloads/info3264-LibTraitResearch.html"]LibTraitResearch[/URL] - trait research data for Inventory Trait and Tooltip Trait.
 [/LIST]
