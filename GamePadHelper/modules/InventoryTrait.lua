@@ -132,6 +132,7 @@ local function ClearTraitDecoration(icon, label, researchIcon)
         SafeRemoveIconColor(icon, researchIcon)
     end
     if label then
+        label:SetText("")
         label:SetHidden(true)
     end
 end
@@ -148,10 +149,37 @@ local function RefreshMultiIcon(icon)
     icon:Show()
 end
 
-local function RefreshDeconstructionTraitLegend()
+local function ClearDeconstructionTraitLegend()
+    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+end
+
+local function IsDeconstructionTraitLegendEnabled()
     local sv = _G["GamePadHelper_CharSavedVars"]
-    if not sv or not sv.inventoryTraitEnabled then
-        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+    return sv and sv.inventoryTraitEnabled and sv.inventoryTraitDeconstructionLegendEnabled
+end
+
+local function IsDeconstructionTraitLegendVisible()
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if not sv then
+        return true
+    end
+    return sv.inventoryTraitDeconstructionLegendVisible ~= false
+end
+
+local function SetDeconstructionTraitLegendVisible(visible)
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if sv then
+        sv.inventoryTraitDeconstructionLegendVisible = visible
+    end
+end
+
+local function ShouldShowDeconstructionTraitLegend(panel)
+    return IsDeconstructionTraitLegendEnabled() and IsDeconstructionTraitLegendVisible()
+end
+
+local function RefreshDeconstructionTraitLegend(panel)
+    if not ShouldShowDeconstructionTraitLegend(panel) then
+        ClearDeconstructionTraitLegend()
         return
     end
 
@@ -162,8 +190,34 @@ local function RefreshDeconstructionTraitLegend()
     )
 end
 
-local function ClearDeconstructionTraitLegend()
-    GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+local function AddDeconstructionTraitLegendKeybind(panel)
+    if not panel or panel.gphTraitLegendKeybindAdded or not panel.keybindStripDescriptor then
+        return
+    end
+
+    table.insert(panel.keybindStripDescriptor,
+    {
+        name = function()
+            if not IsDeconstructionTraitLegendVisible() then
+                return GetString(SI_GPH_DECONSTRUCTION_TRAIT_LEGEND_SHOW)
+            end
+            return GetString(SI_GPH_DECONSTRUCTION_TRAIT_LEGEND_HIDE)
+        end,
+        keybind = "UI_SHORTCUT_QUINARY",
+        gamepadOrder = 1015,
+        visible = function()
+            return IsDeconstructionTraitLegendEnabled()
+        end,
+        callback = function()
+            SetDeconstructionTraitLegendVisible(not IsDeconstructionTraitLegendVisible())
+            RefreshDeconstructionTraitLegend(panel)
+            if KEYBIND_STRIP and panel.keybindStripDescriptor then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(panel.keybindStripDescriptor)
+            end
+        end,
+    })
+
+    panel.gphTraitLegendKeybindAdded = true
 end
 
 local function GetTraitResearchState(itemLink, bagId, slotIndex)
@@ -198,6 +252,7 @@ local function ApplyTraitOverrideData(data)
 
     local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
     if not itemLink then
+        data.gphTraitLabelText = nil
         data.gphTraitEquipped = nil
         return
     end
@@ -311,6 +366,9 @@ local function SharedGamepadEntry_OnSetup_After(control, data)
     if duplicateLabelText then
         label:SetText(duplicateLabelText)
         label:SetHidden(false)
+    else
+        label:SetText("")
+        label:SetHidden(true)
     end
 
     RefreshMultiIcon(icon)
@@ -505,17 +563,24 @@ local function HookDeconstructionTraitLegend(panel, scene)
         return
     end
 
+    AddDeconstructionTraitLegendKeybind(panel)
+
     local originalRefreshTooltip = panel.RefreshTooltip
     panel.RefreshTooltip = function(self, ...)
         local result = originalRefreshTooltip(self, ...)
-        RefreshDeconstructionTraitLegend()
+        RefreshDeconstructionTraitLegend(self)
         return result
     end
 
     if scene and not panel.gphTraitLegendSceneHooked then
         scene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
-                zo_callLater(RefreshDeconstructionTraitLegend, 0)
+                zo_callLater(function()
+                    RefreshDeconstructionTraitLegend(panel)
+                    if KEYBIND_STRIP and panel.keybindStripDescriptor then
+                        KEYBIND_STRIP:UpdateKeybindButtonGroup(panel.keybindStripDescriptor)
+                    end
+                end, 0)
             elseif newState == SCENE_HIDING or newState == SCENE_HIDDEN then
                 ClearDeconstructionTraitLegend()
             end
