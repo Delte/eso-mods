@@ -5,6 +5,12 @@ A modular collection of quality-of-life improvements for Elder Scrolls Online, b
 Open settings from:
 Options > GPH Settings
 
+## What's New in 1.06.15
+
+- Reset timer: daily reset countdown now shows HH:MM instead of HH:MM:SS.
+- Auto Charge fix: weapon charge threshold was referencing a stale variable; charging now triggers correctly at the configured threshold.
+- Countess and Bursar icon priority: when both apply to the same item, active Countess (green) now takes priority over active Bursar (blue) in the inventory icon.
+
 ## What's New in 1.06.14
 
 - API 101050 update: updated for the latest ESO patch.
@@ -47,6 +53,8 @@ IMPORTANT: If you installed LibMultiIcon for older GamePadHelper builds, remove 
 - Deconstruction screens include a right-side legend panel for trait colors, duplicate counts, and ornate/intricate icons.
 
 ## Optional Integrations
+
+Market prices are shown when supported sources are installed, including TamrielTradeCentre. Console price data provided by Tamriel Savings Co Price Fetcher / TSC Price Data API packages.
 
 - TamrielTradeCentre
 - TSCPriceDataAPIXBNA
