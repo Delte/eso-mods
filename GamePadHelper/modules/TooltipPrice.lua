@@ -10,7 +10,9 @@ local AMOUNT_ICON = zo_iconFormatInheritColor("/esoui/art/inventory/gamepad/gp_i
 
 local cachedTscApi = nil
 local PRICE_CACHE_TTL_MS = 60000
+local PRICE_CACHE_MAX_ENTRIES = 500
 local priceInfoCache = {}
+local priceCacheCount = 0
 
 local SUPPRESS_EXTERNAL_PRICE_PATTERNS = {
     "tsc",
@@ -46,7 +48,7 @@ end
 
 local function GetTSCApi()
     if cachedTscApi ~= nil then
-        return cachedTscApi or nil
+        return cachedTscApi
     end
 
     local function SafeGetGlobal(name)
@@ -186,6 +188,13 @@ local function SafeGetPriceInfo(itemLink)
         end
 
         value = value or {}
+        if not priceInfoCache[itemLink] then
+            priceCacheCount = priceCacheCount + 1
+            if priceCacheCount > PRICE_CACHE_MAX_ENTRIES then
+                priceInfoCache = {}
+                priceCacheCount = 1
+            end
+        end
         priceInfoCache[itemLink] = { value = value, timeMs = nowMs }
         return value
 end

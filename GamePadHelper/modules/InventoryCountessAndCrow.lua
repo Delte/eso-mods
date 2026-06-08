@@ -1,44 +1,10 @@
-﻿-- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
-local MultiIcon = _G["GamePadHelper_MultiIcon"]
+﻿local Utils = _G["GamePadHelper_Utils"]
+local MultiIcon = _G["GamePadHelper_IconExtensions"]
 local QUEST_ICON = "/esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds"
 
 local COLOR_COUNTESS_ACTIVE = ZO_ColorDef:New(0.18, 0.77, 0.05)
 local COLOR_CROW_ACTIVE = ZO_ColorDef:New(0.2, 0.6, 1.0)
 local COLOR_USEFUL_INACTIVE = ZO_ColorDef:New(1, 1, 1)
-
-local function GetCountessState(itemLink)
-    if not itemLink or itemLink == "" then
-        return false, false
-    end
-
-    if not LibCovetousCountess or not LibCovetousCountess.IsItemUsefulForCountess then
-        return false, false
-    end
-
-    local success, isUsefulForActiveQuest, isUsefulForQuest = pcall(LibCovetousCountess.IsItemUsefulForCountess, LibCovetousCountess, itemLink)
-    if not success then
-        return false, false
-    end
-
-    return isUsefulForActiveQuest, isUsefulForQuest
-end
-
-local function GetCrowState(itemLink)
-    if not itemLink or itemLink == "" then
-        return false, false
-    end
-
-    if not LibCovetousCountess or not LibCovetousCountess.IsItemUsefulForCrow then
-        return false, false
-    end
-
-    local success, isUsefulForActiveGroup, isUsefulForCrow = pcall(LibCovetousCountess.IsItemUsefulForCrow, LibCovetousCountess, itemLink)
-    if not success then
-        return false, false
-    end
-
-    return isUsefulForActiveGroup, isUsefulForCrow
-end
 
 local function EnsureStatusIndicatorInitialized(statusIndicator)
     if MultiIcon then
@@ -123,27 +89,27 @@ local function SharedGamepadEntry_OnSetup_After(control, data, ...)
     local itemType = GetItemLinkItemType(itemLink)
     if itemType ~= ITEMTYPE_TREASURE then return end
 
-    local isUsefulForActiveQuest, isUsefulForQuest = GetCountessState(itemLink)
-    local isUsefulForActiveCrowGroup, isUsefulForCrow = GetCrowState(itemLink)
+    local isUsefulForActiveQuest, isUsefulForQuest = Utils.GetCountessState(itemLink)
+    local isUsefulForActiveCrowGroup, isUsefulForCrow = Utils.GetCrowState(itemLink)
 
     EnsureStatusIndicatorInitialized(statusIndicator)
 
-    if sv.inventoryCovetousCountessEnabled and isUsefulForQuest then
-        if QUEST_ICON and not statusIndicator:HasIcon(QUEST_ICON) then
-            statusIndicator:AddIcon(QUEST_ICON)
-        end
-        if statusIndicator.SetIconColor and QUEST_ICON then
-            local color = isUsefulForActiveQuest and COLOR_COUNTESS_ACTIVE or COLOR_USEFUL_INACTIVE
-            statusIndicator:SetIconColor(QUEST_ICON, color:UnpackRGBA())
-        end
-    end
+    local showCountess = sv.inventoryCovetousCountessEnabled and isUsefulForQuest
+    local showCrow = sv.inventoryCrowEnabled and isUsefulForCrow
 
-    if sv.inventoryCrowEnabled and isUsefulForCrow then
-        if QUEST_ICON and not statusIndicator:HasIcon(QUEST_ICON) then
+    if (showCountess or showCrow) and QUEST_ICON then
+        if not statusIndicator:HasIcon(QUEST_ICON) then
             statusIndicator:AddIcon(QUEST_ICON)
         end
-        if statusIndicator.SetIconColor and QUEST_ICON then
-            local color = isUsefulForActiveCrowGroup and COLOR_CROW_ACTIVE or COLOR_USEFUL_INACTIVE
+        if statusIndicator.SetIconColor then
+            local color
+            if showCountess and isUsefulForActiveQuest then
+                color = COLOR_COUNTESS_ACTIVE
+            elseif showCrow and isUsefulForActiveCrowGroup then
+                color = COLOR_CROW_ACTIVE
+            else
+                color = COLOR_USEFUL_INACTIVE
+            end
             statusIndicator:SetIconColor(QUEST_ICON, color:UnpackRGBA())
         end
     end

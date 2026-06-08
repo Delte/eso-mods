@@ -15,9 +15,7 @@ local function IsGamepadOverviewAllowed()
     return IsInGamepadPreferredMode == nil or IsInGamepadPreferredMode()
 end
 
--- On console GAMEPAD_CHAT_SYSTEM is absent; treat as faded so the full
--- GAMEPAD_RIGHT_TOOLTIP slot is used for the tasks panel.
-State.isChatFaded = (GAMEPAD_CHAT_SYSTEM == nil)
+State.isChatFaded = false
 State.deferredRefreshQueued = false
 State.questIndexOverride = nil
 State.keybindDescriptor = nil

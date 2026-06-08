@@ -1,6 +1,6 @@
 local function UpdateLootHistoryOffset()
-    local savedVars = _G["GamePadHelper_CharSavedVars"]
-    if not savedVars then return end
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if not sv then return end
 
     local mainControl = ZO_LootHistoryControl_Gamepad
     if mainControl then
@@ -12,9 +12,9 @@ local function UpdateLootHistoryOffset()
             return
         end
 
-        local offset = savedVars.lootOffset or 0
+        local offset = sv.lootOffset or 0
         local useKeyboardChat = GetSetting_Bool(SETTING_TYPE_GAMEPAD, GAMEPAD_SETTING_USE_KEYBOARD_CHAT)
-        if useKeyboardChat and savedVars.lootOffsetEnabled then
+        if useKeyboardChat and sv.lootOffsetEnabled then
             local gamepadOffset = -120 - offset
             mainControl:SetAnchor(BOTTOMLEFT, GuiRoot, BOTTOMLEFT, 0, gamepadOffset)
         else

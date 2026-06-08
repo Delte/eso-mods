@@ -36,7 +36,7 @@ local function SlotEye()
 end
 
 local function UnslotEye()
-    if GetSlotItemLink(GetCurrentQuickslot(), HOTBAR_CATEGORY_QUICKSLOT_WHEEL) == ANTIQUARIANS_EYE_LINK then
+    if previousSlot and previousSlot ~= 0 and GetSlotItemLink(GetCurrentQuickslot(), HOTBAR_CATEGORY_QUICKSLOT_WHEEL) == ANTIQUARIANS_EYE_LINK then
         SetCurrentQuickslot(previousSlot)
         if eyeIsActive then
             eyeIsActive = false
@@ -46,7 +46,8 @@ local function UnslotEye()
 end
 
 local function MainLoop()
-    if not _G["GamePadHelper_CharSavedVars"] or not _G["GamePadHelper_CharSavedVars"].antiquariansEyeEnabled then
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if not sv or not sv.antiquariansEyeEnabled then
         return
     end
     local isConsole = _G["GamePadHelper_IsConsole"] and _G["GamePadHelper_IsConsole"]() or false
@@ -67,9 +68,9 @@ end
 
 local function OnPlayerActivated()
     if GetMapContentType() ~= MAP_CONTENT_AVA and GetMapContentType() ~= MAP_CONTENT_BATTLEGROUND and GetMapContentType() ~= MAP_CONTENT_DUNGEON then
-        EVENT_MANAGER:RegisterForUpdate("GamePadHelperTickUpdate", 1000, function(gameTimeMs) MainLoop() end)
+        EVENT_MANAGER:RegisterForUpdate("GPH_AutoEye_TickUpdate", 1000, function(gameTimeMs) MainLoop() end)
     else
-        EVENT_MANAGER:UnregisterForUpdate("GamePadHelperTickUpdate")
+        EVENT_MANAGER:UnregisterForUpdate("GPH_AutoEye_TickUpdate")
     end
 end
 
@@ -106,7 +107,7 @@ local function OnAddonLoaded(event, name)
     EVENT_MANAGER:RegisterForEvent("AutoEye", EVENT_HOTBAR_SLOT_UPDATED, OnHotbarUpdate)
     EVENT_MANAGER:RegisterForEvent("AutoEye", EVENT_PLAYER_ACTIVATED, OnPlayerActivated)
     EVENT_MANAGER:RegisterForEvent("AutoEye", EVENT_PLAYER_DEACTIVATED, function()
-        EVENT_MANAGER:UnregisterForUpdate("GamePadHelperTickUpdate")
+        EVENT_MANAGER:UnregisterForUpdate("GPH_AutoEye_TickUpdate")
     end)
     EVENT_MANAGER:RegisterForEvent("AutoEye", EVENT_ANTIQUITY_DIGGING_READY_TO_PLAY, OnDiggingStart)
     EVENT_MANAGER:RegisterForEvent("AutoEye", EVENT_ANTIQUITY_DIGGING_EXIT_RESPONSE, OnDiggingEnd)

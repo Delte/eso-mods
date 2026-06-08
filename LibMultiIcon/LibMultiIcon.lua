@@ -2,7 +2,13 @@
 local ADDON_VERSION = 1.04
 
 -- Ensure ESO API compatibility
-if GetAPIVersion() >= 101049 then return end
+if GetAPIVersion() >= 101049 then
+    EVENT_MANAGER:RegisterForEvent(ADDON_NAME .. "_Deprecated", EVENT_PLAYER_ACTIVATED, function()
+        EVENT_MANAGER:UnregisterForEvent(ADDON_NAME .. "_Deprecated", EVENT_PLAYER_ACTIVATED)
+        CHAT_SYSTEM:AddMessage("[LibMultiIcon] This library is deprecated and must not be enabled anymore! Please disable/delete it from your addons.")
+    end)
+    return
+end
 
 LibMultiIcon = {}
 

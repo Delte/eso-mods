@@ -1,6 +1,5 @@
-﻿-- GetPlatformTraitInformationIcon is a PC-only alias; ZO_GetPlatformTraitInformationIcon is the base function
-local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
-local MultiIcon = _G["GamePadHelper_MultiIcon"]
+﻿local _GetTraitIcon = _G["GamePadHelper_Utils"] and _G["GamePadHelper_Utils"].GetTraitIcon
+local MultiIcon = _G["GamePadHelper_IconExtensions"]
 local EQUIPPED_RESEARCH_COLOR = ZO_ColorDef:New("3399FF")
 
 local function GetItemLinkFromData(data)

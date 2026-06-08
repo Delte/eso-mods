@@ -365,8 +365,6 @@ local function MakeSavedCandidate(c, key)
         icon         = c.icon,
         nodeIndex    = c.nodeIndex,
         zoneId       = c.zoneId,
-        zoneIndex    = c.zoneIndex,
-        mapIndex     = c.mapIndex,
         poiIndex     = c.poiIndex,
         zoneName     = c.zoneName,
         placeName    = c.placeName,
@@ -498,7 +496,7 @@ end
 
 -- pre-scan 
 
-local function AddClickableSubMap(maps, seen, parentMapIndex, parentZoneId, x, y, fallbackName)
+local function AddClickableSubMap(maps, seen, parentZoneId, x, y, fallbackName)
     if not x or not y or x <= 0 or y <= 0 then return end
     local locationName, _, _, _, _, _, mapId = GetMapMouseoverInfo(x, y)
     if mapId and mapId ~= 0 and not seen[mapId] then
@@ -506,7 +504,6 @@ local function AddClickableSubMap(maps, seen, parentMapIndex, parentZoneId, x, y
         maps[#maps + 1] = {
             mapId = mapId,
             name = CleanName((locationName and locationName ~= "") and locationName or (fallbackName or "")),
-            parentMapIndex = parentMapIndex,
             parentZoneId = parentZoneId,
         }
     end
@@ -529,13 +526,13 @@ local function GetClickableSubMaps()
                 for poiIndex = 1, GetNumPOIs(zoneIndex) do
                     local poiName = GetPOIInfo(zoneIndex, poiIndex)
                     local nx, ny = GetPOIMapInfo(zoneIndex, poiIndex)
-                    AddClickableSubMap(maps, seen, mapIndex, parentZoneId, nx, ny, poiName)
+                    AddClickableSubMap(maps, seen, parentZoneId, nx, ny, poiName)
                 end
             end
 
             for blobIndex = 1, GetNumMapBlobs() do
                 local blobName, nx, nz = GetMapBlobNameInfo(blobIndex)
-                AddClickableSubMap(maps, seen, mapIndex, parentZoneId, nx, nz, blobName)
+                AddClickableSubMap(maps, seen, parentZoneId, nx, nz, blobName)
             end
         end
     end
@@ -547,14 +544,10 @@ end
 
 local function PreScan()
     craftingPOIIndex = {}
-    local zoneToMap    = {}
     local nameToZoneId = {}
     for mi = 1, GetNumMaps() do
-        local mapName, mapType, _, zi = GetMapInfoByIndex(mi)
+        local mapName, _, _, zi = GetMapInfoByIndex(mi)
         if zi and zi > 0 then
-            if not zoneToMap[zi] or mapType == MAPTYPE_ZONE then
-                zoneToMap[zi] = mi
-            end
             nameToZoneId[mapName] = GetZoneId(zi)
         end
     end
@@ -590,10 +583,8 @@ local function PreScan()
                     name         = CleanName(name),
                     icon         = icon,
                     nodeIndex    = nodeIndex,
-                    zoneIndex    = zoneIndex,
                     zoneId       = zoneId,
                     poiIndex     = poiIndex,
-                    mapIndex     = zoneToMap[zoneIndex],
                     zoneName     = CleanName(GetZoneNameById(zoneId)),
                     known        = known,
                     isLocked     = isLocked,
@@ -607,23 +598,21 @@ local function PreScan()
     end
 
     local seenZone = {}
-    local function AddZoneEntry(zoneId, zoneIndex, mapIndex, zoneName)
+    local function AddZoneEntry(zoneId, zoneIndex, zoneName)
         if not zoneId or zoneId <= 0 or seenZone[zoneId] then return end
         seenZone[zoneId] = true
 
         local cleanZoneName = CleanName(zoneName or "")
         data.zones[#data.zones + 1] = {
-            name      = cleanZoneName,
-            zoneId    = zoneId,
-            zoneIndex = zoneIndex,
-            mapIndex  = mapIndex,
-            isLocked  = lockedZoneIndex[zoneIndex] or false,
+            name     = cleanZoneName,
+            zoneId   = zoneId,
+            isLocked = lockedZoneIndex[zoneIndex] or false,
         }
         nameToZoneId[cleanZoneName] = zoneId
     end
 
     local seenPOI = {}
-    local function AddPOIEntry(zoneIndex, zoneId, poiIndex, mapIndex, zoneName)
+    local function AddPOIEntry(zoneIndex, zoneId, poiIndex, zoneName)
         local uid = zoneIndex .. ":" .. poiIndex
         if seenPOI[uid] then return end
         seenPOI[uid] = true
@@ -651,10 +640,8 @@ local function PreScan()
             -- Only _owned suffix means you own it; _complete/_incomplete do not.
             isOwned    = poiIcon ~= nil and poiIcon:find("_owned") ~= nil and poiIcon:find("_unowned") == nil,
             poiType    = poiType,
-            zoneIndex  = zoneIndex,
             zoneId     = zoneId,
             poiIndex   = poiIndex,
-            mapIndex   = mapIndex,
             zoneName   = zoneName,
             known      = isDiscovered,
             isLocked   = isLocked,
@@ -671,9 +658,9 @@ local function PreScan()
         end
     end
 
-    local function ScanZonePOIs(zoneIndex, zoneId, mapIndex, zoneName)
+    local function ScanZonePOIs(zoneIndex, zoneId, zoneName)
         for poiIndex = 1, GetNumPOIs(zoneIndex) do
-            AddPOIEntry(zoneIndex, zoneId, poiIndex, mapIndex, zoneName)
+            AddPOIEntry(zoneIndex, zoneId, poiIndex, zoneName)
         end
     end
 
@@ -682,7 +669,7 @@ local function PreScan()
         if mapName ~= "" and zoneIndex and zoneIndex > 0 then
             local zoneId = GetZoneId(zoneIndex)
             if not seenZone[zoneId] and (mapType == MAPTYPE_ZONE or mapType == MAPTYPE_WORLD) then
-                AddZoneEntry(zoneId, zoneIndex, mapIndex, mapName)
+                AddZoneEntry(zoneId, zoneIndex, mapName)
             end
         end
     end
@@ -692,7 +679,7 @@ local function PreScan()
         if zoneIndex and zoneIndex > 0 then
             local zoneId   = GetZoneId(zoneIndex)
             local zoneName = CleanName(GetZoneNameById(zoneId))
-            ScanZonePOIs(zoneIndex, zoneId, zoneToMap[zoneIndex], zoneName)
+            ScanZonePOIs(zoneIndex, zoneId, zoneName)
         end
     end
 
@@ -705,10 +692,10 @@ local function PreScan()
                 local zoneId = GetZoneId(zoneIndex)
                 local zoneName = CleanName(GetZoneNameById(zoneId))
                 if zoneId and zoneId > 0 and not seenZone[zoneId] then
-                    AddZoneEntry(zoneId, zoneIndex, subMap.parentMapIndex, zoneName ~= "" and zoneName or CleanName(GetMapName()))
+                    AddZoneEntry(zoneId, zoneIndex, zoneName ~= "" and zoneName or CleanName(GetMapName()))
                 end
 
-                ScanZonePOIs(zoneIndex, zoneId, subMap.parentMapIndex, zoneName)
+                ScanZonePOIs(zoneIndex, zoneId, zoneName)
             end
         end
     end
@@ -747,7 +734,7 @@ local function FindBestDiscoveredWayshrineFromScan(candidate)
     if not list then return nil end
 
     local filterZoneId    = candidate and candidate.zoneId
-    local filterZoneIndex = candidate and candidate.zoneIndex
+    local filterZoneIndex = GetResolvedZoneIndex(candidate)
     local filterZoneName  = candidate and candidate.name and candidate.name:lower() or nil
 
     local function pickBest(matchFn)
@@ -771,7 +758,7 @@ local function FindBestDiscoveredWayshrineFromScan(candidate)
     end
 
     if filterZoneIndex then
-        local byZoneIndex = pickBest(function(c) return c.zoneIndex == filterZoneIndex end)
+        local byZoneIndex = pickBest(function(c) return GetResolvedZoneIndex(c) == filterZoneIndex end)
         if byZoneIndex then return byZoneIndex end
     end
 
@@ -946,7 +933,6 @@ local function ScanCurrentMapLocations(scan)
             cityName     = scan.cityName,
             destinationX = lx,
             destinationY = lz,
-            mapIndex     = scan.mapIndex,
             isTrader     = isTrader,
             nearestNode  = traderNode,
             npcLines     = npcLines,
@@ -980,7 +966,6 @@ local function ScanCityServices()
                     zoneIndex = zoneIndex,
                     cityMapId = GetCurrentMapId and GetCurrentMapId() or 0,
                     cityName = CleanName(GetMapName()),
-                    mapIndex = mapIndex,
                 })
             end
 
@@ -1001,7 +986,6 @@ local function ScanCityServices()
                                 zoneId = parentZoneId,
                                 cityMapId = cityMapId,
                                 cityName = cityName,
-                                mapIndex = mapIndex,
                                 fixedTraderNode = nearestNode,
                             })
                             SetMapToMapListIndex(mapIndex)
@@ -1028,7 +1012,6 @@ local function ScanCityServices()
                 zoneIndex = zoneIndex,
                 cityMapId = mapId,
                 cityName = mapName ~= "" and mapName or subMap.name,
-                mapIndex = subMap.parentMapIndex,
             })
         end
     end
@@ -1238,9 +1221,7 @@ local function BuildCandidates()
             icon        = ws.icon,
             nodeIndex   = ws.nodeIndex,
             zoneId      = ws.zoneId,
-            zoneIndex   = ws.zoneIndex,
             poiIndex    = ws.poiIndex,
-            mapIndex    = ws.mapIndex,
             zoneName    = ws.zoneName,
             known       = ws.known,
             isLocked    = ws.isLocked,
@@ -1256,8 +1237,6 @@ local function BuildCandidates()
             type       = TYPE_ZONE,
             icon       = "EsoUI/Art/Icons/mapKey/mapKey_zoneStory.dds",
             zoneId     = z.zoneId,
-            zoneIndex  = z.zoneIndex,
-            mapIndex   = z.mapIndex,
             zoneName   = z.name,
             known      = true,
             isLocked   = z.isLocked,
@@ -1290,15 +1269,11 @@ local function BuildCandidates()
                 isLocked     = poi.isLocked,
             }
             if cityZoneId then
-                entry.zoneId    = cityZoneId
-                entry.zoneIndex = GetZoneIndex(cityZoneId)
-                entry.mapIndex  = GetMapIndexByZoneId(cityZoneId)
+                entry.zoneId   = cityZoneId
             else
                 entry.searchName = BuildSearchName(poi.name, (searchAliases ~= "" and searchAliases .. " " or "") .. GetCraftingSetSearchAlias(poi.setId))
-                entry.zoneId     = poi.zoneId
-                entry.zoneIndex  = poi.zoneIndex
-                entry.poiIndex   = poi.poiIndex
-                entry.mapIndex   = poi.mapIndex
+                entry.zoneId   = poi.zoneId
+                entry.poiIndex = poi.poiIndex
                 entry.zoneName   = poi.zoneName
                 entry.known      = poi.known
                 entry.traitCount = poi.traitCount
@@ -1369,7 +1344,6 @@ local function BuildCandidates()
             zoneName     = zoneName,
             placeName    = placeName,
             cityName     = service.cityName,
-            mapIndex     = service.mapIndex,
             cityMapId    = service.cityMapId,
             destinationX = service.destinationX,
             destinationY = service.destinationY,
@@ -1452,7 +1426,7 @@ local function BuildCandidates()
             end
             for _, loc in ipairs(locs) do
                 local zoneName = GetCleanZoneName(loc.zoneId)
-                local key = entry.name:lower() .. "|" .. (loc.placeName or ""):lower() .. "|" .. (loc.cityName or ""):lower()
+                local key = (entry.name or ""):lower() .. "|" .. (loc.placeName or ""):lower() .. "|" .. (loc.cityName or ""):lower()
                 if not seenDaily[key] then
                     seenDaily[key] = true
                     list[#list + 1] = {
@@ -1469,7 +1443,6 @@ local function BuildCandidates()
                         zoneName     = zoneName,
                         placeName    = loc.placeName,
                         cityName     = loc.cityName,
-                        mapIndex     = loc.mapIndex,
                         cityMapId    = loc.cityMapId,
                         destinationX = loc.x,
                         destinationY = loc.y,
@@ -2025,6 +1998,12 @@ end
 local postTeleportDestination = nil
 local postTeleportCandidate   = nil
 
+local function GetResolvedZoneIndex(c)
+    if not c or not c.zoneId or c.zoneId <= 0 then return nil end
+    local zoneIndex = GetZoneIndex and GetZoneIndex(c.zoneId)
+    return (zoneIndex and zoneIndex > 0) and zoneIndex or nil
+end
+
 local function AddMapPin(x, y)
     local sv = GetSavedVars()
     if sv ~= nil and sv.mapSearchMapPin == false then return end
@@ -2039,10 +2018,11 @@ local function PlaceDestinationDiamondPre(c)
     local sv = GetSavedVars()
     if sv ~= nil and sv.mapSearchSetDestination == false then return end
     local x, y
+    local zoneIndex = GetResolvedZoneIndex(c)
     if c.destinationX and c.destinationY then
         x, y = c.destinationX, c.destinationY
-    elseif c.zoneIndex and c.poiIndex then
-        x, y = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
+    elseif zoneIndex and c.poiIndex then
+        x, y = GetPOIMapInfo(zoneIndex, c.poiIndex)
     elseif c.nodeIndex then
         local _, _, nx, ny = GetFastTravelNodeInfo(c.nodeIndex)
         x, y = nx, ny
@@ -2061,12 +2041,13 @@ local function StorePostTeleportDestination(c)
     if sv ~= nil and sv.mapSearchSetDestination == false then return end
     local mapId = c.cityMapId
         or (c.zoneId and GetMapIdByZoneId and GetMapIdByZoneId(c.zoneId) or nil)
+    local zoneIndex = GetResolvedZoneIndex(c)
     if c.destinationX and c.destinationY then
         postTeleportDestination = { x = c.destinationX, y = c.destinationY, mapId = mapId }
         return
     end
-    if c.zoneIndex and c.poiIndex then
-        local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
+    if zoneIndex and c.poiIndex then
+        local nx, ny = GetPOIMapInfo(zoneIndex, c.poiIndex)
         if nx and nx > 0 then
             postTeleportDestination = { x = nx, y = ny, mapId = mapId }
             return
@@ -2084,6 +2065,7 @@ local function CenterMapOnCandidate(c)
     if not c then return end
 
     local zoneId       = c.zoneId
+    local zoneIndex    = GetResolvedZoneIndex(c)
     local mapId        = c.cityMapId or (zoneId and GetMapIdByZoneId(zoneId))
     local currentMapId = GetCurrentMapId and GetCurrentMapId()
 
@@ -2105,8 +2087,8 @@ local function CenterMapOnCandidate(c)
             ZO_WorldMap_PanToWayshrine(c.nodeIndex)
             return
         end
-        if c.zoneIndex and c.poiIndex then
-            local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
+        if zoneIndex and c.poiIndex then
+            local nx, ny = GetPOIMapInfo(zoneIndex, c.poiIndex)
             if nx and nx > 0 then
                 ZO_WorldMap_PanToNormalizedPosition(nx, ny)
                 AddMapPin(nx, ny)
@@ -2359,10 +2341,11 @@ local function BuildKeybindDescriptor()
                         nodeIndex = FindBestDiscoveredWayshrineFromScan(c)
                     end
                     if not nodeIndex then failReason = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
-                elseif c.zoneIndex and c.poiIndex then
-                    local nx, ny = GetPOIMapInfo(c.zoneIndex, c.poiIndex)
+                elseif c.poiIndex then
+                    local zoneIndex = GetResolvedZoneIndex(c)
+                    local nx, ny = zoneIndex and GetPOIMapInfo(zoneIndex, c.poiIndex)
                     if nx and ny then
-                        nodeIndex = FindNearestWayshrineToPos(nx, ny, 0, c.zoneIndex)
+                        nodeIndex = FindNearestWayshrineToPos(nx, ny, 0, zoneIndex)
                     end
                     if not nodeIndex then failReason = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED) end
                 elseif c.nodeIndex then
@@ -2721,6 +2704,7 @@ end
 local function SanitizeSavedMapSearchCandidate(c)
     if type(c) ~= "table" then return end
     c.searchName = c.name and c.name:lower() or ""
+    c.zoneIndex  = nil
     if IsServiceMapTarget(c) and not c.placeName then
         c.narrationLabel = nil
         c.poiTypeLabel = nil
@@ -2728,19 +2712,19 @@ local function SanitizeSavedMapSearchCandidate(c)
 end
 
 local function SanitizeSavedMapSearchData()
-    local charSv = _G["GamePadHelper_CharSavedVars"]
+    local sv = _G["GamePadHelper_CharSavedVars"]
     local acctSv = _G["GamePadHelper_SavedVars"]
-    if charSv then
-        if type(charSv.mapSearchRecent) == "table" then
-            for _, c in ipairs(charSv.mapSearchRecent) do
+    if sv then
+        if type(sv.mapSearchRecent) == "table" then
+            for _, c in ipairs(sv.mapSearchRecent) do
                 SanitizeSavedMapSearchCandidate(c)
             end
         end
-        if type(charSv.lastSelectedPOI) == "table" then
-            SanitizeSavedMapSearchCandidate(charSv.lastSelectedPOI)
+        if type(sv.lastSelectedPOI) == "table" then
+            SanitizeSavedMapSearchCandidate(sv.lastSelectedPOI)
         end
-        if type(charSv.mapSearchBookmarks) == "table" then
-            for _, c in ipairs(charSv.mapSearchBookmarks) do
+        if type(sv.mapSearchBookmarks) == "table" then
+            for _, c in ipairs(sv.mapSearchBookmarks) do
                 SanitizeSavedMapSearchCandidate(c)
             end
         end
@@ -2994,11 +2978,11 @@ local function OnAddonLoaded(_, name)
             wasOnGPHSearch = IsFragmentShowing()
         elseif newState == SCENE_SHOWING then
             zo_callLater(InsertMapSearchTab, 0)
-            if _G["GamePadHelper_CharSavedVars"] and _G["GamePadHelper_CharSavedVars"].lastSelectedPOI then
+            local sv = _G["GamePadHelper_CharSavedVars"]
+            if sv and sv.lastSelectedPOI then
                 zo_callLater(function()
-                    local poi = _G["GamePadHelper_CharSavedVars"].lastSelectedPOI
-                    CenterMapOnCandidate(poi)
-                    _G["GamePadHelper_CharSavedVars"].lastSelectedPOI = nil
+                    CenterMapOnCandidate(sv.lastSelectedPOI)
+                    sv.lastSelectedPOI = nil
                 end, 100)
             end
             if pendingWaypointDest then

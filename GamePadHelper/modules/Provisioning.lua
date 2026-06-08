@@ -84,7 +84,7 @@ end
 
 local function HookProvisioningKeybind()
     if not GAMEPAD_PROVISIONER or not GAMEPAD_PROVISIONER.mainKeybindStripDescriptor or GAMEPAD_PROVISIONER.gphLowLevelKeybindAdded then
-        return false
+        return
     end
 
     table.insert(GAMEPAD_PROVISIONER.mainKeybindStripDescriptor,
@@ -107,7 +107,6 @@ local function HookProvisioningKeybind()
     })
 
     GAMEPAD_PROVISIONER.gphLowLevelKeybindAdded = true
-    return true
 end
 
 local function OnAddonLoaded(event, name)

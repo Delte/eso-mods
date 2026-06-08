@@ -48,8 +48,8 @@ local function FindPledgeQuestForDungeon(pledgeQuests, dungeonName, rawName)
 end
 
 local function ShowPledgeDungeons()
-    local savedVars = _G["GamePadHelper_CharSavedVars"]
-    if not savedVars or not savedVars.dungeonFinderEnabled then return end
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if not sv or not sv.dungeonFinderEnabled then return end
 
     if not DUNGEON_FINDER_GAMEPAD:IsShowing() or DUNGEON_FINDER_GAMEPAD.navigationMode ~= NAVIGATION_MODE_ENTRY_LIST then
         return false

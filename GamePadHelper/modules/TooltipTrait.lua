@@ -1,4 +1,4 @@
-﻿local _GetTraitIcon = ZO_GetPlatformTraitInformationIcon or GetPlatformTraitInformationIcon
+﻿local _GetTraitIcon = _G["GamePadHelper_Utils"] and _G["GamePadHelper_Utils"].GetTraitIcon
 local RESEARCH_ICON = _GetTraitIcon and zo_iconFormatInheritColor(_GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED), 32, 32)
 local BAG_ICON = zo_iconFormatInheritColor("esoui/art/tooltips/icon_bag.dds", 20, 20)
 local BANK_ICON = zo_iconFormatInheritColor("esoui/art/tooltips/icon_bank.dds", 20, 20)
@@ -73,18 +73,7 @@ local function OnAddonLoaded(event, name)
         return true
     end
 
-    local tooltips = {
-        GAMEPAD_LEFT_DIALOG_TOOLTIP,
-        GAMEPAD_LEFT_TOOLTIP,
-        GAMEPAD_MOVABLE_TOOLTIP,
-        GAMEPAD_QUAD1_TOOLTIP,
-        GAMEPAD_QUAD3_TOOLTIP,
-        GAMEPAD_RIGHT_TOOLTIP,
-    }
-
-    for index, tooltip in ipairs(tooltips) do
-        ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddTrait", Tooltip_AddTrait_Before)
-    end
+    _G["GamePadHelper_Utils"].HookAllGamepadTooltips("pre", "AddTrait", Tooltip_AddTrait_Before)
 end
 
 EVENT_MANAGER:RegisterForEvent("TooltipTrait", EVENT_ADD_ON_LOADED, OnAddonLoaded)

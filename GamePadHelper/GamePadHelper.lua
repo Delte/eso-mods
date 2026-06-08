@@ -138,7 +138,7 @@ local function InstallWhatsNewNotificationProvider()
             customHeaderText = ADDON_NAME,
             customIcon = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new_64.dds",
             message = GetString(SI_GPH_WHATS_NEW_BODY),
-            declineText = GetString(SI_GAMEPAD_NOTIFICATIONS_DELETE_OPTION),
+            declineText = GetString(SI_NOTIFICATIONS_DELETE),
             secsSinceRequest = ZO_NormalizeSecondsSince(0),
         })
     end

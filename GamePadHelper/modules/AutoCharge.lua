@@ -43,8 +43,8 @@ local WEAPON_SLOT_LOOKUP = {
 local autoChargeQueued = false
 
 local function AutoCharge()
-    local savedVars = _G["GamePadHelper_CharSavedVars"]
-    if not savedVars or not savedVars.autoChargeEnabled then
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if not sv or not sv.autoChargeEnabled then
         return
     end
 
@@ -52,7 +52,7 @@ local function AutoCharge()
         local charges, maxCharges = GetChargeInfoForItem(BAG_WORN, equipSlot)
         if charges and maxCharges and maxCharges > 0 then
             local chargePercentage = (charges / maxCharges) * 100
-            local threshold = savedVars.autoChargeThreshold or 25
+            local threshold = sv.autoChargeThreshold or 25
             if chargePercentage < threshold then
                 local gemBagId, gemSlotIndex = FindSoulGem()
                 if gemBagId and gemSlotIndex then

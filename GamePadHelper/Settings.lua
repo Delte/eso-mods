@@ -401,10 +401,10 @@ local function BuildSettingsData()
         SetSetting("overviewLocalTimeEnabled", v)
     end, nil, overviewDisabled))
 
-    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_OVERVIEW_SERVER_TIME_NAME), GetString(SI_GPH_SETTING_OVERVIEW_SERVER_TIME_TOOLTIP), function()
-        return GetBoolSetting("overviewServerTimeEnabled", true)
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_OVERVIEW_RESET_TIMER_NAME), GetString(SI_GPH_SETTING_OVERVIEW_RESET_TIMER_TOOLTIP), function()
+        return GetBoolSetting("overviewResetTimerEnabled", true)
     end, function(v)
-        SetSetting("overviewServerTimeEnabled", v)
+        SetSetting("overviewResetTimerEnabled", v)
     end, nil, overviewDisabled))
 
     add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_OVERVIEW_COMPANION_NAME), GetString(SI_GPH_SETTING_OVERVIEW_COMPANION_TOOLTIP), function()
@@ -468,7 +468,7 @@ local function BuildSettingsData()
         SetSetting("lootOffsetEnabled", v)
         MarkLootReloadPending()
     end, GetString(SI_GPH_SETTINGS_HEADER_LOOT), function()
-        return IsConsoleUI and IsConsoleUI()
+        return IsConsoleUI()
     end))
 
     -- UI shows -350..350, but saved value stays compatible with loot module (0..700 where 350 is midpoint).
@@ -483,7 +483,7 @@ local function BuildSettingsData()
         MarkLootReloadPending()
     end, nil, function()
         local sv = GetSavedVars()
-        local isConsole = IsConsoleUI and IsConsoleUI()
+        local isConsole = IsConsoleUI()
         return isConsole or not (sv and sv.lootOffsetEnabled)
     end))
 
@@ -636,7 +636,7 @@ local function InitializeGamepadSettings()
 
 end
 
-EVENT_MANAGER:RegisterForEvent("Settings_Init", EVENT_PLAYER_ACTIVATED, function()
-    EVENT_MANAGER:UnregisterForEvent("Settings_Init", EVENT_PLAYER_ACTIVATED)
+EVENT_MANAGER:RegisterForEvent("GPH_Settings_Init", EVENT_PLAYER_ACTIVATED, function()
+    EVENT_MANAGER:UnregisterForEvent("GPH_Settings_Init", EVENT_PLAYER_ACTIVATED)
     InitializeGamepadSettings()
 end)

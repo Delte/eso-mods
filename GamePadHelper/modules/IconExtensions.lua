@@ -73,7 +73,7 @@ local function RemoveIcon(self, iconTexture)
                 self:SetColor(1, 1, 1, 1)
             end
         else
-            self:SetTextureWithoutColor(self, "")
+            self.SetTextureWithoutColor(self, "")
         end
     end
 end
@@ -137,4 +137,4 @@ function MultiIcon.Initialize(self)
     return self
 end
 
-_G["GamePadHelper_MultiIcon"] = MultiIcon
+_G["GamePadHelper_IconExtensions"] = MultiIcon

@@ -13,12 +13,13 @@ lang/$(language).lua
 
 GamePadHelper.lua
 Settings.lua
-libraries/MultiIcon.lua
+modules/IconExtensions.lua
 modules/Provisioning.lua
 modules/TooltipPrice.lua
 modules/TooltipFont.lua
 modules/MapTeleporter.lua
 modules/Styling.xml
+modules/Utils.lua
 modules/OverviewQuest.lua
 modules/OverviewTasks.lua
 modules/Overview.lua

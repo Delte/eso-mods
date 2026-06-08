@@ -27,16 +27,13 @@ local CRAFTING_TYPE_TO_WRIT_KEY = {
 
 local GPH_COMPANION_TRACKER_KEY = "overviewCompanionTracker"
 local GPH_DAILY_WRIT_TRACKER_KEY = "overviewDailyWritTracker"
+local GPH_DAILY_QUEST_TRACKER_KEY = "overviewDailyQuestTracker"
 local TASKS_CACHE_TTL_MS = 30000
 local DAILY_RESET_REFRESH_NAMESPACE = "GPH_OverviewTasks_DailyResetRefresh"
 local SECONDS_IN_DAY = 86400
 local SERVER_RESET_HOURS = {
     ["EU Megaserver"] = 3, ["XB1live-eu"] = 3, ["PS4live-eu"] = 3,
     ["NA Megaserver"] = 10, ["PTS"] = 10,
-}
-local SERVER_UTC_OFFSETS = {
-    ["EU Megaserver"] = 1, ["XB1live-eu"] = 1, ["PS4live-eu"] = 1,
-    ["NA Megaserver"] = -6, ["PTS"] = -6,
 }
 local tasksCacheTimeText = nil
 local tasksCacheHorseLines = nil
@@ -47,6 +44,7 @@ local tasksCacheTimeMs = 0
 local tasksCacheDirty = true
 local EnsureCompanionTrackerState
 local EnsureDailyWritTrackerState
+local EnsureDailyQuestTrackerState
 local RAPPORT_GRADIENT_START = ZO_ColorDef:New("722323")
 local RAPPORT_GRADIENT_END = ZO_ColorDef:New("009966")
 local RAPPORT_GRADIENT_MIDDLE = ZO_ColorDef:New("9D840D")
@@ -117,6 +115,7 @@ local function ScheduleDailyResetRefresh()
         EVENT_MANAGER:UnregisterForUpdate(DAILY_RESET_REFRESH_NAMESPACE)
         EnsureCompanionTrackerState()
         EnsureDailyWritTrackerState()
+        EnsureDailyQuestTrackerState()
         Tasks.InvalidateCache()
         ScheduleDailyResetRefresh()
     end)
@@ -277,6 +276,56 @@ function EnsureDailyWritTrackerState()
     tracker.activeByQuestId = tracker.activeByQuestId or {}
     tracker.activeByWritKey = tracker.activeByWritKey or {}
     return tracker
+end
+
+function EnsureDailyQuestTrackerState()
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if not sv then return nil end
+
+    sv[GPH_DAILY_QUEST_TRACKER_KEY] = sv[GPH_DAILY_QUEST_TRACKER_KEY] or {}
+    local tracker = sv[GPH_DAILY_QUEST_TRACKER_KEY]
+
+    local currentDay = GetServerDayNumber()
+    if tracker.lastKnownDay ~= currentDay then
+        tracker.doneByQuestId = {}
+        tracker.activeByQuestId = {}
+        tracker.lastKnownDay = currentDay
+    end
+
+    tracker.doneByQuestId = tracker.doneByQuestId or {}
+    tracker.activeByQuestId = tracker.activeByQuestId or {}
+    return tracker
+end
+
+function Tasks.RefreshDailyQuestTrackerState(tracker)
+    tracker = tracker or EnsureDailyQuestTrackerState()
+    if not tracker then return end
+
+    local activeByQuestId = {}
+    for questIndex = 1, MAX_JOURNAL_QUESTS do
+        if IsValidQuestIndex(questIndex) and GetJournalQuestRepeatType(questIndex) == QUEST_REPEAT_DAILY then
+            local questId = GetJournalQuestId and GetJournalQuestId(questIndex) or nil
+            if questId and questId ~= 0 then
+                local questName = GetJournalQuestName and GetJournalQuestName(questIndex) or GetJournalQuestInfo(questIndex)
+                activeByQuestId[questId] = zo_strformat("<<C:1>>", questName or "")
+            end
+        end
+    end
+    tracker.activeByQuestId = activeByQuestId
+end
+
+local function OnQuestRemovedForDailyQuestTracker(_, completed, questIndex, questName, zoneIndex, poiIndex, questId)
+    if not completed then return end
+    if not questId or questId == 0 then return end
+
+    local tracker = EnsureDailyQuestTrackerState()
+    if not tracker then return end
+
+    if tracker.activeByQuestId[questId] then
+        local name = zo_strformat("<<C:1>>", questName or "")
+        tracker.doneByQuestId[questId] = name ~= "" and name or tracker.activeByQuestId[questId]
+        tracker.activeByQuestId[questId] = nil
+    end
 end
 
 local function IsQuestIdInActivity(questId, activity)
@@ -466,12 +515,14 @@ end
 
 function Tasks.OnQuestStateChanged()
     Tasks.RefreshDailyWritTrackerState()
+    Tasks.RefreshDailyQuestTrackerState()
     Tasks.InvalidateCache()
 end
 
 function Tasks.OnQuestRemoved(...)
     Tasks.OnQuestRemovedForCompanionTracker(...)
     OnQuestRemovedForDailyWritTracker(...)
+    OnQuestRemovedForDailyQuestTracker(...)
     Tasks.OnQuestStateChanged()
 end
 
@@ -501,6 +552,14 @@ local function FormatTimeRemaining(seconds)
         return "|cFFFFFF" .. timeString .. "|r"
     end
 end
+
+local function FormatExactCountdown(seconds)
+    if not seconds or seconds < 0 then return nil end
+    local hours = math.floor(seconds / 3600)
+    local minutes = math.floor((seconds % 3600) / 60)
+    return string.format("%02d:%02d", hours, minutes)
+end
+
 
 local function GetResearchLineInfo(craftingType, researchLineIndex, numTraits)
     local areAllTraitsKnown = true
@@ -652,18 +711,6 @@ end
 local function GetLocalClockText()
     if not os or not os.date then return nil end
     local ok, result = pcall(os.date, "%H:%M")
-    if ok and result and result ~= "" then return result end
-    return nil
-end
-
-local function GetServerClockText()
-    if not os or not os.date or not GetTimeStamp then return nil end
-    local worldName = GetWorldName and GetWorldName() or ""
-    local offset = SERVER_UTC_OFFSETS[worldName]
-    if not offset then return nil end
-    local ok, result = pcall(function()
-        return os.date("!%H:%M", GetTimeStamp() + offset * 3600)
-    end)
     if ok and result and result ~= "" then return result end
     return nil
 end
@@ -897,15 +944,15 @@ local function BuildRightTooltipDescription()
     local mapLines = {}
 
     local localTime = GetBoolSetting("overviewLocalTimeEnabled", true) and GetLocalClockText() or nil
-    local serverTime = GetBoolSetting("overviewServerTimeEnabled", true) and GetServerClockText() or nil
-    if localTime or serverTime then
+    local resetCountdown = GetBoolSetting("overviewResetTimerEnabled", true) and FormatExactCountdown(GetSecondsUntilReset()) or nil
+    if localTime or resetCountdown then
         local timeLine = ""
         if localTime then
             timeLine = "|cDAA520" .. GetString(SI_GPH_OVERVIEW_LOCAL_TIME) .. "|r |cFFFFFF" .. localTime .. "|r"
         end
-        if serverTime then
+        if resetCountdown then
             if timeLine ~= "" then timeLine = timeLine .. "\n" end
-            timeLine = timeLine .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_SERVER_TIME) .. "|r |cFFFFFF" .. serverTime .. "|r"
+            timeLine = timeLine .. "|cDAA520" .. GetString(SI_GPH_OVERVIEW_RESET_IN) .. "|r |cFFFFFF" .. resetCountdown .. "|r"
         end
         timeText = timeLine
     end
@@ -1067,6 +1114,8 @@ EVENT_MANAGER:RegisterForEvent("GPH_OverviewTasks_Cache", EVENT_ADD_ON_LOADED, f
         EVENT_MANAGER:UnregisterForEvent("GPH_OverviewTasks_PlayerActivated", EVENT_PLAYER_ACTIVATED)
         EnsureCompanionTrackerState()
         EnsureDailyWritTrackerState()
+        EnsureDailyQuestTrackerState()
+        Tasks.RefreshDailyQuestTrackerState()
         Tasks.InvalidateCache()
         ScheduleDailyResetRefresh()
     end)

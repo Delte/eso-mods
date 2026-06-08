@@ -1,4 +1,5 @@
-﻿local COLOR_WHITE = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_GAMEPAD_TOOLTIP, GENERAL_COLOR_WHITE))
+﻿local Utils = _G["GamePadHelper_Utils"]
+local COLOR_WHITE = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_GAMEPAD_TOOLTIP, GENERAL_COLOR_WHITE))
 local COLOR_FAILED = ZO_ColorDef:New(GetInterfaceColor(INTERFACE_COLOR_TYPE_GAMEPAD_TOOLTIP, GAMEPAD_TOOLTIP_COLOR_FAILED))
 
 local function Tooltip_AddEnchant_Before(self, itemLink, enchantDiffMode, equipSlot)
@@ -45,19 +46,8 @@ local function Tooltip_AddEnchant_Before(self, itemLink, enchantDiffMode, equipS
     return true
 end
 
-local tooltips = {
-    GAMEPAD_LEFT_DIALOG_TOOLTIP,
-    GAMEPAD_LEFT_TOOLTIP,
-    GAMEPAD_MOVABLE_TOOLTIP,
-    GAMEPAD_QUAD1_TOOLTIP,
-    GAMEPAD_QUAD3_TOOLTIP,
-    GAMEPAD_RIGHT_TOOLTIP
-}
-
 EVENT_MANAGER:RegisterForEvent("TooltipEnchantment", EVENT_ADD_ON_LOADED, function(_, name)
     if name ~= "GamePadHelper" then return end
     EVENT_MANAGER:UnregisterForEvent("TooltipEnchantment", EVENT_ADD_ON_LOADED)
-    for _, tooltip in ipairs(tooltips) do
-        ZO_PreHook(GAMEPAD_TOOLTIPS:GetTooltip(tooltip), "AddEnchant", Tooltip_AddEnchant_Before)
-    end
+    Utils.HookAllGamepadTooltips("pre", "AddEnchant", Tooltip_AddEnchant_Before)
 end)
