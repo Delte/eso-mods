@@ -5,6 +5,23 @@ local QUEST_ICON = "/esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds"
 local COLOR_COUNTESS_ACTIVE = ZO_ColorDef:New(0.18, 0.77, 0.05)
 local COLOR_CROW_ACTIVE = ZO_ColorDef:New(0.2, 0.6, 1.0)
 local COLOR_USEFUL_INACTIVE = ZO_ColorDef:New(1, 1, 1)
+local BOTH_ACTIVE_FLASH_MS = 800
+
+local function StartBothActiveFlash(statusIndicator)
+    statusIndicator.gphAnimGeneration = (statusIndicator.gphAnimGeneration or 0) + 1
+    local gen = statusIndicator.gphAnimGeneration
+    local showGreen = true
+    local function Animate()
+        if not statusIndicator.gphBothActive or statusIndicator.gphAnimGeneration ~= gen then return end
+        local color = showGreen and COLOR_COUNTESS_ACTIVE or COLOR_CROW_ACTIVE
+        showGreen = not showGreen
+        if statusIndicator.SetIconColor then
+            statusIndicator:SetIconColor(QUEST_ICON, color:UnpackRGBA())
+        end
+        zo_callLater(Animate, BOTH_ACTIVE_FLASH_MS)
+    end
+    Animate()
+end
 
 local function EnsureStatusIndicatorInitialized(statusIndicator)
     if MultiIcon then
@@ -94,29 +111,30 @@ local function SharedGamepadEntry_OnSetup_After(control, data, ...)
 
     EnsureStatusIndicatorInitialized(statusIndicator)
 
-    local showCountess = sv.inventoryCovetousCountessEnabled and isUsefulForQuest
-    local showCrow = sv.inventoryCrowEnabled and isUsefulForCrow
+    local countessActive = sv.inventoryCovetousCountessEnabled and isUsefulForActiveQuest
+    local crowActive = sv.inventoryCrowEnabled and isUsefulForActiveCrowGroup
+    local countessUseful = sv.inventoryCovetousCountessEnabled and isUsefulForQuest
+    local crowUseful = sv.inventoryCrowEnabled and isUsefulForCrow
 
-    if (showCountess or showCrow) and QUEST_ICON then
+    if (countessActive or crowActive or countessUseful or crowUseful) and QUEST_ICON then
         if not statusIndicator:HasIcon(QUEST_ICON) then
             statusIndicator:AddIcon(QUEST_ICON)
         end
-        if statusIndicator.SetIconColor then
-            local color
-            if showCountess and isUsefulForActiveQuest then
-                color = COLOR_COUNTESS_ACTIVE
-            elseif showCrow and isUsefulForActiveCrowGroup then
-                color = COLOR_CROW_ACTIVE
-            else
-                color = COLOR_USEFUL_INACTIVE
+        if countessActive and crowActive then
+            statusIndicator.gphBothActive = true
+            StartBothActiveFlash(statusIndicator)
+        else
+            statusIndicator.gphBothActive = false
+            if statusIndicator.SetIconColor then
+                local color = countessActive and COLOR_COUNTESS_ACTIVE
+                           or crowActive and COLOR_CROW_ACTIVE
+                           or COLOR_USEFUL_INACTIVE
+                statusIndicator:SetIconColor(QUEST_ICON, color:UnpackRGBA())
             end
-            statusIndicator:SetIconColor(QUEST_ICON, color:UnpackRGBA())
         end
-    end
-
-    if (sv.inventoryCovetousCountessEnabled and isUsefulForQuest) or (sv.inventoryCrowEnabled and isUsefulForCrow) then
         statusIndicator:Show()
     else
+        statusIndicator.gphBothActive = false
         ClearCovetousDecoration(statusIndicator)
     end
 

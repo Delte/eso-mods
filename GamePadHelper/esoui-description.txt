@@ -1,5 +1,5 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
-[B]Version 1.06.15[/B] | API 101050 | by olegbl, quelron[/CENTER]
+[B]Version 1.06.16[/B] | API 101050 | by olegbl, quelron[/CENTER]
 
 [CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
 Built only for gamepad and console UI.[/CENTER]
@@ -14,6 +14,12 @@ Built only for gamepad and console UI.[/CENTER]
 [/LIST]
 
 [COLOR="#FF4444"][B]Important:[/B] If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.[/COLOR]
+
+[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.16[/B][/COLOR][/SIZE]
+
+[LIST]
+[*][B]Countess and Bursar dual active[/B] - when both quests are active for the same item, the inventory icon now flashes between green and blue.
+[/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.15[/B][/COLOR][/SIZE]
 
@@ -109,7 +115,8 @@ Built only for gamepad and console UI.[/CENTER]
 [*]Marks treasures useful for The Covetous Countess and Bursar of Tributes quests.
 [*][COLOR="#00FF00"]Green[/COLOR] icon means useful for the current active Countess quest.
 [*][COLOR="#3399FF"]Blue[/COLOR] icon means useful for the current active Bursar quest.
-[*][COLOR="#FFFFFF"]White[/COLOR] icon means useful, but not for the current active quest.
+[*]Flashes green and blue when useful for both active quests simultaneously.
+[*][COLOR="#FFFFFF"]White[/COLOR] icon means useful, but neither quest is currently active.
 [/LIST]
 
 [B][COLOR="#DAA520"]Inventory Trait[/COLOR][/B] [Default: ON]

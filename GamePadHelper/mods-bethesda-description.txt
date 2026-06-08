@@ -5,6 +5,10 @@ A modular collection of quality-of-life improvements for Elder Scrolls Online, b
 Open settings from:
 Options > GPH Settings
 
+## What's New in 1.06.16
+
+- Countess and Bursar dual active: when both quests are active for the same item, the inventory icon now flashes between green and blue.
+
 ## What's New in 1.06.15
 
 - Reset timer: daily reset countdown now shows HH:MM instead of HH:MM:SS.
