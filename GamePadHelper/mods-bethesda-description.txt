@@ -5,15 +5,11 @@ A modular collection of quality-of-life improvements for Elder Scrolls Online, b
 Open settings from:
 Options > GPH Settings
 
-## What's New in 1.06.16
-
-- Countess and Bursar dual active: when both quests are active for the same item, the inventory icon now flashes between green and blue.
-
 ## What's New in 1.06.15
 
 - Reset timer: daily reset countdown now shows HH:MM instead of HH:MM:SS.
 - Auto Charge fix: weapon charge threshold was referencing a stale variable; charging now triggers correctly at the configured threshold.
-- Countess and Bursar icon priority: when both apply to the same item, active Countess (green) now takes priority over active Bursar (blue) in the inventory icon.
+- Countess and Bursar dual active: when both quests are active for the same item, the inventory icon now flashes between green and blue.
 
 ## What's New in 1.06.14
 

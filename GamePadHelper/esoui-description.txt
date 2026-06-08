@@ -1,5 +1,5 @@
 [CENTER][SIZE="5"][COLOR="#3399FF"][B]GamePadHelper[/B][/COLOR][/SIZE]
-[B]Version 1.06.16[/B] | API 101050 | by olegbl, quelron[/CENTER]
+[B]Version 1.06.15[/B] | API 101050 | by olegbl, quelron[/CENTER]
 
 [CENTER]A collection of UI improvements and quality-of-life features for Elder Scrolls Online.
 Built only for gamepad and console UI.[/CENTER]
@@ -15,18 +15,12 @@ Built only for gamepad and console UI.[/CENTER]
 
 [COLOR="#FF4444"][B]Important:[/B] If you installed [B]LibMultiIcon[/B] for older GamePadHelper builds, remove or disable it. GamePadHelper now uses its own private multi-icon helper.[/COLOR]
 
-[SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.16[/B][/COLOR][/SIZE]
-
-[LIST]
-[*][B]Countess and Bursar dual active[/B] - when both quests are active for the same item, the inventory icon now flashes between green and blue.
-[/LIST]
-
 [SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.15[/B][/COLOR][/SIZE]
 
 [LIST]
 [*][B]Reset timer[/B] - daily reset countdown now shows HH:MM instead of HH:MM:SS.
 [*][B]Auto Charge fix[/B] - weapon charge threshold was referencing a stale variable; charging now triggers correctly at the configured threshold.
-[*][B]Countess and Bursar icon priority[/B] - when both apply to the same item, active Countess (green) now takes priority over active Bursar (blue) in the inventory icon.
+[*][B]Countess and Bursar dual active[/B] - when both quests are active for the same item, the inventory icon now flashes between green and blue.
 [/LIST]
 
 [SIZE="4"][COLOR="#3399FF"][B]What's New In 1.06.14[/B][/COLOR][/SIZE]
