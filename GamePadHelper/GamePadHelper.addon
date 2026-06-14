@@ -5,7 +5,7 @@
 ## Author: olegbl, quelron
 ## Description: |c3399FFGamePadHelper|r improves ESO's gamepad and console UI with modular quality-of-life features. Market prices can use TamrielTradeCentre and Tamriel Savings Co Price Fetcher / TSC data when available.
 ## SavedVariables: GamePadHelperSavedVars GamePadHelperMapData
-## DependsOn: LibCovetousCountess>=103 LibItemLinkDecoder>=102 LibTraitResearch>=103
+## DependsOn: LibCovetousCountess>=103 LibItemLinkDecoder>=102 LibTraitResearch>=105
 ## OptionalDependsOn: TamrielTradeCentre LibPriceCache TSCPriceDataAPIXBNA TSCPriceDataAPIPSNA TSCPriceDataAPIXBEU TSCPriceDataAPIPSEU
 
 lang/common.lua

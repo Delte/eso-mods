@@ -17,9 +17,10 @@ local function IsConsole()
 end
 _G["GamePadHelper_IsConsole"] = IsConsole
 
--- Account-wide saved variables (only shared bookmark pool)
+-- Account-wide saved variables (shared bookmark pool + what's new state)
 local defaults = {
     mapSearchBookmarksAll = {},
+    lastAnnouncedVersion = 0,
 }
 _G["GamePadHelper_Defaults"] = defaults
 
@@ -66,7 +67,6 @@ local charDefaults = {
     tooltipPoisonEnabled = true,
     tooltipFontEnabled = true,
     tooltipEnchantmentEnabled = true,
-    lastAnnouncedVersion = 0,
 }
 _G["GamePadHelper_CharDefaults"] = charDefaults
 
@@ -74,12 +74,12 @@ local savedVars
 local charVars
 
 local function ShouldShowWhatsNew()
-    return charVars ~= nil and (charVars.lastAnnouncedVersion or 0) < ANNOUNCE_VERSION
+    return savedVars ~= nil and (savedVars.lastAnnouncedVersion or 0) < ANNOUNCE_VERSION
 end
 
 local function DismissWhatsNew()
-    if charVars then
-        charVars.lastAnnouncedVersion = ANNOUNCE_VERSION
+    if savedVars then
+        savedVars.lastAnnouncedVersion = ANNOUNCE_VERSION
     end
 end
 

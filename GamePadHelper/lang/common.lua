@@ -298,6 +298,8 @@
     SI_GPH_TOOLTIP_COVETOUS_TITLE = "Covetous Countess",
     SI_GPH_TOOLTIP_TREASURE_ACTIVE = "Useful for the current active quest.",
     SI_GPH_TOOLTIP_TREASURE_INACTIVE = "Useful, but not the current active quest.",
+    SI_GPH_TOOLTIP_TREASURE_ACTIVE_SHORT = "current quest",
+    SI_GPH_TOOLTIP_TREASURE_INACTIVE_SHORT = "useful",
     SI_GPH_TREASURE_COLOR_LEGEND = "\n\nTreasure icon meaning:\n<<1>>\n|cFFFFFF|t32:32:/esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds:inheritColor|t Useful, but not the current active quest|r",
     SI_GPH_TREASURE_LEGEND_COUNTESS = "|c2DC50E|t32:32:/esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds:inheritColor|t Covetous Countess|r – active quest",
     SI_GPH_TREASURE_LEGEND_CROW = "|c3399FF|t32:32:/esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds:inheritColor|t Bursar of Tributes|r – active group",

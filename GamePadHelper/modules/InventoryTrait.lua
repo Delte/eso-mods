@@ -1,6 +1,5 @@
-﻿local _GetTraitIcon = _G["GamePadHelper_Utils"] and _G["GamePadHelper_Utils"].GetTraitIcon
+local _GetTraitIcon = _G["GamePadHelper_Utils"] and _G["GamePadHelper_Utils"].GetTraitIcon
 local MultiIcon = _G["GamePadHelper_IconExtensions"]
-local EQUIPPED_RESEARCH_COLOR = ZO_ColorDef:New("3399FF")
 
 local function GetItemLinkFromData(data)
     if type(data) ~= "table" then
@@ -31,19 +30,9 @@ local function GetItemLinkFromData(data)
     return nil
 end
 
-local function IsEquippedDisplayItem(data, bagId)
-    if bagId == BAG_WORN then
-        return true
-    end
-
-    return type(data) == "table" and data.isEquipped == true
-end
-
 local function EnsureResearchLabel(control, icon)
     local label = control:GetNamedChild("StatusIndicatorLabel")
-    if label ~= nil then
-        return label
-    end
+    if label then return label end
 
     label = CreateControl("$(parent)StatusIndicatorLabel", control, CT_LABEL)
     label:SetFont("ZoFontGamepad18")
@@ -60,76 +49,8 @@ local function EnsureResearchLabel(control, icon)
     return label
 end
 
-local function NormalizeTexture(texture)
-    if type(texture) == "string" then
-        return texture
-    end
-
-    return ""
-end
-
-local function SafeSetTexture(icon, texture)
-    texture = NormalizeTexture(texture)
-    if icon.SetTextureWithoutColor then
-        icon.SetTextureWithoutColor(icon, texture)
-    else
-        icon:SetTexture(texture)
-    end
-    icon.activeTexture = texture ~= "" and texture or nil
-end
-
-local function SafeRemoveIcon(icon, iconTexture)
-    if not icon or not iconTexture or not icon.iconData then
-        return
-    end
-
-    local removedActiveTexture = icon.activeTexture == iconTexture
-    local previousIconData = icon.iconData
-    icon.iconData = {}
-
-    for _, iconData in ipairs(previousIconData) do
-        if iconData.iconTexture ~= iconTexture then
-            table.insert(icon.iconData, iconData)
-        end
-    end
-
-    if removedActiveTexture then
-        local nextIconData = icon.iconData[1]
-        local nextTexture = NormalizeTexture(nextIconData and nextIconData.iconTexture or nil)
-
-        if nextTexture ~= "" then
-            if icon.SetTexture then
-                icon:SetTexture(nextTexture)
-            else
-                SafeSetTexture(icon, nextTexture)
-            end
-
-            if nextIconData and nextIconData.iconTint and icon.SetColor then
-                icon:SetColor(nextIconData.iconTint:UnpackRGBA())
-            elseif icon.SetColor then
-                icon:SetColor(1, 1, 1, 1)
-            end
-        else
-            SafeSetTexture(icon, "")
-        end
-    end
-end
-
-local function SafeRemoveIconColor(icon, iconTexture)
-    if not icon or not icon.iconColors or not iconTexture then
-        return
-    end
-
-    icon.iconColors[iconTexture] = nil
-end
-
 local function ClearTraitDecoration(icon, label, researchIcon)
-    if researchIcon and icon:HasIcon(researchIcon) then
-        SafeRemoveIcon(icon, researchIcon)
-    end
-    if researchIcon then
-        SafeRemoveIconColor(icon, researchIcon)
-    end
+    if researchIcon and icon.RemoveIcon then icon:RemoveIcon(researchIcon) end
     if label then
         label:SetText("")
         label:SetHidden(true)
@@ -137,15 +58,14 @@ local function ClearTraitDecoration(icon, label, researchIcon)
 end
 
 local function RefreshMultiIcon(icon)
-    if not icon or not icon.iconData or not icon.Hide or not icon.Show then
-        return
-    end
-
-    local wasHidden = icon:IsHidden()
-    if not wasHidden then
-        icon:Hide()
-    end
+    if not icon or not icon.iconData or not icon.Hide or not icon.Show then return end
+    if not icon:IsHidden() then icon:Hide() end
     icon:Show()
+end
+
+local function ClearAndRefresh(icon, label, researchIcon)
+    ClearTraitDecoration(icon, label, researchIcon)
+    RefreshMultiIcon(icon)
 end
 
 local function ClearDeconstructionTraitLegend()
@@ -159,25 +79,21 @@ end
 
 local function IsDeconstructionTraitLegendVisible()
     local sv = _G["GamePadHelper_CharSavedVars"]
-    if not sv then
-        return true
-    end
+    if not sv then return true end
     return sv.inventoryTraitDeconstructionLegendVisible ~= false
 end
 
 local function SetDeconstructionTraitLegendVisible(visible)
     local sv = _G["GamePadHelper_CharSavedVars"]
-    if sv then
-        sv.inventoryTraitDeconstructionLegendVisible = visible
-    end
+    if sv then sv.inventoryTraitDeconstructionLegendVisible = visible end
 end
 
-local function ShouldShowDeconstructionTraitLegend(panel)
+local function ShouldShowDeconstructionTraitLegend()
     return IsDeconstructionTraitLegendEnabled() and IsDeconstructionTraitLegendVisible()
 end
 
-local function RefreshDeconstructionTraitLegend(panel)
-    if not ShouldShowDeconstructionTraitLegend(panel) then
+local function RefreshDeconstructionTraitLegend()
+    if not ShouldShowDeconstructionTraitLegend() then
         ClearDeconstructionTraitLegend()
         return
     end
@@ -209,7 +125,7 @@ local function AddDeconstructionTraitLegendKeybind(panel)
         end,
         callback = function()
             SetDeconstructionTraitLegendVisible(not IsDeconstructionTraitLegendVisible())
-            RefreshDeconstructionTraitLegend(panel)
+            RefreshDeconstructionTraitLegend()
             if KEYBIND_STRIP and panel.keybindStripDescriptor then
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(panel.keybindStripDescriptor)
             end
@@ -220,15 +136,8 @@ local function AddDeconstructionTraitLegendKeybind(panel)
 end
 
 local function GetTraitResearchState(itemLink, bagId, slotIndex)
-    if not itemLink or not LibTraitResearch then
-        return nil
-    end
-
-    if LibTraitResearch.GetItemLinkTraitResearchStateForSlot and bagId ~= nil and slotIndex ~= nil then
-        return LibTraitResearch:GetItemLinkTraitResearchStateForSlot(itemLink, bagId, slotIndex)
-    end
-
-    return LibTraitResearch:GetItemLinkTraitResearchState(itemLink)
+    if not itemLink or not LibTraitResearch then return nil end
+    return LibTraitResearch:GetItemLinkTraitResearchStateForSlot(itemLink, bagId, slotIndex)
 end
 
 local function BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
@@ -239,129 +148,89 @@ local function BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplic
     elseif duplicateLocalItems > 0 then
         return colorLocal:Colorize(duplicateLocalItems)
     end
-
     return nil
 end
 
 local function ApplyTraitOverrideData(data)
     local sv = _G["GamePadHelper_CharSavedVars"]
-    if not sv or not sv.inventoryTraitEnabled or type(data) ~= "table" then
-        return
-    end
+    if not sv or not sv.inventoryTraitEnabled or type(data) ~= "table" then return end
 
     local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
-    if not itemLink then
-        data.gphTraitLabelText = nil
-        data.gphTraitEquipped = nil
-        return
-    end
+    if not itemLink then return end
 
     local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal =
         GetTraitResearchState(itemLink, bagId, slotIndex)
 
-    if not canBeResearched then
-        data.gphTraitLabelText = nil
-        data.gphTraitEquipped = nil
-        return
-    end
-
-    if IsEquippedDisplayItem(data, bagId) then
-        data.gphTraitEquipped = true
-        data.gphTraitLabelText = nil
-    else
-        data.gphTraitEquipped = nil
-        data.gphTraitLabelText = BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
-    end
-
-    if not data.overrideStatusIndicatorIcons then
-        return
-    end
+    if not canBeResearched or not data.overrideStatusIndicatorIcons then return end
 
     local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
-    if not researchIcon then
-        return
-    end
+    if not researchIcon then return end
 
     local traitNarration = GetString("SI_ITEMTRAITINFORMATION", ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
-    local traitIconFound = false
+    local bothDuplicates = duplicateRemoteItems > 0 and duplicateLocalItems > 0
+
+    local filtered = {}
     for _, iconData in ipairs(data.overrideStatusIndicatorIcons) do
-        if iconData.iconTexture == researchIcon then
-            iconData.iconTint = colorOverall
-            iconData.iconNarration = traitNarration
-            traitIconFound = true
+        if iconData.iconTexture ~= researchIcon then
+            table.insert(filtered, iconData)
         end
     end
+    data.overrideStatusIndicatorIcons = filtered
 
-    if not traitIconFound then
-        table.insert(data.overrideStatusIndicatorIcons,
-        {
-            iconTexture = researchIcon,
-            iconTint = colorOverall,
-            iconNarration = traitNarration,
-        })
+    if bothDuplicates then
+        table.insert(data.overrideStatusIndicatorIcons, { iconTexture = researchIcon, iconTint = colorRemote, iconNarration = traitNarration })
+        table.insert(data.overrideStatusIndicatorIcons, { iconTexture = researchIcon, iconTint = colorLocal,  iconNarration = traitNarration })
+    else
+        table.insert(data.overrideStatusIndicatorIcons, { iconTexture = researchIcon, iconTint = colorOverall, iconNarration = traitNarration })
     end
 end
 
 local function SharedGamepadEntry_OnSetup_After(control, data)
     local sv = _G["GamePadHelper_CharSavedVars"]
-    if not sv or not sv.inventoryTraitEnabled then
-        return
-    end
+    if not sv or not sv.inventoryTraitEnabled then return end
 
     local icon = control:GetNamedChild("StatusIndicator")
-    if not icon then
-        return
-    end
+    if not icon then return end
 
     if MultiIcon then
         MultiIcon.Initialize(icon)
-    elseif not icon.HasIcon or not icon.AddIcon or not icon.SetIconColor then
+    elseif not icon.HasIcon or not icon.AddIcon then
         ZO_MultiIcon_Initialize(icon)
     end
 
     local researchIcon = _GetTraitIcon and _GetTraitIcon(ITEM_TRAIT_INFORMATION_CAN_BE_RESEARCHED)
-    local label = EnsureResearchLabel(control, icon)
-    label:SetHidden(true)
 
     local itemLink, bagId, slotIndex = GetItemLinkFromData(data)
     if not itemLink then
-        ClearTraitDecoration(icon, label, researchIcon)
-        RefreshMultiIcon(icon)
+        ClearAndRefresh(icon, nil, researchIcon)
         return
     end
 
-    if not LibTraitResearch then
-        ClearTraitDecoration(icon, label, researchIcon)
-        RefreshMultiIcon(icon)
-        return
-    end
+    local label = EnsureResearchLabel(control, icon)
+    label:SetHidden(true)
 
     local canBeResearched, colorOverall, duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal =
         GetTraitResearchState(itemLink, bagId, slotIndex)
 
     if not canBeResearched then
-        ClearTraitDecoration(icon, label, researchIcon)
-        RefreshMultiIcon(icon)
+        ClearAndRefresh(icon, label, researchIcon)
         return
     end
 
-    if data.gphTraitEquipped or IsEquippedDisplayItem(data, bagId) then
-        colorOverall = EQUIPPED_RESEARCH_COLOR
-    end
+    local bothDuplicates = duplicateRemoteItems > 0 and duplicateLocalItems > 0
 
-    if researchIcon and not icon:HasIcon(researchIcon) then
-        icon:AddIcon(researchIcon)
-    end
-
-    if icon.SetIconColor and researchIcon then
-        icon:SetIconColor(researchIcon, colorOverall:UnpackRGBA())
+    if researchIcon then
+        if icon.RemoveIcon then icon:RemoveIcon(researchIcon) end
+        if bothDuplicates then
+            icon:AddIcon(researchIcon, colorRemote)
+            icon:AddIcon(researchIcon, colorLocal)
+        else
+            icon:AddIcon(researchIcon, colorOverall)
+        end
     end
     icon:Show()
 
-    local duplicateLabelText
-    if not (data.gphTraitEquipped or IsEquippedDisplayItem(data, bagId)) then
-        duplicateLabelText = data.gphTraitLabelText or BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
-    end
+    local duplicateLabelText = BuildDuplicateLabelText(duplicateRemoteItems, colorRemote, duplicateLocalItems, colorLocal)
     if duplicateLabelText then
         label:SetText(duplicateLabelText)
         label:SetHidden(false)
@@ -389,31 +258,22 @@ local function WrapCustomExtraDataFunction(inventory)
 end
 
 local function PatchDeconstructionSetupFunctionForInventory(inventory)
-    if not inventory or not inventory.list then
-        return false
-    end
+    if not inventory or not inventory.list then return false end
 
     local list = inventory.list
-    if not list.SetDataTemplateSetupFunction or not list.dataTypes then
-        return false
-    end
+    if not list.SetDataTemplateSetupFunction or not list.dataTypes then return false end
 
     local function WrapTemplate(templateName)
         local dataType = list.dataTypes[templateName]
-        if not dataType or type(dataType.setupFunction) ~= "function" then
-            return false
-        end
-        if dataType.gphTraitWrapped then
+        if not dataType or type(dataType.setupFunction) ~= "function" or dataType.gphTraitWrapped then
             return false
         end
 
         local originalSetup = dataType.setupFunction
-        local wrappedSetup = function(control, data, selected, ...)
+        list:SetDataTemplateSetupFunction(templateName, function(control, data, selected, ...)
             originalSetup(control, data, selected, ...)
             SharedGamepadEntry_OnSetup_After(control, data)
-        end
-
-        list:SetDataTemplateSetupFunction(templateName, wrappedSetup)
+        end)
         dataType.gphTraitWrapped = true
         return true
     end
@@ -425,58 +285,11 @@ local function PatchDeconstructionSetupFunctionForInventory(inventory)
     return patched
 end
 
-local deconstructionHooksInstalled = false
-local bagHooksInstalled = false
-
-local function HookBagInventoryList(inventoryList)
-    if not inventoryList or inventoryList.gphTraitWrapped then
-        return
-    end
-
-    if inventoryList.list and inventoryList.list.SetDataTemplateSetupFunction and inventoryList.list.dataTypes then
-        local function WrapTemplate(templateName)
-            local dataType = inventoryList.list.dataTypes[templateName]
-            if not dataType or type(dataType.setupFunction) ~= "function" or dataType.gphTraitWrapped then
-                return
-            end
-
-            local originalSetup = dataType.setupFunction
-            inventoryList.list:SetDataTemplateSetupFunction(templateName, function(control, data, selected, ...)
-                originalSetup(control, data, selected, ...)
-                SharedGamepadEntry_OnSetup_After(control, data)
-            end)
-            dataType.gphTraitWrapped = true
-        end
-
-        WrapTemplate("ZO_GamepadItemSubEntryTemplate")
-        WrapTemplate("ZO_GamepadItemSubEntryTemplateWithHeader")
-        WrapTemplate("ZO_GamepadItemSubEntry")
-    end
-
-    local originalSetupItemEntry = inventoryList.SetupItemEntry
-    inventoryList.SetupItemEntry = function(self, entry, itemData, ...)
-        local result = originalSetupItemEntry(self, entry, itemData, ...)
-        if entry then
-            ApplyTraitOverrideData(entry)
-            if type(entry.itemData) == "table" then
-                entry.itemData.gphTraitLabelText = entry.gphTraitLabelText
-            end
-        end
-        return result
-    end
-
-    inventoryList.gphTraitWrapped = true
-end
-
 local function DecorateDeconstructionVisibleControls(inventory)
-    if not inventory or not inventory.list or not inventory.list.GetAllVisibleControls then
-        return
-    end
+    if not inventory or not inventory.list or not inventory.list.GetAllVisibleControls then return end
 
     local visibleControls = inventory.list:GetAllVisibleControls()
-    if not visibleControls then
-        return
-    end
+    if not visibleControls then return end
 
     for control in pairs(visibleControls) do
         local data = control.dataEntry and control.dataEntry.data
@@ -495,36 +308,22 @@ local function DecorateDeconstructionVisibleControls(inventory)
 end
 
 local function QueueDeconstructionVisibleRefresh(inventory)
-    if not inventory then
-        return
-    end
-
-    if inventory.gphTraitRefreshQueued then
-        return
-    end
-
+    if not inventory or inventory.gphTraitRefreshQueued then return end
     inventory.gphTraitRefreshQueued = true
-
-    local function RunPass(delay)
-        zo_callLater(function()
-            if inventory.list then
-                DecorateDeconstructionVisibleControls(inventory)
-            end
-            if delay == 200 then
-                inventory.gphTraitRefreshQueued = false
-            end
-        end, delay)
+    local function Refresh()
+        if inventory.list then DecorateDeconstructionVisibleControls(inventory) end
     end
+    zo_callLater(Refresh, 50)
+    zo_callLater(function() Refresh() inventory.gphTraitRefreshQueued = false end, 200)
+end
 
-    RunPass(0)
-    RunPass(50)
-    RunPass(200)
+local function RefreshDeconstructionInventory(inventory)
+    DecorateDeconstructionVisibleControls(inventory)
+    QueueDeconstructionVisibleRefresh(inventory)
 end
 
 local function HookDeconstructionInventory(inventory)
-    if not inventory then
-        return
-    end
+    if not inventory then return end
 
     WrapCustomExtraDataFunction(inventory)
 
@@ -534,8 +333,7 @@ local function HookDeconstructionInventory(inventory)
             WrapCustomExtraDataFunction(self)
             PatchDeconstructionSetupFunctionForInventory(self)
             local result = originalPerformFullRefresh(self, ...)
-            DecorateDeconstructionVisibleControls(self)
-            QueueDeconstructionVisibleRefresh(self)
+            RefreshDeconstructionInventory(self)
             return result
         end
         inventory.gphTraitRefreshWrapped = true
@@ -545,29 +343,25 @@ local function HookDeconstructionInventory(inventory)
         local originalRefreshVisible = inventory.list.RefreshVisible
         inventory.list.RefreshVisible = function(listSelf, ...)
             local result = originalRefreshVisible(listSelf, ...)
-            DecorateDeconstructionVisibleControls(inventory)
-            QueueDeconstructionVisibleRefresh(inventory)
+            RefreshDeconstructionInventory(inventory)
             return result
         end
         inventory.list.gphTraitRefreshWrapped = true
     end
 
     PatchDeconstructionSetupFunctionForInventory(inventory)
-    DecorateDeconstructionVisibleControls(inventory)
-    QueueDeconstructionVisibleRefresh(inventory)
+    RefreshDeconstructionInventory(inventory)
 end
 
 local function HookDeconstructionTraitLegend(panel, scene)
-    if not panel or panel.gphTraitLegendWrapped then
-        return
-    end
+    if not panel or panel.gphTraitLegendWrapped then return end
 
     AddDeconstructionTraitLegendKeybind(panel)
 
     local originalRefreshTooltip = panel.RefreshTooltip
     panel.RefreshTooltip = function(self, ...)
         local result = originalRefreshTooltip(self, ...)
-        RefreshDeconstructionTraitLegend(self)
+        RefreshDeconstructionTraitLegend()
         return result
     end
 
@@ -575,7 +369,7 @@ local function HookDeconstructionTraitLegend(panel, scene)
         scene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
                 zo_callLater(function()
-                    RefreshDeconstructionTraitLegend(panel)
+                    RefreshDeconstructionTraitLegend()
                     if KEYBIND_STRIP and panel.keybindStripDescriptor then
                         KEYBIND_STRIP:UpdateKeybindButtonGroup(panel.keybindStripDescriptor)
                     end
@@ -590,30 +384,26 @@ local function HookDeconstructionTraitLegend(panel, scene)
     panel.gphTraitLegendWrapped = true
 end
 
+local deconstructionHooksInstalled = false
+
 local function TryInstallDeconstructionHooks()
-    if deconstructionHooksInstalled then
-        return true
-    end
+    if deconstructionHooksInstalled then return true end
 
     if not ZO_UniversalDeconstructionPanel_Gamepad or not ZO_GamepadSmithingExtraction then
         return false
     end
 
-    ZO_PostHook(ZO_UniversalDeconstructionPanel_Gamepad, "InitializeInventory", function(self)
-        HookDeconstructionInventory(self.inventory)
-    end)
+    local function HookClass(class)
+        ZO_PostHook(class, "InitializeInventory", function(self)
+            HookDeconstructionInventory(self.inventory)
+        end)
+        ZO_PostHook(class, "Initialize", function(self, _, _, _, _, scene)
+            HookDeconstructionTraitLegend(self, scene)
+        end)
+    end
 
-    ZO_PostHook(ZO_UniversalDeconstructionPanel_Gamepad, "Initialize", function(self, panelControl, floatingControl, universalDeconstructionParent, isRefinementOnly, scene)
-        HookDeconstructionTraitLegend(self, scene)
-    end)
-
-    ZO_PostHook(ZO_GamepadSmithingExtraction, "InitializeInventory", function(self)
-        HookDeconstructionInventory(self.inventory)
-    end)
-
-    ZO_PostHook(ZO_GamepadSmithingExtraction, "Initialize", function(self, panelControl, floatingControl, owner, isRefinementOnly, scene)
-        HookDeconstructionTraitLegend(self, scene)
-    end)
+    HookClass(ZO_UniversalDeconstructionPanel_Gamepad)
+    HookClass(ZO_GamepadSmithingExtraction)
 
     if UNIVERSAL_DECONSTRUCTION_GAMEPAD
         and UNIVERSAL_DECONSTRUCTION_GAMEPAD.deconstructionPanel
@@ -632,34 +422,39 @@ local function TryInstallDeconstructionHooks()
     return true
 end
 
-local function TryInstallBagHooks()
-    if bagHooksInstalled then
-        return true
+local function RedecorateInventoryList(inventoryList)
+    if not inventoryList then return end
+    local list = (inventoryList.list and inventoryList.list.GetAllVisibleControls) and inventoryList.list or inventoryList
+    local visibleControls = list.GetAllVisibleControls and list:GetAllVisibleControls()
+    if not visibleControls then return end
+    for control in pairs(visibleControls) do
+        local dataIndex = control.dataIndex
+        local data = dataIndex and list.dataList and list.dataList[dataIndex]
+        if data then SharedGamepadEntry_OnSetup_After(control, data) end
     end
-
-    if not GAMEPAD_INVENTORY then
-        return false
-    end
-
-    if GAMEPAD_INVENTORY.itemList then
-        HookBagInventoryList(GAMEPAD_INVENTORY.itemList)
-    end
-
-    if GAMEPAD_INVENTORY.vengeanceItemList then
-        HookBagInventoryList(GAMEPAD_INVENTORY.vengeanceItemList)
-    end
-
-    bagHooksInstalled = GAMEPAD_INVENTORY.itemList ~= nil or GAMEPAD_INVENTORY.vengeanceItemList ~= nil
-    return bagHooksInstalled
 end
+
+local function RefreshBagVisibleItems()
+    zo_callLater(function()
+        if GAMEPAD_INVENTORY then
+            RedecorateInventoryList(GAMEPAD_INVENTORY.itemList)
+            RedecorateInventoryList(GAMEPAD_INVENTORY.vengeanceItemList)
+        end
+        if GAMEPAD_BANKING then
+            RedecorateInventoryList(GAMEPAD_BANKING.withdrawList)
+            RedecorateInventoryList(GAMEPAD_BANKING.depositList)
+        end
+    end, 0)
+end
+
+EVENT_MANAGER:RegisterForEvent("GPH_InventoryTrait_SlotLocked",   EVENT_INVENTORY_SLOT_LOCKED,   RefreshBagVisibleItems)
+EVENT_MANAGER:RegisterForEvent("GPH_InventoryTrait_SlotUnlocked", EVENT_INVENTORY_SLOT_UNLOCKED, RefreshBagVisibleItems)
 
 EVENT_MANAGER:RegisterForEvent("GPH_InventoryTrait_Initialize", EVENT_PLAYER_ACTIVATED, function()
     EVENT_MANAGER:UnregisterForEvent("GPH_InventoryTrait_Initialize", EVENT_PLAYER_ACTIVATED)
 
     local function TryLater()
-        local installedDeconstruction = TryInstallDeconstructionHooks()
-        local installedBag = TryInstallBagHooks()
-        if not installedDeconstruction or not installedBag then
+        if not TryInstallDeconstructionHooks() then
             zo_callLater(TryLater, 1000)
         end
     end

@@ -15,7 +15,7 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
 - **Trait indicator refresh** - equipped researchable items now use a blue state, non-equipped items keep green/yellow/red duplicate logic, and tooltip trait explanations were refreshed to match.
 - **Deconstruction trait legend** - deconstruction screens now show a right-side icon legend for research, duplicate counts, ornate, and intricate markers.
 - **Countess and Bursar split** - The Covetous Countess and Bursar of Tributes now have separate inventory and tooltip toggles.
-- **Shared quest icon styling** - Countess and Bursar now use the same quest icon, with green for active Countess items and blue for active Bursar items.
+- **Shared quest icon styling** - Countess and Bursar now use the same quest icon with unified green for any active quest item and white for useful-but-inactive items. Stolen treasure items cycle between the stolen icon and the quest icon.
 - **Quest-aware treasure checks** - Countess and Bursar treasure detection now follows the updated LibCovetousCountess logic and active quest detection.
 
 ## Installation
@@ -56,9 +56,9 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
 
 Highlights treasures relevant to **The Covetous Countess** and **Bursar of Tributes** quests.
 
-- **Countess green icon** - useful for the current active Countess quest.
-- **Bursar blue icon** - useful for the current active Bursar quest.
-- **White icon** - useful, but not for the current active quest.
+- **Green icon** - useful for the current active Countess or Bursar quest.
+- **White icon** - useful for some quest, but neither is currently active.
+- Stolen treasure items cycle between the stolen icon and the quest icon.
 
 ### Inventory Trait
 

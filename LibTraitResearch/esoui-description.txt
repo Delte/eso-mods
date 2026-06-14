@@ -1,5 +1,5 @@
 ﻿[CENTER][SIZE="5"][COLOR="#3399FF"][B]LibTraitResearch[/B][/COLOR][/SIZE]
-[B]Version 1.04[/B] | API 101050 | by olegbl, quelron[/CENTER]
+[B]Version 1.05[/B] | API 101050 | by olegbl, quelron[/CENTER]
 
 [CENTER]A helper library for Elder Scrolls Online that exposes research-trait state for an item link, including duplicate counts across accessible bags.[/CENTER]
 

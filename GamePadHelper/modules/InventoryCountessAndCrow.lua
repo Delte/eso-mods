@@ -2,47 +2,14 @@
 local MultiIcon = _G["GamePadHelper_IconExtensions"]
 local QUEST_ICON = "/esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds"
 
-local COLOR_COUNTESS_ACTIVE = ZO_ColorDef:New(0.18, 0.77, 0.05)
-local COLOR_CROW_ACTIVE = ZO_ColorDef:New(0.2, 0.6, 1.0)
+local COLOR_ACTIVE          = ZO_ColorDef:New(0.18, 0.77, 0.05)
 local COLOR_USEFUL_INACTIVE = ZO_ColorDef:New(1, 1, 1)
-local BOTH_ACTIVE_FLASH_MS = 800
-
-local function StartBothActiveFlash(statusIndicator)
-    statusIndicator.gphAnimGeneration = (statusIndicator.gphAnimGeneration or 0) + 1
-    local gen = statusIndicator.gphAnimGeneration
-    local showGreen = true
-    local function Animate()
-        if not statusIndicator.gphBothActive or statusIndicator.gphAnimGeneration ~= gen then return end
-        local color = showGreen and COLOR_COUNTESS_ACTIVE or COLOR_CROW_ACTIVE
-        showGreen = not showGreen
-        if statusIndicator.SetIconColor then
-            statusIndicator:SetIconColor(QUEST_ICON, color:UnpackRGBA())
-        end
-        zo_callLater(Animate, BOTH_ACTIVE_FLASH_MS)
-    end
-    Animate()
-end
-
-local function EnsureStatusIndicatorInitialized(statusIndicator)
-    if MultiIcon then
-        MultiIcon.Initialize(statusIndicator)
-    elseif not statusIndicator.HasIcon or not statusIndicator.AddIcon or not statusIndicator.SetIconColor then
-        ZO_MultiIcon_Initialize(statusIndicator)
-    end
-end
 
 local function ClearCovetousDecoration(statusIndicator)
-    if not statusIndicator then
-        return
-    end
-
-    EnsureStatusIndicatorInitialized(statusIndicator)
-
-    if statusIndicator.RemoveIcon and QUEST_ICON then
+    if not statusIndicator then return end
+    MultiIcon.Initialize(statusIndicator)
+    if statusIndicator.RemoveIcon then
         statusIndicator:RemoveIcon(QUEST_ICON)
-    end
-    if statusIndicator.RemoveIconColor and QUEST_ICON then
-        statusIndicator:RemoveIconColor(QUEST_ICON)
     end
 end
 
@@ -80,18 +47,12 @@ local function GetItemLinkFromData(data)
 end
 
 local function RefreshMultiIcon(icon)
-    if not icon or not icon.iconData or not icon.Hide or not icon.Show then
-        return
-    end
-
-    local wasHidden = icon:IsHidden()
-    if not wasHidden then
-        icon:Hide()
-    end
+    if not icon or not icon.iconData or not icon.Hide or not icon.Show then return end
+    if not icon:IsHidden() then icon:Hide() end
     icon:Show()
 end
 
-local function SharedGamepadEntry_OnSetup_After(control, data, ...)
+local function SharedGamepadEntry_OnSetup_After(control, data)
     local sv = _G["GamePadHelper_CharSavedVars"]
     local statusIndicator = control:GetNamedChild("StatusIndicator")
     if not statusIndicator then return end
@@ -109,36 +70,46 @@ local function SharedGamepadEntry_OnSetup_After(control, data, ...)
     local isUsefulForActiveQuest, isUsefulForQuest = Utils.GetCountessState(itemLink)
     local isUsefulForActiveCrowGroup, isUsefulForCrow = Utils.GetCrowState(itemLink)
 
-    EnsureStatusIndicatorInitialized(statusIndicator)
+    MultiIcon.Initialize(statusIndicator)
 
     local countessActive = sv.inventoryCovetousCountessEnabled and isUsefulForActiveQuest
-    local crowActive = sv.inventoryCrowEnabled and isUsefulForActiveCrowGroup
+    local crowActive     = sv.inventoryCrowEnabled and isUsefulForActiveCrowGroup
     local countessUseful = sv.inventoryCovetousCountessEnabled and isUsefulForQuest
-    local crowUseful = sv.inventoryCrowEnabled and isUsefulForCrow
+    local crowUseful     = sv.inventoryCrowEnabled and isUsefulForCrow
 
-    if (countessActive or crowActive or countessUseful or crowUseful) and QUEST_ICON then
-        if not statusIndicator:HasIcon(QUEST_ICON) then
-            statusIndicator:AddIcon(QUEST_ICON)
-        end
-        if countessActive and crowActive then
-            statusIndicator.gphBothActive = true
-            StartBothActiveFlash(statusIndicator)
-        else
-            statusIndicator.gphBothActive = false
-            if statusIndicator.SetIconColor then
-                local color = countessActive and COLOR_COUNTESS_ACTIVE
-                           or crowActive and COLOR_CROW_ACTIVE
-                           or COLOR_USEFUL_INACTIVE
-                statusIndicator:SetIconColor(QUEST_ICON, color:UnpackRGBA())
-            end
-        end
+    local anyActive  = countessActive or crowActive
+    local anyUseful  = countessUseful or crowUseful
+
+    if anyActive or anyUseful then
+        statusIndicator:AddIcon(QUEST_ICON, anyActive and COLOR_ACTIVE or COLOR_USEFUL_INACTIVE)
         statusIndicator:Show()
-    else
-        statusIndicator.gphBothActive = false
-        ClearCovetousDecoration(statusIndicator)
     end
 
     RefreshMultiIcon(statusIndicator)
 end
 
 ZO_PostHook("ZO_SharedGamepadEntry_OnSetup", SharedGamepadEntry_OnSetup_After)
+
+local function RedecorateInventoryList(inventoryList)
+    if not inventoryList then return end
+    local list = (inventoryList.list and inventoryList.list.GetAllVisibleControls) and inventoryList.list or inventoryList
+    local visibleControls = list.GetAllVisibleControls and list:GetAllVisibleControls()
+    if not visibleControls then return end
+    for control in pairs(visibleControls) do
+        local dataIndex = control.dataIndex
+        local data = dataIndex and list.dataList and list.dataList[dataIndex]
+        if data then SharedGamepadEntry_OnSetup_After(control, data) end
+    end
+end
+
+local function RefreshVisibleInventoryControls()
+    zo_callLater(function()
+        if GAMEPAD_INVENTORY then
+            RedecorateInventoryList(GAMEPAD_INVENTORY.itemList)
+        end
+    end, 0)
+end
+
+EVENT_MANAGER:RegisterForEvent("GPH_CC_QuestAdded",    EVENT_QUEST_ADDED,    RefreshVisibleInventoryControls)
+EVENT_MANAGER:RegisterForEvent("GPH_CC_QuestRemoved",  EVENT_QUEST_REMOVED,  RefreshVisibleInventoryControls)
+EVENT_MANAGER:RegisterForEvent("GPH_CC_QuestAdvanced", EVENT_QUEST_ADVANCED, RefreshVisibleInventoryControls)
