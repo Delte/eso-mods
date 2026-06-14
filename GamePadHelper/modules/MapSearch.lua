@@ -1234,16 +1234,35 @@ local function GetGroupCountsPerKeep(keepNodes)
         end
     end
 
+    local leaderX, leaderY
     if leaderTag then
         local lx, ly, _, isInMap = GetMapPlayerPosition(leaderTag)
-        if isInMap then leaderKeep = nearestKeep(lx, ly) end
+        if isInMap then
+            leaderKeep = nearestKeep(lx, ly)
+            leaderX, leaderY = lx, ly
+        end
     end
 
-    return counts, leaderKeep
+    return counts, leaderKeep, leaderX, leaderY
 end
 
+local function IsCyrodiilKeepSearchEnabled()
+    local sv = _G["GamePadHelper_CharSavedVars"]
+    if sv and sv.cyrodiilKeepSearchEnabled == false then return false end
+    return true
+end
+
+
+local cyrodiilMainMapId = nil  -- captured when main Cyrodiil map is open, reused for sub-map panning
+
 local function BuildCyrodiilKeepCandidates(list)
+    if not IsCyrodiilKeepSearchEnabled() then return end
     if not GetMapContentType or GetMapContentType() ~= MAP_CONTENT_AVA then return end
+
+    -- Store Cyrodiil main map ID only when on the zone-level map (not a gate sub-map)
+    if GetCurrentMapId and GetMapType and GetMapType() == MAPTYPE_ZONE then
+        cyrodiilMainMapId = GetCurrentMapId()
+    end
 
     local bgContext = BGQUERY_ASSIGNED_AND_LOCAL
     local VALID_TYPES = {
@@ -1265,7 +1284,7 @@ local function BuildCyrodiilKeepCandidates(list)
 
     if #keepNodes == 0 then return end
 
-    local groupCounts, leaderKeepId = GetGroupCountsPerKeep(keepNodes)
+    local groupCounts, leaderKeepId, leaderX, leaderY = GetGroupCountsPerKeep(keepNodes)
 
     table.sort(keepNodes, function(a, b)
         local aIsLeader = (a.keepId == leaderKeepId)
@@ -1278,19 +1297,25 @@ local function BuildCyrodiilKeepCandidates(list)
     end)
 
     for _, node in ipairs(keepNodes) do
-        local keepId = node.keepId
-        local name   = GetKeepName(keepId)
+        local keepId   = node.keepId
+        local name     = GetKeepName(keepId)
+        local alliance = GetKeepAlliance(keepId, bgContext)
+        local pinType  = GetKeepPinInfo(keepId, bgContext)
+        local pinData  = ZO_MapPin and ZO_MapPin.PIN_DATA and ZO_MapPin.PIN_DATA[pinType]
         list[#list + 1] = {
             name         = name,
             searchName   = name:lower(),
             type         = TYPE_CYRODIIL_KEEP,
-            icon         = "EsoUI/Art/MapPins/AvA/mapPin_AvA_keep_player.dds",
+            icon         = pinData and pinData.texture,
             keepId       = keepId,
-            alliance     = GetKeepAlliance(keepId, bgContext),
+            alliance     = alliance,
             groupCount   = groupCounts[keepId] or 0,
             isLeaderKeep = (keepId == leaderKeepId),
+            leaderNormX  = (keepId == leaderKeepId) and leaderX or nil,
+            leaderNormY  = (keepId == leaderKeepId) and leaderY or nil,
             normX        = node.normX,
             normY        = node.normY,
+            cityMapId    = cyrodiilMainMapId,
             known        = true,
             isLocked     = false,
         }
@@ -1616,6 +1641,14 @@ RunSearch = function(term)
 
     if termLower == "" and currentTab == TAB_SEARCH then
         results = {}
+        if IsCyrodiilKeepSearchEnabled() and GetMapContentType and GetMapContentType() == MAP_CONTENT_AVA then
+            for i = 1, #source do
+                local c = source[i]
+                if c.type == TYPE_CYRODIIL_KEEP then
+                    results[#results + 1] = c
+                end
+            end
+        end
         return
     end
 
@@ -1822,6 +1855,9 @@ local function GetCandidateSubText(c)
         parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_LABEL_LIFT)
     elseif c.type == TYPE_ZONE then
         parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_ZONE)
+    elseif c.type == TYPE_CYRODIIL_KEEP then
+        local allianceLabel = c.alliance and GetString("SI_ALLIANCE", c.alliance) or ""
+        parts[#parts + 1] = allianceLabel ~= "" and allianceLabel or GetString(SI_GPH_MAPSEARCH_GROUP_CYRODIIL_KEEPS)
     end
     return #parts > 0 and table.concat(parts, ", ") or nil
 end
@@ -2134,7 +2170,13 @@ local function PlaceDestinationDiamondPre(c)
     if sv ~= nil and sv.mapSearchSetDestination == false then return end
     local x, y
     local zoneIndex = GetResolvedZoneIndex(c)
-    if c.destinationX and c.destinationY then
+    if c.type == TYPE_CYRODIIL_KEEP then
+        if c.isLeaderKeep and c.leaderNormX and c.leaderNormY then
+            x, y = c.leaderNormX, c.leaderNormY
+        elseif c.normX and c.normY then
+            x, y = c.normX, c.normY
+        end
+    elseif c.destinationX and c.destinationY then
         x, y = c.destinationX, c.destinationY
     elseif zoneIndex and c.poiIndex then
         x, y = GetPOIMapInfo(zoneIndex, c.poiIndex)
@@ -2154,6 +2196,15 @@ end
 local function StorePostTeleportDestination(c)
     local sv = GetSavedVars()
     if sv ~= nil and sv.mapSearchSetDestination == false then return end
+    if c.type == TYPE_CYRODIIL_KEEP then
+        local cyrodiilMapId = GetCurrentMapId and GetCurrentMapId()
+        if c.isLeaderKeep and c.leaderNormX and c.leaderNormY then
+            postTeleportDestination = { x = c.leaderNormX, y = c.leaderNormY, mapId = cyrodiilMapId }
+        elseif c.normX and c.normY then
+            postTeleportDestination = { x = c.normX, y = c.normY, mapId = cyrodiilMapId }
+        end
+        return
+    end
     local mapId = c.cityMapId
         or (c.zoneId and GetMapIdByZoneId and GetMapIdByZoneId(c.zoneId) or nil)
     local zoneIndex = GetResolvedZoneIndex(c)
@@ -2216,6 +2267,14 @@ local function CenterMapOnCandidate(c)
                 AddMapPin(nx, ny)
             end
             ZO_WorldMap_PanToWayshrine(c.nodeIndex)
+        end
+        if c.type == TYPE_CYRODIIL_KEEP and c.normX and c.normY then
+            ZO_WorldMap_PanToNormalizedPosition(c.normX, c.normY)
+            if c.isLeaderKeep and c.leaderNormX and c.leaderNormY then
+                AddMapPin(c.leaderNormX, c.leaderNormY)
+            else
+                AddMapPin(c.normX, c.normY)
+            end
         end
     end
 
@@ -2447,6 +2506,18 @@ local function BuildKeybindDescriptor()
 
                 if c.type == TYPE_CYRODIIL_KEEP then
                     if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER:IsInMode(MAP_MODE_KEEP_TRAVEL) then
+                        for i = 1, GetGroupSize() do
+                            local tag = GetGroupUnitTagByIndex(i)
+                            if tag and DoesUnitExist(tag) and IsUnitOnline(tag) and IsUnitGroupLeader(tag) then
+                                local lx, ly, _, isInMap = GetMapPlayerPosition(tag)
+                                if isInMap then
+                                    c.leaderNormX, c.leaderNormY = lx, ly
+                                    c.isLeaderKeep = true
+                                end
+                                break
+                            end
+                        end
+                        StorePostTeleportDestination(c)
                         TravelToKeep(c.keepId)
                     else
                         ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_CYRODIIL_TRAVEL_REQUIRES_SHRINE))
@@ -2653,7 +2724,8 @@ local function InitList(control)
         if not (editControl and editControl:HasFocus()) then
             SCREEN_NARRATION_MANAGER:QueueCustomEntry("GPH_MapSearch_Narration")
         end
-        if not (listObject:GetTargetData() and listObject:GetTargetData().candidate) then
+        local td = listObject:GetTargetData()
+        if not (td and td.candidate) then
             ZO_WorldMap_HideAllTooltips()
         end
         DetailTooltip()
@@ -2766,6 +2838,17 @@ local function InsertMapSearchTab()
         if newState == SCENE_SHOWING then
             if _G["GamePadHelper_MapTeleporter_SetSuppressed"] then
                 _G["GamePadHelper_MapTeleporter_SetSuppressed"](true)
+            end
+            candidates = nil  -- rebuild keep group counts fresh each time the list opens
+            if IsCyrodiilKeepSearchEnabled() and GetMapContentType and GetMapContentType() == MAP_CONTENT_AVA then
+                for i = 1, GetGroupSize() do
+                    local tag = GetGroupUnitTagByIndex(i)
+                    if tag and DoesUnitExist(tag) and IsUnitOnline(tag) and IsUnitGroupLeader(tag) then
+                        local lx, ly, _, isInMap = GetMapPlayerPosition(tag)
+                        if isInMap then AddMapPin(lx, ly) end
+                        break
+                    end
+                end
             end
             RunSearch(currentTerm)
             if not zoneMapCounts   then BuildZoneMapCounts()   end
@@ -3131,12 +3214,13 @@ local function OnAddonLoaded(_, name)
         end)
     end
 
-    -- Enlarge the group leader pin when viewing the Cyrodiil map
+    -- Enlarge the group leader pin to 64×64 when viewing the Cyrodiil map
     if ZO_MapPin and ZO_PostHook and MAP_CONTENT_AVA then
         ZO_PostHook(ZO_MapPin, "UpdateSize", function(self)
             if self.m_PinType == MAP_PIN_TYPE_GROUP_LEADER
             and GetMapContentType
             and GetMapContentType() == MAP_CONTENT_AVA
+            and IsCyrodiilKeepSearchEnabled()
             then
                 self:GetControl():SetDimensions(64, 64)
             end

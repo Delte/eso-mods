@@ -5,6 +5,11 @@ A modular collection of quality-of-life improvements for Elder Scrolls Online, b
 Open settings from:
 Options > GPH Settings
 
+## What's New in 1.06.16
+
+- Cyrodiil Map Search: Map Search now shows accessible keeps, outposts, and border keeps when the Cyrodiil map is open. Group member counts appear on each keep and the keep nearest to your group leader is listed first. Open Map Search at a Transitus Shrine to travel to a keep directly.
+- Group leader pin: the group leader pin on the Cyrodiil map is enlarged for better visibility and a navigation marker is placed at the leader's position when Map Search opens.
+
 ## What's New in 1.06.15
 
 - Reset timer: daily reset countdown now shows HH:MM instead of HH:MM:SS.

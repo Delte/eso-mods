@@ -352,6 +352,13 @@ local function BuildSettingsData()
         end
     end))
 
+    add(BuildCheckboxCustom(GetString(SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_NAME), GetString(SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_TOOLTIP), function()
+        return GetBoolSetting("cyrodiilKeepSearchEnabled", true)
+    end, function(v)
+        SetSetting("cyrodiilKeepSearchEnabled", v)
+    end, nil, mapSearchDisabled))
+
+
     add(BuildCheckbox(GetString(SI_GPH_SETTING_TELEPORTER_NAME), GetString(SI_GPH_SETTING_TELEPORTER_TOOLTIP), "teleporterEnabled"))
 
     -- Overview

@@ -11,6 +11,7 @@ GamePadHelper_MapSearchData = GamePadHelper_MapSearchData or {}
 
 local data = GamePadHelper_MapSearchData
 
+
 data.DAILY_QUEST_GIVERS = {
     {
         name = "Alvur Baren", -- https://en.uesp.net/wiki/Online:Alvur_Baren

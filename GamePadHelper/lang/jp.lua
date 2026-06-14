@@ -31,6 +31,9 @@ local strings = {
     SI_GPH_CYRODIIL_MEMBERS_NEARBY = "人のメンバーが近くにいます",
     SI_GPH_CYRODIIL_LEADER_NEARBY = "グループリーダーがここにいます",
     SI_GPH_CYRODIIL_TRAVEL_REQUIRES_SHRINE = "砦に移動するには、トランジトゥス神殿にいる必要があります。",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_NAME = "シロディール砦検索",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_TOOLTIP = "シロディールマップを表示しているとき、マップ検索でアクセス可能なシロディールの砦を表示します。",
+
     SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES = "持ち家",
     SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES = "空き家",
     SI_GPH_MAPSEARCH_GROUP_WAYSHRINES = "旅の祠",

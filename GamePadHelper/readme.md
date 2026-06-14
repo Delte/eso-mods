@@ -1,12 +1,23 @@
 # GamePadHelper
 
-**Version:** 1.06.14  
+**Version:** 1.06.16  
 **Authors:** olegbl, quelron  
 **API:** 101050
 
 GamePadHelper is a modular collection of quality-of-life improvements for Elder Scrolls Online, built specifically for gamepad and console UI.
 
 Price data can use supported sources such as TamrielTradeCentre and Tamriel Savings Co Price Fetcher / TSC data packages when available.
+
+## What's New in 1.06.16
+
+- **Cyrodiil Map Search** - Map Search now shows accessible keeps, outposts, and border keeps when the Cyrodiil map is open. Group member counts appear on each keep entry and the keep nearest to your group leader is listed first with a green indicator. Open Map Search at a Transitus Shrine to select and travel to a keep directly. Toggle via Settings → GPH Settings → Map Search → Cyrodiil Keep Search.
+- **Group leader pin** - the group leader pin on the Cyrodiil map is enlarged to 64×64 for better visibility. A navigation marker is automatically placed at the leader's last known position when Map Search opens.
+
+## What's New in 1.06.15
+
+- **Reset timer** - daily reset countdown now shows HH:MM instead of HH:MM:SS.
+- **Auto Charge fix** - weapon charge threshold was referencing a stale variable; charging now triggers correctly at the configured threshold.
+- **Countess and Bursar dual active** - when both quests are active for the same item, the inventory icon now flashes between green and blue.
 
 ## What's New in 1.06.14
 
@@ -31,7 +42,7 @@ Price data can use supported sources such as TamrielTradeCentre and Tamriel Savi
 ## Main Features
 
 - **Overview Panel** - adds a two-column root menu overview with quest details on the left and daily reminders on the right.
-- **Map Search** - adds a gamepad search tab for wayshrines, zones, houses, city services, daily quest givers, and travel NPCs.
+- **Map Search** - adds a gamepad search tab for wayshrines, zones, houses, city services, daily quest givers, travel NPCs, and Cyrodiil keeps (when in Cyrodiil).
 - **Teleporter** - teleports to hovered zones from the world map and adds chat jump options.
 - **Dungeon Finder** - shows pledge quest names in the finder list.
 - **Fishing** - vibration, reel alert, automatic bait selection, and fallback bait support.

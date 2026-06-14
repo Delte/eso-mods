@@ -31,6 +31,9 @@ local strings = {
     SI_GPH_CYRODIIL_MEMBERS_NEARBY = "membres à proximité",
     SI_GPH_CYRODIIL_LEADER_NEARBY = "Le chef du groupe est ici",
     SI_GPH_CYRODIIL_TRAVEL_REQUIRES_SHRINE = "Vous devez être à un Sanctuaire de Transit pour voyager vers un fort.",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_NAME = "Recherche de forts de Cyrodiil",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_TOOLTIP = "Affiche les forts accessibles de Cyrodiil dans la recherche de carte lors de l'affichage de la carte de Cyrodiil.",
+
     SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES = "Maisons en propriété",
     SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES = "Maisons sans propriétaire",
     SI_GPH_MAPSEARCH_GROUP_WAYSHRINES = "Sanctuaires",

@@ -31,6 +31,9 @@ local strings = {
     SI_GPH_CYRODIIL_MEMBERS_NEARBY = "участников рядом",
     SI_GPH_CYRODIIL_LEADER_NEARBY = "Лидер группы здесь",
     SI_GPH_CYRODIIL_TRAVEL_REQUIRES_SHRINE = "Вы должны находиться у Транзитного святилища, чтобы путешествовать к крепости.",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_NAME = "Поиск крепостей Сиродила",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_TOOLTIP = "Показывает доступные крепости Сиродила в поиске карты при просмотре карты Сиродила.",
+
     SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES = "Собственные дома",
     SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES = "Бесхозные дома",
     SI_GPH_MAPSEARCH_GROUP_WAYSHRINES = "Дорожные святыни",

@@ -31,6 +31,9 @@ local strings = {
     SI_GPH_CYRODIIL_MEMBERS_NEARBY = "Mitglieder in der Nähe",
     SI_GPH_CYRODIIL_LEADER_NEARBY = "Gruppenanführer ist hier",
     SI_GPH_CYRODIIL_TRAVEL_REQUIRES_SHRINE = "Du musst an einem Transitus-Schrein sein, um zu einer Festung zu reisen.",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_NAME = "Cyrodiil-Festungssuche",
+    SI_GPH_SETTING_CYRODIIL_KEEP_SEARCH_TOOLTIP = "Zeigt zugängliche Cyrodiil-Festungen in der Kartensuche an, wenn die Cyrodiil-Karte angezeigt wird.",
+
     SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES = "Eigene Häuser",
     SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES = "Unbewohnte Häuser",
     SI_GPH_MAPSEARCH_GROUP_WAYSHRINES = "Wegheiligtümer",
