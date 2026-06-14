@@ -19,16 +19,17 @@ local function TruncateDetail(s, maxLen)
     return cut .. "..."
 end
 
-local TYPE_WAYSHRINE     = 1
-local TYPE_ZONE          = 2
-local TYPE_POI           = 3
-local TYPE_HOUSE_OWNED   = 4
-local TYPE_HOUSE_UNOWNED = 5
-local TYPE_LIFT          = 6
-local TYPE_CUSTOM        = 7
-local TYPE_NPC           = 8
-local TYPE_TRADER        = 9
-local TYPE_TRAVEL        = 10
+local TYPE_WAYSHRINE        = 1
+local TYPE_ZONE             = 2
+local TYPE_POI              = 3
+local TYPE_HOUSE_OWNED      = 4
+local TYPE_HOUSE_UNOWNED    = 5
+local TYPE_LIFT             = 6
+local TYPE_CUSTOM           = 7
+local TYPE_NPC              = 8
+local TYPE_TRADER           = 9
+local TYPE_TRAVEL           = 10
+local TYPE_CYRODIIL_KEEP    = 11
 
 local function IsServiceMapTarget(c)
     return c and (c.type == TYPE_CUSTOM or c.type == TYPE_NPC or c.type == TYPE_TRADER or c.type == TYPE_TRAVEL)
@@ -476,6 +477,13 @@ local function BuildCandidateNarrationText(c, isBookmark)
     elseif c.type == TYPE_ZONE then
         if c.isLocked then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED) end
         parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_ZONE)
+    elseif c.type == TYPE_CYRODIIL_KEEP then
+        if c.groupCount and c.groupCount > 0 then
+            parts[#parts + 1] = c.groupCount .. " " .. GetString(SI_GPH_CYRODIIL_MEMBERS_NEARBY)
+        end
+        if c.isLeaderKeep then
+            parts[#parts + 1] = GetString(SI_GPH_CYRODIIL_LEADER_NEARBY)
+        end
     elseif c.type == TYPE_LIFT then
         if not c.known     then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_UNDISCOVERED)
         elseif c.isLocked  then parts[#parts + 1] = GetString(SI_GPH_MAPSEARCH_NARRATION_LOCKED) end
@@ -1194,6 +1202,101 @@ local function GetTraderCountForCandidate(c)
 end
 
 
+local function GetGroupCountsPerKeep(keepNodes)
+    local counts     = {}
+    local leaderTag  = nil
+    local leaderKeep = nil
+
+    for i = 1, GetGroupSize() do
+        local tag = GetGroupUnitTagByIndex(i)
+        if tag and DoesUnitExist(tag) and IsUnitOnline(tag) then
+            if IsUnitGroupLeader(tag) then leaderTag = tag end
+        end
+    end
+
+    local function nearestKeep(nx, ny)
+        local best, bestDist = nil, math.huge
+        for _, node in ipairs(keepNodes) do
+            local d = (nx - node.normX)^2 + (ny - node.normY)^2
+            if d < bestDist then best, bestDist = node.keepId, d end
+        end
+        return best
+    end
+
+    for i = 1, GetGroupSize() do
+        local tag = GetGroupUnitTagByIndex(i)
+        if tag and DoesUnitExist(tag) and IsUnitOnline(tag) then
+            local x, y, _, isInMap = GetMapPlayerPosition(tag)
+            if isInMap then
+                local kid = nearestKeep(x, y)
+                if kid then counts[kid] = (counts[kid] or 0) + 1 end
+            end
+        end
+    end
+
+    if leaderTag then
+        local lx, ly, _, isInMap = GetMapPlayerPosition(leaderTag)
+        if isInMap then leaderKeep = nearestKeep(lx, ly) end
+    end
+
+    return counts, leaderKeep
+end
+
+local function BuildCyrodiilKeepCandidates(list)
+    if not GetMapContentType or GetMapContentType() ~= MAP_CONTENT_AVA then return end
+
+    local bgContext = BGQUERY_ASSIGNED_AND_LOCAL
+    local VALID_TYPES = {
+        [KEEPTYPE_KEEP]        = true,
+        [KEEPTYPE_OUTPOST]     = true,
+        [KEEPTYPE_BORDER_KEEP] = true,
+    }
+
+    local keepNodes = {}
+    for i = 1, GetNumKeepTravelNetworkNodes(bgContext) do
+        local keepId, accessible, normX, normY = GetKeepTravelNetworkNodeInfo(i, bgContext)
+        if accessible then
+            local kt = GetKeepType(keepId)
+            if VALID_TYPES[kt] then
+                keepNodes[#keepNodes + 1] = { keepId = keepId, normX = normX, normY = normY }
+            end
+        end
+    end
+
+    if #keepNodes == 0 then return end
+
+    local groupCounts, leaderKeepId = GetGroupCountsPerKeep(keepNodes)
+
+    table.sort(keepNodes, function(a, b)
+        local aIsLeader = (a.keepId == leaderKeepId)
+        local bIsLeader = (b.keepId == leaderKeepId)
+        if aIsLeader ~= bIsLeader then return aIsLeader end
+        local ac = groupCounts[a.keepId] or 0
+        local bc = groupCounts[b.keepId] or 0
+        if ac ~= bc then return ac > bc end
+        return GetKeepName(a.keepId) < GetKeepName(b.keepId)
+    end)
+
+    for _, node in ipairs(keepNodes) do
+        local keepId = node.keepId
+        local name   = GetKeepName(keepId)
+        list[#list + 1] = {
+            name         = name,
+            searchName   = name:lower(),
+            type         = TYPE_CYRODIIL_KEEP,
+            icon         = "EsoUI/Art/MapPins/AvA/mapPin_AvA_keep_player.dds",
+            keepId       = keepId,
+            alliance     = GetKeepAlliance(keepId, bgContext),
+            groupCount   = groupCounts[keepId] or 0,
+            isLeaderKeep = (keepId == leaderKeepId),
+            normX        = node.normX,
+            normY        = node.normY,
+            known        = true,
+            isLocked     = false,
+        }
+    end
+end
+
 local function BuildCandidates()
     if not scannedData then PreScan() end
 
@@ -1455,6 +1558,8 @@ local function BuildCandidates()
             end
         end
     end
+
+    BuildCyrodiilKeepCandidates(list)
 
     scannedData = nil  -- free raw scan data; candidates table has everything needed
     return list
@@ -1796,16 +1901,17 @@ end
 
 
 local CAT_NAMES = {
-    [TYPE_WAYSHRINE]     = GetString(SI_GPH_MAPSEARCH_GROUP_WAYSHRINES),
-    [TYPE_LIFT]          = GetString(SI_GPH_MAPSEARCH_GROUP_LIFTS),
-    [TYPE_ZONE]          = GetString(SI_GPH_MAPSEARCH_GROUP_ZONES),
-    [TYPE_POI]           = GetString(SI_GPH_MAPSEARCH_GROUP_LOCATIONS),
-    [TYPE_HOUSE_OWNED]   = GetString(SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES),
-    [TYPE_HOUSE_UNOWNED] = GetString(SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES),
-    [TYPE_CUSTOM]        = GetString(SI_GPH_MAPSEARCH_GROUP_CITY_LOCATIONS),
-    [TYPE_NPC]           = GetString(SI_GPH_MAPSEARCH_GROUP_NPCS),
-    [TYPE_TRADER]        = GetString(SI_GPH_MAPSEARCH_GROUP_GUILD_TRADERS),
-    [TYPE_TRAVEL]        = GetString(SI_GPH_MAPSEARCH_GROUP_TRAVEL_SERVICES),
+    [TYPE_WAYSHRINE]        = GetString(SI_GPH_MAPSEARCH_GROUP_WAYSHRINES),
+    [TYPE_LIFT]             = GetString(SI_GPH_MAPSEARCH_GROUP_LIFTS),
+    [TYPE_ZONE]             = GetString(SI_GPH_MAPSEARCH_GROUP_ZONES),
+    [TYPE_POI]              = GetString(SI_GPH_MAPSEARCH_GROUP_LOCATIONS),
+    [TYPE_HOUSE_OWNED]      = GetString(SI_GPH_MAPSEARCH_GROUP_OWNED_HOUSES),
+    [TYPE_HOUSE_UNOWNED]    = GetString(SI_GPH_MAPSEARCH_GROUP_UNOWNED_HOUSES),
+    [TYPE_CUSTOM]           = GetString(SI_GPH_MAPSEARCH_GROUP_CITY_LOCATIONS),
+    [TYPE_NPC]              = GetString(SI_GPH_MAPSEARCH_GROUP_NPCS),
+    [TYPE_TRADER]           = GetString(SI_GPH_MAPSEARCH_GROUP_GUILD_TRADERS),
+    [TYPE_TRAVEL]           = GetString(SI_GPH_MAPSEARCH_GROUP_TRAVEL_SERVICES),
+    [TYPE_CYRODIIL_KEEP]    = GetString(SI_GPH_MAPSEARCH_GROUP_CYRODIIL_KEEPS),
 }
 
 local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmark)
@@ -1880,6 +1986,14 @@ local function BuildListEntryData(c, displayName, isBookmarked, narrationBookmar
         if zoneMapText then entryData:AddSubLabel("|cFFD700" .. zoneMapText .. "|r") end
         if zoneLeadText then entryData:AddSubLabel("|cFFD700" .. zoneLeadText .. "|r") end
         if zoneQuestText then entryData:AddSubLabel("|cFFD700" .. zoneQuestText .. "|r") end
+    end
+    if c.type == TYPE_CYRODIIL_KEEP then
+        if c.groupCount and c.groupCount > 0 then
+            entryData:AddSubLabel("|cFFD700" .. c.groupCount .. " " .. GetString(SI_GPH_CYRODIIL_MEMBERS_NEARBY) .. "|r")
+        end
+        if c.isLeaderKeep then
+            entryData:AddSubLabel("|c66FF99" .. GetString(SI_GPH_CYRODIIL_LEADER_NEARBY) .. "|r")
+        end
     end
     if traderCount then
         local traderText = traderCount .. " " .. GetString(traderCount == 1 and SI_GPH_MAPSEARCH_WAYSHRINE_TRADER or SI_GPH_MAPSEARCH_WAYSHRINE_TRADERS)
@@ -1958,6 +2072,7 @@ RebuildList = function()
                 grouped[c.type][#grouped[c.type] + 1] = c
             end
             local typeOrder = {
+                TYPE_CYRODIIL_KEEP,
                 TYPE_WAYSHRINE,
                 TYPE_LIFT,
                 TYPE_ZONE,
@@ -2273,7 +2388,8 @@ local function BuildKeybindDescriptor()
                 if td and td.candidate then
                     local c = td.candidate
                     if (c.type == TYPE_WAYSHRINE and c.known and not c.isLocked)
-                    or c.type == TYPE_HOUSE_OWNED then
+                    or c.type == TYPE_HOUSE_OWNED
+                    or c.type == TYPE_CYRODIIL_KEEP then
                         return GetString(SI_GPH_TELEPORT)
                     end
                 end
@@ -2326,6 +2442,15 @@ local function BuildKeybindDescriptor()
                         return
                     end
                     ZO_Dialogs_ShowGamepadDialog("GAMEPAD_TRAVEL_TO_HOUSE_OPTIONS_DIALOG", { GetReferenceId = function() return c.houseId end })
+                    return
+                end
+
+                if c.type == TYPE_CYRODIIL_KEEP then
+                    if WORLD_MAP_MANAGER and WORLD_MAP_MANAGER:IsInMode(MAP_MODE_KEEP_TRAVEL) then
+                        TravelToKeep(c.keepId)
+                    else
+                        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_GPH_CYRODIIL_TRAVEL_REQUIRES_SHRINE))
+                    end
                     return
                 end
 
@@ -2768,6 +2893,9 @@ local function OnAddonLoaded(_, name)
     EVENT_MANAGER:RegisterForEvent("MapSearch_POIUpdated", EVENT_POI_UPDATED, function()
         cachedRecallNode = nil
     end)
+    EVENT_MANAGER:RegisterForEvent("MapSearch_KeepNetworkUpdated", EVENT_FAST_TRAVEL_KEEP_NETWORK_UPDATED, function()
+        candidates = nil
+    end)
 
     -- Auto-capture crafting set trait data when player visits a crafting station
     local SMITHING_TYPES = {
@@ -2999,6 +3127,18 @@ local function OnAddonLoaded(_, name)
                 local dest = pendingWaypointDest
                 pendingWaypointDest = nil
                 zo_callLater(function() ApplyWaypointNow(dest) end, 150)
+            end
+        end)
+    end
+
+    -- Enlarge the group leader pin when viewing the Cyrodiil map
+    if ZO_MapPin and ZO_PostHook and MAP_CONTENT_AVA then
+        ZO_PostHook(ZO_MapPin, "UpdateSize", function(self)
+            if self.m_PinType == MAP_PIN_TYPE_GROUP_LEADER
+            and GetMapContentType
+            and GetMapContentType() == MAP_CONTENT_AVA
+            then
+                self:GetControl():SetDimensions(64, 64)
             end
         end)
     end
