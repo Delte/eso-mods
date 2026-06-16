@@ -1293,12 +1293,12 @@ local function BuildCyrodiilKeepCandidates(list)
         local ac = groupCounts[a.keepId] or 0
         local bc = groupCounts[b.keepId] or 0
         if ac ~= bc then return ac > bc end
-        return GetKeepName(a.keepId) < GetKeepName(b.keepId)
+        return CleanName(GetKeepName(a.keepId)) < CleanName(GetKeepName(b.keepId))
     end)
 
     for _, node in ipairs(keepNodes) do
         local keepId   = node.keepId
-        local name     = GetKeepName(keepId)
+        local name     = CleanName(GetKeepName(keepId))
         local alliance = GetKeepAlliance(keepId, bgContext)
         local pinType  = GetKeepPinInfo(keepId, bgContext)
         local pinData  = ZO_MapPin and ZO_MapPin.PIN_DATA and ZO_MapPin.PIN_DATA[pinType]
